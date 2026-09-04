@@ -1,0 +1,25 @@
+{
+  "comment": "docs/02 normative RFC 5424 example",
+  "raw": "<165>1 2026-09-04T20:52:35.000Z sut-1 sshd 1234 ID47 [sshd@0 user=\"alice\"] Failed password",
+  "warning": "",
+  "parsed": {
+    "pri": 165,
+    "facility": 20,
+    "severity": 5,
+    "version": 1,
+    "timestamp": "2026-09-04T20:52:35Z",
+    "hostname": "sut-1",
+    "appName": "sshd",
+    "procID": "1234",
+    "msgID": "ID47",
+    "structured": [
+      {
+        "id": "sshd@0",
+        "params": [
+          {"name": "user", "value": "alice"}
+        ]
+      }
+    ],
+    "message": "Failed password"
+  }
+}

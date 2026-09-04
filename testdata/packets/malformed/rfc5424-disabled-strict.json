@@ -1,0 +1,8 @@
+{
+  "comment": "looks like 5424, rfc5424 disabled, bestEffort false is a drop (not 3164)",
+  "raw": "<165>1 2026-09-04T20:52:35.000Z sut-1 sshd 1234 ID47 - - hello",
+  "options": {"rfc3164": true, "rfc5424": false, "bestEffort": false},
+  "warning": "",
+  "error": "unparseable",
+  "parsed": {}
+}

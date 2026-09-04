@@ -4,6 +4,11 @@
 
 ### Added
 
+- First-party RFC 3164 and RFC 5424 codec (WIRE-001): `internal/syslogwire`
+  parse/serialize into `model.Parsed` with `parseWarning` tokens
+  (`missing_pri`, `utf8_bom`, `no_parser`, `rfc5424_disabled`,
+  `unknown_facility`). Golden packets live under `testdata/packets/`.
+  `make test-fuzz-smoke` runs a short `FuzzParse` of the parser.
 - Domain model and fail-closed YAML (CFG-001): `labsyslog.dev/v1alpha1`
   types (`Document`/`Spec`/`Message`/`Parsed`), KnownFields decode,
   reserved-key reject, canonical YAML revision (`sha256:`), and
@@ -21,8 +26,8 @@
 - Family evaluation of every mcp-integration-lab member.
 - Program board and wave implementation notes FND-001 through TLS-001.
 
-`make generate`, `make verify-generated`, and `make test-config-compat`
-are implemented. Remaining placeholder Make targets fail closed
-(`exit 1`). Default CI runs format, lint, unit, race, docs, changelog,
-generated, and config-compat. Codec, listeners, REST, MCP, UI, and the
-container image land in later waves.
+`make generate`, `make verify-generated`, `make test-config-compat`, and
+`make test-fuzz-smoke` are implemented. Remaining placeholder Make
+targets fail closed (`exit 1`). Default CI runs format, lint, unit,
+race, fuzz-smoke, docs, changelog, generated, and config-compat.
+Listeners, REST, MCP, UI, and the container image land in later waves.

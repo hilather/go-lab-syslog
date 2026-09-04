@@ -1,6 +1,6 @@
 # Program board — LabSyslog 1.0
 
-Status: CFG-001 done; next is WIRE-001  
+Status: WIRE-001 done; next is UDP-001  
 Last reviewed: 2026-09-04  
 Source of truth: the numbered `docs/` pack and accepted ADRs (0001–0012).
 
@@ -14,7 +14,7 @@ CFG → STA → API → SEC → MCP. Data plane proceeds after WIRE.
 | ---: | --- | --- | --- | --- | --- | --- |
 | 1 | Repository foundation | FND-001 | — | Go module, CI, Makefile, stub CLI, docs skeleton | M0 | done |
 | 2 | Domain + fail-closed YAML | CFG-001 | FND-001 | `labsyslog.dev/v1alpha1`, KnownFields, reserved-key reject, revisions | M0 | done |
-| 3 | First-party syslogwire codec | WIRE-001 | CFG-001 | RFC 3164 + RFC 5424 parse/serialize, PRI, SD, testdata/packets | M1 | not-started |
+| 3 | First-party syslogwire codec | WIRE-001 | CFG-001 | RFC 3164 + RFC 5424 parse/serialize, PRI, SD, testdata/packets | M1 | done |
 | 4 | UDP sink RFC 5426 | UDP-001 | WIRE-001 | `internal/syslogserver` UDP, one datagram = one message | M1 | not-started |
 | 5 | TCP sink RFC 6587 | TCP-001 | WIRE-001 | Octet-counting + non-transparent NL, `framing: auto` | M1 | not-started |
 | 6 | Bounded message store | STORE-001 | WIRE-001 | ULID inbox, caps, wait, wipe, generation | M1 | not-started |

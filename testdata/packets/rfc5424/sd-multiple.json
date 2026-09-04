@@ -1,0 +1,32 @@
+{
+  "comment": "two SD-ELEMENTs, one with several params",
+  "raw": "<165>1 2026-09-04T20:52:35Z mymachine evntslog - ID47 [exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"][origin ip=\"127.0.0.1\"] BOM-not-here",
+  "warning": "",
+  "parsed": {
+    "pri": 165,
+    "facility": 20,
+    "severity": 5,
+    "version": 1,
+    "timestamp": "2026-09-04T20:52:35Z",
+    "hostname": "mymachine",
+    "appName": "evntslog",
+    "msgID": "ID47",
+    "structured": [
+      {
+        "id": "exampleSDID@32473",
+        "params": [
+          {"name": "iut", "value": "3"},
+          {"name": "eventSource", "value": "Application"},
+          {"name": "eventID", "value": "1011"}
+        ]
+      },
+      {
+        "id": "origin",
+        "params": [
+          {"name": "ip", "value": "127.0.0.1"}
+        ]
+      }
+    ],
+    "message": "BOM-not-here"
+  }
+}

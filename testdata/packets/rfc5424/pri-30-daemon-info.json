@@ -1,0 +1,16 @@
+{
+  "comment": "PRI 30 daemon.info",
+  "raw": "<30>1 2026-09-04T20:52:35Z sut-1 systemd 1 - - Started Session",
+  "warning": "",
+  "parsed": {
+    "pri": 30,
+    "facility": 3,
+    "severity": 6,
+    "version": 1,
+    "timestamp": "2026-09-04T20:52:35Z",
+    "hostname": "sut-1",
+    "appName": "systemd",
+    "procID": "1",
+    "message": "Started Session"
+  }
+}

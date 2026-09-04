@@ -1,0 +1,12 @@
+{
+  "comment": "looks like 5424 but parse.rfc5424 is false; bestEffort stores prefix",
+  "raw": "<165>1 2026-09-04T20:52:35.000Z sut-1 sshd 1234 ID47 [sshd@0 user=\"alice\"] Failed password",
+  "options": {"rfc3164": true, "rfc5424": false, "bestEffort": true},
+  "warning": "rfc5424_disabled",
+  "parsed": {
+    "pri": 165,
+    "facility": 20,
+    "severity": 5,
+    "version": 1
+  }
+}

@@ -17,7 +17,7 @@ help:
 		'  verify-generated    fail if JSON Schema is stale' \
 		'  test                go test ./...' \
 		'  test-race           go test -race ./...' \
-		'  test-fuzz-smoke     placeholder (WIRE-001)' \
+		'  test-fuzz-smoke     short go-fuzz of internal/syslogwire.Parse' \
 		'  test-parity         placeholder (MCP-001)' \
 		'  test-config-compat  valid/invalid YAML fixture suite' \
 		'  test-docs           required documents, markdown links, required phrases' \
@@ -60,6 +60,9 @@ verify-generated:
 test-config-compat:
 	$(GO) test ./internal/config ./internal/compiler ./internal/model ./internal/domainerr ./cmd/labsyslog ./scripts/generatejsonschema -count=1
 
-test-fuzz-smoke test-parity test-container security-scan web-test web-build:
+test-fuzz-smoke:
+	$(GO) test ./internal/syslogwire -count=1 -fuzz=FuzzParse -fuzztime=5s
+
+test-parity test-container security-scan web-test web-build:
 	@echo '$@: not implemented yet; placeholder fails closed' >&2
 	@exit 1

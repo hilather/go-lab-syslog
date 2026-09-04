@@ -1,0 +1,16 @@
+{
+  "comment": "logger -t myapp -p user.notice with PID (util-linux transcript)",
+  "raw": "<13>Sep  4 20:52:35 testhost myapp[4321]: hello from logger",
+  "warning": "",
+  "parsed": {
+    "pri": 13,
+    "facility": 1,
+    "severity": 5,
+    "version": 0,
+    "timestamp": "2026-09-04T20:52:35Z",
+    "hostname": "testhost",
+    "appName": "myapp",
+    "procID": "4321",
+    "message": "hello from logger"
+  }
+}

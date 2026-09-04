@@ -1,0 +1,12 @@
+{
+  "comment": "3164 bytes with rfc3164 disabled and rfc5424 enabled → no_parser",
+  "raw": "<34>Sep  4 20:52:35 sut-1 sshd[1234]: Failed password",
+  "options": {"rfc3164": false, "rfc5424": true, "bestEffort": true},
+  "warning": "no_parser",
+  "parsed": {
+    "pri": 34,
+    "facility": 4,
+    "severity": 2,
+    "version": 0
+  }
+}

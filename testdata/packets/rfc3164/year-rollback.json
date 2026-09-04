@@ -1,0 +1,16 @@
+{
+  "comment": "Dec stamp in January is >24h in the future at year=now, so year rolls back",
+  "raw": "<13>Dec 31 23:00:00 sut-1 logger: year wrap",
+  "now": "2026-01-01T00:00:00Z",
+  "warning": "",
+  "parsed": {
+    "pri": 13,
+    "facility": 1,
+    "severity": 5,
+    "version": 0,
+    "timestamp": "2025-12-31T23:00:00Z",
+    "hostname": "sut-1",
+    "appName": "logger",
+    "message": "year wrap"
+  }
+}

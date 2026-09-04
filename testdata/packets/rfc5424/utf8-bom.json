@@ -1,0 +1,15 @@
+{
+  "comment": "RFC 5424 MSG UTF-8 BOM stripped",
+  "rawBase64": "PDEzPjEgMjAyNi0wOS0wNFQyMDo1MjozNS4wMDBaIGhvc3QgYXBwIC0gLSDvu79oZWxsbw==",
+  "warning": "utf8_bom",
+  "parsed": {
+    "pri": 13,
+    "facility": 1,
+    "severity": 5,
+    "version": 1,
+    "timestamp": "2026-09-04T20:52:35Z",
+    "hostname": "host",
+    "appName": "app",
+    "message": "hello"
+  }
+}

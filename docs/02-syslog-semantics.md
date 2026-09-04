@@ -52,10 +52,10 @@ digits, 0–191 inclusive. `facility = PRI / 8`, `severity = PRI % 8`.
 |---|---|
 | 0 emerg | 1 alert | 2 crit | 3 err | 4 warning | 5 notice | 6 info | 7 debug |
 
-Unknown facility numbers outside 0–23 are a parse warning; the numeric
-value is still stored. PRI missing: if `bestEffort` is true, treat as
-`<13>` (user.notice) and set `parseWarning=missing_pri`. If
-`bestEffort` is false, drop.
+Unknown facility numbers outside 0–23 are a parse warning
+(`parseWarning=unknown_facility`); the numeric value is still stored.
+PRI missing: if `bestEffort` is true, treat as `<13>` (user.notice) and
+set `parseWarning=missing_pri`. If `bestEffort` is false, drop.
 
 ## RFC 5424
 
@@ -103,6 +103,19 @@ beyond the two parse booleans):
 2. Else if `rfc3164` is enabled → 3164.
 3. Else if `bestEffort` → store raw with `parseWarning=no_parser`.
 4. Else drop.
+
+`parseWarning` is empty when the parse is clean. Frozen tokens (comma-separated
+when more than one applies):
+
+| Token | When |
+|---|---|
+| `missing_pri` | PRI absent; `bestEffort` treated the bytes as `<13>` |
+| `utf8_bom` | RFC 5424 MSG started with UTF-8 BOM `EF BB BF` (stripped) |
+| `no_parser` | neither parser selected for this byte pattern; `bestEffort` |
+| `rfc5424_disabled` | bytes match `^<\d{1,3}>1 ` but `parse.rfc5424` is false; `bestEffort` |
+| `unknown_facility` | PRI yielded facility > 23; numeric PRI/facility still stored |
+
+Serialize exists for tests and export. It is not a forward path.
 
 ## Behavior knob
 

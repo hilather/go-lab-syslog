@@ -1,0 +1,16 @@
+{
+  "comment": "RFC 3339 numeric offset preserved (not rewritten to UTC)",
+  "raw": "<14>1 2026-09-04T16:52:35-04:00 sut-1 sshd 9 - - offset",
+  "warning": "",
+  "parsed": {
+    "pri": 14,
+    "facility": 1,
+    "severity": 6,
+    "version": 1,
+    "timestamp": "2026-09-04T16:52:35-04:00",
+    "hostname": "sut-1",
+    "appName": "sshd",
+    "procID": "9",
+    "message": "offset"
+  }
+}

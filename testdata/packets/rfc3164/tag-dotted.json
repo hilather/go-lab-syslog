@@ -1,0 +1,16 @@
+{
+  "comment": "TAG with '.', '-', '_' (docs/02 charset)",
+  "raw": "<13>Sep 14 20:52:35 sut-1 my.app-name_1: payload",
+  "now": "2026-09-14T20:52:35Z",
+  "warning": "",
+  "parsed": {
+    "pri": 13,
+    "facility": 1,
+    "severity": 5,
+    "version": 0,
+    "timestamp": "2026-09-14T20:52:35Z",
+    "hostname": "sut-1",
+    "appName": "my.app-name_1",
+    "message": "payload"
+  }
+}

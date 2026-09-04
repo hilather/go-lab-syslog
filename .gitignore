@@ -11,6 +11,9 @@ coverage.html
 .gocache/
 .gomodcache/
 
+# go test -fuzz working corpus (seeds live in testdata/packets)
+**/testdata/fuzz/
+
 # Frontend (embedded copy lives in internal/web/dist)
 web/node_modules/
 web/dist/

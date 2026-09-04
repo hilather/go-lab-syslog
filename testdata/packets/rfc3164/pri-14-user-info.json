@@ -1,0 +1,15 @@
+{
+  "comment": "PRI 14 user.info",
+  "raw": "<14>Sep  4 20:52:35 testhost myapp: info line",
+  "warning": "",
+  "parsed": {
+    "pri": 14,
+    "facility": 1,
+    "severity": 6,
+    "version": 0,
+    "timestamp": "2026-09-04T20:52:35Z",
+    "hostname": "testhost",
+    "appName": "myapp",
+    "message": "info line"
+  }
+}

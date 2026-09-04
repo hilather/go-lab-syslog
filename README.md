@@ -21,11 +21,11 @@ log collector.
 | License | Apache-2.0 |
 | User | `65532:65532` |
 
-**Implementation status.** FND-001 and CFG-001 are in tree:
-`labsyslog version`, `help`, `validate`, and `canonicalize` work.
-Later waves land the codec, listeners, REST, MCP, UI, and container
-image. Unimplemented CLI subcommands fail closed. Remaining placeholder
-Make targets exit 1.
+**Implementation status.** FND-001, CFG-001, and WIRE-001 are in tree:
+`labsyslog version`, `help`, `validate`, and `canonicalize` work, and
+`internal/syslogwire` parses RFC 3164 / RFC 5424. Later waves land
+listeners, REST, MCP, UI, and the container image. Unimplemented CLI
+subcommands fail closed. Remaining placeholder Make targets exit 1.
 
 Documentation
 · [Start here](START-HERE.md)

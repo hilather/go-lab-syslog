@@ -1,11 +1,13 @@
 # LabSyslog continuous integration (FND-001).
 #
 # Default PR CI must stay green. This workflow runs implemented targets:
-# format, lint, unit, race, documentation, changelog, generated, config-compat.
+# format, lint, unit, race, fuzz-smoke, documentation, changelog,
+# generated, config-compat.
 #
-# Makefile placeholders still fail closed locally (test-fuzz-smoke,
-# test-parity, test-container, security-scan, web-test, web-build).
+# Makefile placeholders still fail closed locally (test-parity,
+# test-container, security-scan, web-test, web-build).
 # generate, verify-generated, and test-config-compat joined in CFG-001.
+# test-fuzz-smoke joined in WIRE-001.
 # Do not mark a failing check optional.
 
 name: CI
@@ -140,3 +142,15 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - name: Config fixture suite
         run: make test-config-compat
+
+  fuzz-smoke:
+    name: fuzz-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Fuzz smoke
+        run: make test-fuzz-smoke

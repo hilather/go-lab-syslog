@@ -22,14 +22,15 @@ test that fails before the fix.
 | MCP + parity | `make test-parity` | every PARITY_REQUIRED row |
 | Container | `make test-container` | bind `:1514`, cap_drop ALL, healthcheck |
 | Docs | `make test-docs` | links; phrases `NAT collision` and `userland-proxy` present in deploy docs |
-| Fuzz-smoke | PRI, 5424 SD, 6587 splitter | |
+| Fuzz-smoke | PRI, 5424 SD (`make test-fuzz-smoke`; 6587 splitter in TCP-001) | |
 | Race | wait + insert + reset | |
 
 ## Make targets
 
 Listed in AGENTS.md. Missing targets `exit 1`. CI jobs: format,
 lint, unit, race, fuzz-smoke, docs, changelog, generated-file,
-parity, container-test, web.
+parity, container-test, web. `make test-fuzz-smoke` is a 5s
+`FuzzParse` of `internal/syslogwire` (WIRE-001).
 
 ## Transcripts
 

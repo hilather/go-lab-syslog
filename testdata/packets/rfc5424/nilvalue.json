@@ -1,0 +1,11 @@
+{
+  "comment": "RFC 5424 NILVALUE '-' on timestamp and HEADER fields",
+  "raw": "<13>1 - - - - - -",
+  "warning": "",
+  "parsed": {
+    "pri": 13,
+    "facility": 1,
+    "severity": 5,
+    "version": 1
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "comment": "missing PRI with bestEffort false is a drop",
+  "raw": "Sep  4 20:52:35 sut-1 sshd[1234]: Failed password",
+  "options": {"rfc3164": true, "rfc5424": true, "bestEffort": false},
+  "warning": "",
+  "error": "unparseable",
+  "parsed": {}
+}

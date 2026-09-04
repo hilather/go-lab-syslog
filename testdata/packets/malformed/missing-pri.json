@@ -1,0 +1,16 @@
+{
+  "comment": "bestEffort missing PRI treated as <13>",
+  "raw": "Sep  4 20:52:35 sut-1 sshd[1234]: Failed password",
+  "warning": "missing_pri",
+  "parsed": {
+    "pri": 13,
+    "facility": 1,
+    "severity": 5,
+    "version": 0,
+    "timestamp": "2026-09-04T20:52:35Z",
+    "hostname": "sut-1",
+    "appName": "sshd",
+    "procID": "1234",
+    "message": "Failed password"
+  }
+}

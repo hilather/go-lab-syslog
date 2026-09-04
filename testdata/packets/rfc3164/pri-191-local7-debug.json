@@ -1,0 +1,16 @@
+{
+  "comment": "PRI 191 local7.debug (max well-formed PRI)",
+  "raw": "<191>Sep  4 20:52:35 sut-1 debugd[9]: trace",
+  "warning": "",
+  "parsed": {
+    "pri": 191,
+    "facility": 23,
+    "severity": 7,
+    "version": 0,
+    "timestamp": "2026-09-04T20:52:35Z",
+    "hostname": "sut-1",
+    "appName": "debugd",
+    "procID": "9",
+    "message": "trace"
+  }
+}
