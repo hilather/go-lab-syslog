@@ -1,11 +1,11 @@
-# LabSyslog design pack manifest
+# LabSyslog repository manifest
 
 Target repo: https://github.com/hilather/go-lab-syslog
 Integrator: https://github.com/hilather/mcp-integration-lab
 Date: 2026-09-04
 
-This archive is documentation only. It is the source of truth for
-agents building LabSyslog in waves. Code is not included.
+The numbered `docs/` pack, ADRs, program board, and wave files at
+repository root are the living source of truth after FND-001.
 
 ## Read first
 

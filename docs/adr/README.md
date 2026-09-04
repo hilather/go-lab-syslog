@@ -12,7 +12,7 @@
 | [0008](0008-host-publish-514-residual.md) | Native 514, residual 10514 |
 | [0009](0009-unmatched-filter-is-capture.md) | Unmatched filter = capture |
 | [0010](0010-container-514-net-bind-service.md) | Container `:514` + NET_BIND_SERVICE |
+| [0011](0011-no-outbound-forward.md) | No outbound forward (Accepted) |
 | [0012](0012-tls-is-1-1.md) | RFC 5425 TLS is v1.1 |
 
-Number 0011 is reserved unused (folded into 0002). Do not invent 0011
-in a wave without an ADR file.
+ADR 0011 is Accepted. Do not invent a second 0011.

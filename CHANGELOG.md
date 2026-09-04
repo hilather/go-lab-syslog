@@ -1,0 +1,19 @@
+# Changelog
+
+## [Unreleased]
+
+### Added
+
+- Repository foundation (FND-001): Go module `github.com/hilather/go-lab-syslog`
+  (Go 1.26), Apache-2.0 LICENSE, stub CLI (`labsyslog version` / `help`),
+  Makefile, GitHub Actions CI, import-fence tests, and test helpers.
+- Numbered design pack, ADRs, program board, and wave files promoted to
+  repository root as the living source of truth.
+- ADRs 0001–0012 accepted. ADR 0011 (no outbound forward) is Accepted;
+  it is not reserved-unused.
+- Family evaluation of every mcp-integration-lab member.
+- Program board and wave implementation notes FND-001 through TLS-001.
+
+Placeholder Make targets fail closed (`exit 1`). Default CI runs format,
+lint, unit, race, docs, and changelog. Codec, listeners, REST, MCP, UI,
+and the container image land in later waves.

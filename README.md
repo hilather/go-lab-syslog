@@ -21,6 +21,11 @@ log collector.
 | License | Apache-2.0 |
 | User | `65532:65532` |
 
+**Implementation status.** FND-001 is in tree: `labsyslog version` and
+`labsyslog help` work. Later waves land the codec, listeners, YAML,
+REST, MCP, UI, and container image. Unimplemented CLI subcommands fail
+closed. Placeholder Make targets exit 1.
+
 Documentation
 · [Start here](START-HERE.md)
 · [Architecture](docs/01-architecture.md)
