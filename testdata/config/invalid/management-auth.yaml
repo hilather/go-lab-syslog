@@ -1,0 +1,8 @@
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  management:
+    auth:
+      mode: bearer

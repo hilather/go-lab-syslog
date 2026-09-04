@@ -41,8 +41,12 @@ binary units (`64KiB`, `256MiB`) parsed by `internal/config`.
 | `tcp.enabled` | true | |
 | `tcp.address` | `:514` | reset-only |
 | `tcp.framing` | `auto` | `auto` \| `octet-counting` \| `non-transparent` |
-| `tls.enabled` | false | `true` → validate error in 1.0 |
+| `tls.enabled` | false | `true` → `tls_unsupported` in 1.0 (ADR 0012) |
 | `tls.address` | `:6514` | ignored while disabled |
+| `tls.certFile` | empty | v1.1 placeholder; ignored while `enabled` is false |
+| `tls.keyFile` | empty | v1.1 placeholder; ignored while `enabled` is false |
+| `tls.caFile` | empty | v1.1 placeholder; ignored while `enabled` is false |
+| `tls.clientAuth` | false | v1.1 placeholder; ignored while `enabled` is false |
 | `management.address` | empty | empty means management off unless CLI flag set |
 | `management.restPath` | `/v1` | |
 | `management.mcpPath` | `/mcp` | |
@@ -54,10 +58,10 @@ change them returns `immutable_field`.
 
 | Field | Default | Notes |
 |---|---|---|
-| `mode` | `bearer` | `bearer` only. No HTTP Basic. No `dev-loopback-unauth`. Management bind requires ≥1 usable token unless listen is off. `spec.auth` is an unknown field and rejects. |
+| `mode` | `bearer` | `bearer` only. No HTTP Basic. No `dev-loopback-unauth`. Management bind requires ≥1 usable token unless listen is off. `spec.management.auth` is an unknown field and rejects. |
 | `tokens[].id` | required | |
 | `tokens[].role` | `administrator` | `administrator` \| `reader` |
-| `tokens[].secretFile` | required | file contents trimmed; ≥32 bytes |
+| `tokens[].secretFile` | required | path required. If the file exists at `validate`, trimmed contents must be ≥32 bytes. A missing file is allowed at `validate`. |
 
 Inline `secret:` / `token:` keys are reserved-key rejects.
 

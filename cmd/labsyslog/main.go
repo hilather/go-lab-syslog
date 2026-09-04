@@ -28,7 +28,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 	case "version", "-v", "--version":
 		_, _ = fmt.Fprintln(stdout, buildinfo.Current().String())
 		return 0
-	case "validate", "canonicalize", "healthcheck":
+	case "validate":
+		return cmdValidate(args[2:], stdout, stderr)
+	case "canonicalize":
+		return cmdCanonicalize(args[2:], stdout, stderr)
+	case "healthcheck":
 		return notImplemented(args[1], stderr)
 	case "serve", "mcp-stdio":
 		return withShutdown(func(context.Context) int {

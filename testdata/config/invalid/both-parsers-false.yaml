@@ -1,0 +1,9 @@
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  syslog:
+    parse:
+      rfc3164: false
+      rfc5424: false

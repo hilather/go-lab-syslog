@@ -1,6 +1,6 @@
 # CFG-001: Domain model and fail-closed YAML
 
-Status: not-started
+Status: done
 Recommended owner: config agent
 Dependencies: FND-001
 Exclusive ownership: `internal/model`, `internal/config`, `internal/compiler` stub, `api/jsonschema`, `testdata/config`, `cmd/labsyslog` `validate` / `canonicalize`

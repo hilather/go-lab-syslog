@@ -1,0 +1,75 @@
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: maxed-sink
+spec:
+  listeners:
+    udp:
+      enabled: true
+      address: "127.0.0.1:1514"
+    tcp:
+      enabled: true
+      address: "127.0.0.1:1514"
+      framing: octet-counting
+    tls:
+      enabled: false
+      address: ":6514"
+      clientAuth: false
+    management:
+      address: "127.0.0.1:8088"
+      restPath: /v1
+      mcpPath: /mcp
+  auth:
+    mode: bearer
+    tokens:
+      - id: operator
+        role: administrator
+        secretFile: /run/secrets/labsyslog-token
+      - id: reader
+        role: reader
+        secretFile: /run/secrets/labsyslog-reader
+  ui:
+    enabled: true
+  management:
+    allowedOrigins:
+      - "http://127.0.0.1:8088"
+    mcp:
+      allowLegacyClients: false
+    bodyLimit: 1MiB
+    requestsPerSecond: 32
+    burst: 64
+    maxConcurrent: 256
+  syslog:
+    hostname: labsyslog.lab
+    parse:
+      rfc3164: true
+      rfc5424: true
+      bestEffort: false
+    maxMessageBytes: 64KiB
+    udpMaxDatagramBytes: 64KiB
+    tcpIdleTimeout: 2m
+    behavior:
+      mode: accept
+  admission:
+    allowClientCidrs:
+      - "127.0.0.0/8"
+      - "::1/128"
+      - "10.99.42.0/24"
+    maxDatagramsPerSec: 20000
+    maxDatagramsPerIP: 2000
+    maxTcpConns: 256
+    maxTcpConnsPerIP: 16
+    sessionTimeout: 2m
+  store:
+    maxMessages: 1000000
+    maxBytes: 256MiB
+    fullPolicy: reject
+    maxWait: 60s
+    rawRetain: true
+  filters: []
+  observability:
+    logLevel: debug
+    metrics:
+      publicPath: true
+    audit:
+      ring: 128

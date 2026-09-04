@@ -1,0 +1,6 @@
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  forward: 192.0.2.1

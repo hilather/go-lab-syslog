@@ -1,0 +1,463 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labsyslog.dev/schemas/labsyslog.dev.v1alpha1.json",
+  "title": "LabSyslog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "spec"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "labsyslog.dev/v1alpha1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "LabSyslog"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "listeners": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "udp": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "address": {
+                  "type": "string",
+                  "description": "Go listen address (:514, 127.0.0.1:1514)"
+                }
+              }
+            },
+            "tcp": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "address": {
+                  "type": "string",
+                  "description": "Go listen address (:514, 127.0.0.1:1514)"
+                },
+                "framing": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "octet-counting",
+                    "non-transparent"
+                  ],
+                  "default": "auto"
+                }
+              }
+            },
+            "tls": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "const": false,
+                  "default": false,
+                  "description": "true is tls_unsupported in 1.0 (ADR 0012)"
+                },
+                "address": {
+                  "type": "string",
+                  "description": "Go listen address (:514, 127.0.0.1:1514)"
+                },
+                "certFile": {
+                  "type": "string"
+                },
+                "keyFile": {
+                  "type": "string"
+                },
+                "caFile": {
+                  "type": "string"
+                },
+                "clientAuth": {
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
+            "management": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "address": {
+                  "type": "string",
+                  "description": "Go listen address (:514, 127.0.0.1:1514)"
+                },
+                "restPath": {
+                  "type": "string",
+                  "default": "/v1"
+                },
+                "mcpPath": {
+                  "type": "string",
+                  "default": "/mcp"
+                }
+              }
+            }
+          }
+        },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "bearer",
+              "default": "bearer"
+            },
+            "tokens": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "secretFile"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "administrator",
+                      "reader"
+                    ],
+                    "default": "administrator"
+                  },
+                  "secretFile": {
+                    "type": "string",
+                    "description": "path to token file; contents trimmed, ≥32 bytes if the file exists"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ui": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "management": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "allowedOrigins": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "exact origins; default empty is loopback only; originAllowlist rejects"
+            },
+            "mcp": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "allowLegacyClients": {
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
+            "bodyLimit": {
+              "type": "string",
+              "default": "1MiB"
+            },
+            "requestsPerSecond": {
+              "type": "integer",
+              "default": 32
+            },
+            "burst": {
+              "type": "integer",
+              "default": 64
+            },
+            "maxConcurrent": {
+              "type": "integer",
+              "default": 256
+            }
+          }
+        },
+        "syslog": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "hostname": {
+              "type": "string",
+              "default": "labsyslog.lab"
+            },
+            "parse": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "rfc3164": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "rfc5424": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "bestEffort": {
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "maxMessageBytes": {
+              "type": "string",
+              "description": "binary byte size (64KiB, 256MiB, 1MiB)"
+            },
+            "udpMaxDatagramBytes": {
+              "type": "string",
+              "description": "binary byte size (64KiB, 256MiB, 1MiB)"
+            },
+            "tcpIdleTimeout": {
+              "type": "string",
+              "description": "Go duration string (2m, 60s, 500ms)"
+            },
+            "behavior": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "accept",
+                    "drop-silent",
+                    "close"
+                  ],
+                  "default": "accept"
+                }
+              }
+            }
+          }
+        },
+        "admission": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "allowClientCidrs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "description": "omit for loopback default; empty list is a validate error"
+            },
+            "maxDatagramsPerSec": {
+              "type": "integer",
+              "default": 20000
+            },
+            "maxDatagramsPerIP": {
+              "type": "integer",
+              "default": 2000
+            },
+            "maxTcpConns": {
+              "type": "integer",
+              "default": 256
+            },
+            "maxTcpConnsPerIP": {
+              "type": "integer",
+              "default": 16
+            },
+            "sessionTimeout": {
+              "type": "string",
+              "description": "Go duration string (2m, 60s, 500ms)"
+            }
+          }
+        },
+        "store": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "maxMessages": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000000,
+              "default": 10000
+            },
+            "maxBytes": {
+              "type": "string",
+              "description": "binary byte size (64KiB, 256MiB, 1MiB)"
+            },
+            "fullPolicy": {
+              "type": "string",
+              "enum": [
+                "evict_oldest",
+                "reject"
+              ],
+              "default": "evict_oldest"
+            },
+            "maxWait": {
+              "type": "string",
+              "description": "Go duration string (2m, 60s, 500ms)"
+            },
+            "rawRetain": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "filters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "DNS label; unique"
+              },
+              "enabled": {
+                "type": "boolean",
+                "default": true
+              },
+              "match": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "sourceCidrs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "facilities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "severities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "severityAtLeast": {
+                    "type": "string"
+                  },
+                  "appNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "hostnames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "transports": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "udp",
+                        "tcp"
+                      ]
+                    }
+                  }
+                }
+              },
+              "action": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "capture",
+                      "drop-silent",
+                      "tag"
+                    ]
+                  },
+                  "tag": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "observability": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "logLevel": {
+              "type": "string",
+              "enum": [
+                "debug",
+                "info",
+                "warn",
+                "error"
+              ],
+              "default": "info"
+            },
+            "metrics": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "publicPath": {
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
+            "audit": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "ring": {
+                  "type": "integer",
+                  "default": 128
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

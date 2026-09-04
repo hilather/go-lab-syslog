@@ -96,6 +96,11 @@ spec:
       framing: auto
     tls:
       enabled: false
+      address: ":6514"
+      certFile: ""
+      keyFile: ""
+      caFile: ""
+      clientAuth: false
     management:
       address: ":8088"
       restPath: /v1
@@ -110,7 +115,6 @@ spec:
     enabled: true
   management:
     allowedOrigins: []
-    originAllowlist: []
     mcp:
       allowLegacyClients: true
     bodyLimit: 1MiB
@@ -152,7 +156,7 @@ spec:
 ```
 
 Field semantics: [04-state-and-configuration.md](04-state-and-configuration.md).
-`listeners.tls.enabled: true` is a 1.0 validate error (ADR 0010).
+`listeners.tls.enabled: true` is a 1.0 validate error (ADR 0012).
 
 ## Message model
 
@@ -164,7 +168,7 @@ Message
   remoteIP      netip.Addr
   remotePort    uint16
   raw           []byte          # omitted from list views when rawRetain and not requested
-  truncated     bool
+  truncated     bool            # always false in 1.0; oversize is dropped, not stored
   parseWarning  string          # empty if clean
   parsed        Parsed
     pri         uint8           # 0–191
@@ -211,7 +215,8 @@ Operators who want deny-by-default add an explicit last filter with
 - No persistent store.
 - No probabilistic drop engine. `spec.syslog.behavior.mode` is
   deterministic: `accept` | `drop-silent` | `close` (TCP only).
-- No per-message rewrite of the raw bytes other than truncate-at-cap.
+- No per-message rewrite of the raw bytes. UDP/TCP oversize is dropped
+  and nothing is stored; `Message.truncated` is always false in 1.0.
 - IPv4-mapped IPv6 addresses are normalized to IPv4 before CIDR match.
 
 ## Hardening

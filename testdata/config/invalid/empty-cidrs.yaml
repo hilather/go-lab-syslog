@@ -1,0 +1,7 @@
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  admission:
+    allowClientCidrs: []

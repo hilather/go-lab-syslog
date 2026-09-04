@@ -1,0 +1,84 @@
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  listeners:
+    udp:
+      enabled: true
+      address: ":514"
+    tcp:
+      enabled: true
+      address: ":514"
+      framing: auto
+    tls:
+      enabled: false
+      address: ":6514"
+      certFile: ""
+      keyFile: ""
+      caFile: ""
+      clientAuth: false
+    management:
+      address: ":8088"
+      restPath: /v1
+      mcpPath: /mcp
+  auth:
+    mode: bearer
+    tokens:
+      - id: admin
+        role: administrator
+        secretFile: /run/secrets/labsyslog-token
+  ui:
+    enabled: true
+  management:
+    allowedOrigins: []
+    mcp:
+      allowLegacyClients: true
+    bodyLimit: 1MiB
+    requestsPerSecond: 32
+    burst: 64
+    maxConcurrent: 256
+  syslog:
+    hostname: labsyslog.lab
+    parse:
+      rfc3164: true
+      rfc5424: true
+      bestEffort: true
+    maxMessageBytes: 64KiB
+    udpMaxDatagramBytes: 64KiB
+    tcpIdleTimeout: 2m
+    behavior:
+      mode: accept
+  admission:
+    allowClientCidrs:
+      - "10.99.42.0/24"
+      - "127.0.0.0/8"
+      - "::1/128"
+    maxDatagramsPerSec: 20000
+    maxDatagramsPerIP: 2000
+    maxTcpConns: 256
+    maxTcpConnsPerIP: 16
+    sessionTimeout: 2m
+  store:
+    maxMessages: 10000
+    maxBytes: 256MiB
+    fullPolicy: evict_oldest
+    maxWait: 60s
+    rawRetain: true
+  filters:
+    - name: drop-debug
+      enabled: true
+      match:
+        sourceCidrs: ["10.99.42.0/24"]
+        facilities: [user]
+        severities: [debug]
+        appNames: ["noisy"]
+        transports: [udp, tcp]
+      action:
+        mode: drop-silent
+  observability:
+    logLevel: info
+    metrics:
+      publicPath: false
+    audit:
+      ring: 128

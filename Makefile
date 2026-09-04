@@ -13,13 +13,13 @@ help:
 		'LabSyslog Make targets (Go 1.26; module github.com/hilather/go-lab-syslog)' \
 		'  format              go fmt ./...' \
 		'  lint                gofmt -l + go vet (no extra lint module)' \
-		'  generate            placeholder (CFG-001)' \
-		'  verify-generated    placeholder (CFG-001)' \
+		'  generate            JSON Schema api/jsonschema/labsyslog.dev.v1alpha1.json' \
+		'  verify-generated    fail if JSON Schema is stale' \
 		'  test                go test ./...' \
 		'  test-race           go test -race ./...' \
 		'  test-fuzz-smoke     placeholder (WIRE-001)' \
 		'  test-parity         placeholder (MCP-001)' \
-		'  test-config-compat  placeholder (CFG-001)' \
+		'  test-config-compat  valid/invalid YAML fixture suite' \
 		'  test-docs           required documents, markdown links, required phrases' \
 		'  test-container      placeholder (DEP-001)' \
 		'  security-scan       placeholder (DEP-001)' \
@@ -51,7 +51,15 @@ test-docs:
 test-changelog:
 	$(GO) run ./scripts/checkchangelog
 
-generate verify-generated test-fuzz-smoke test-parity test-config-compat \
-	test-container security-scan web-test web-build:
+generate:
+	$(GO) run ./scripts/generatejsonschema
+
+verify-generated:
+	$(GO) run ./scripts/generatejsonschema --check
+
+test-config-compat:
+	$(GO) test ./internal/config ./internal/compiler ./internal/model ./internal/domainerr ./cmd/labsyslog ./scripts/generatejsonschema -count=1
+
+test-fuzz-smoke test-parity test-container security-scan web-test web-build:
 	@echo '$@: not implemented yet; placeholder fails closed' >&2
 	@exit 1

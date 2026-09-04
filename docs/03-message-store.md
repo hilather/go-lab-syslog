@@ -64,7 +64,7 @@ List/wait filter fields (all AND):
 - `transport` (`udp` / `tcp`)
 - `sourceCidr`
 - `after` / `before` (RFC3339, compares `receivedAt`)
-- `truncated` (bool)
+- `truncated` (bool; always false in 1.0 — oversize is dropped, not stored)
 - `parseWarning` (bool: any warning present)
 
 ## Wait

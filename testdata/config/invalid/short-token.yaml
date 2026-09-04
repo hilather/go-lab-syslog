@@ -1,0 +1,11 @@
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  auth:
+    mode: bearer
+    tokens:
+      - id: operator
+        role: administrator
+        secretFile: short.token

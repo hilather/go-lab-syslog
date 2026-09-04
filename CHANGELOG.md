@@ -4,6 +4,13 @@
 
 ### Added
 
+- Domain model and fail-closed YAML (CFG-001): `labsyslog.dev/v1alpha1`
+  types (`Document`/`Spec`/`Message`/`Parsed`), KnownFields decode,
+  reserved-key reject, canonical YAML revision (`sha256:`), and
+  `labsyslog validate` / `canonicalize`. JSON Schema is generated at
+  `api/jsonschema/labsyslog.dev.v1alpha1.json`. `gopkg.in/yaml.v3` is
+  the YAML decoder (the Go standard library has no `encoding/yaml`;
+  this is the LabMail/LabNTP family dialect).
 - Repository foundation (FND-001): Go module `github.com/hilather/go-lab-syslog`
   (Go 1.26), Apache-2.0 LICENSE, stub CLI (`labsyslog version` / `help`),
   Makefile, GitHub Actions CI, import-fence tests, and test helpers.
@@ -14,6 +21,8 @@
 - Family evaluation of every mcp-integration-lab member.
 - Program board and wave implementation notes FND-001 through TLS-001.
 
-Placeholder Make targets fail closed (`exit 1`). Default CI runs format,
-lint, unit, race, docs, and changelog. Codec, listeners, REST, MCP, UI,
-and the container image land in later waves.
+`make generate`, `make verify-generated`, and `make test-config-compat`
+are implemented. Remaining placeholder Make targets fail closed
+(`exit 1`). Default CI runs format, lint, unit, race, docs, changelog,
+generated, and config-compat. Codec, listeners, REST, MCP, UI, and the
+container image land in later waves.

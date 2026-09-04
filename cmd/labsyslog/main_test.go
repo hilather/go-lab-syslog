@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -46,7 +48,7 @@ func TestHelp(t *testing.T) {
 }
 
 func TestUnimplementedFailClosed(t *testing.T) {
-	for _, cmd := range []string{"validate", "canonicalize", "serve", "healthcheck", "mcp-stdio"} {
+	for _, cmd := range []string{"serve", "healthcheck", "mcp-stdio"} {
 		var stdout, stderr bytes.Buffer
 		code := run([]string{"labsyslog", cmd}, &stdout, &stderr)
 		if code == 0 {
@@ -77,5 +79,87 @@ func TestUnknownCommand(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "unknown command") {
 		t.Fatalf("stderr %q missing unknown command", stderr.String())
+	}
+}
+
+func TestValidateDefaults(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "testdata", "config", "valid", "defaults.yaml")
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"labsyslog", "validate", "--config", path}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit %d stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "revision: sha256:") {
+		t.Fatalf("stdout %q missing revision", stdout.String())
+	}
+}
+
+func TestValidateMissingTokenFile(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "testdata", "config", "valid", "defaults.yaml")
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"labsyslog", "validate", "--config", path}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("missing token file must exit 0, got %d stderr=%q", code, stderr.String())
+	}
+}
+
+func TestValidateInvalid(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "testdata", "config", "invalid", "tls-enabled.yaml")
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"labsyslog", "validate", "--config", path}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("exit %d want 2 stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "tls_unsupported") {
+		t.Fatalf("stderr %q missing tls_unsupported", stderr.String())
+	}
+}
+
+func TestCanonicalize(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "testdata", "config", "valid", "defaults.yaml")
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"labsyslog", "canonicalize", "--config", path}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit %d stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "apiVersion: labsyslog.dev/v1alpha1") {
+		t.Fatalf("stdout %q missing document", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "revision: sha256:") {
+		t.Fatalf("stderr %q missing revision", stderr.String())
+	}
+	var stdout2, stderr2 bytes.Buffer
+	code = run([]string{"labsyslog", "canonicalize", "--config", path}, &stdout2, &stderr2)
+	if code != 0 {
+		t.Fatal(stderr2.String())
+	}
+	if stdout.String() != stdout2.String() || stderr.String() != stderr2.String() {
+		t.Fatal("canonicalize not stable")
+	}
+}
+
+func TestValidateRequiresConfig(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"labsyslog", "validate"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("exit %d want 2", code)
+	}
+}
+
+func repoRoot(t *testing.T) string {
+	t.Helper()
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			t.Fatal("go.mod not found")
+		}
+		dir = parent
 	}
 }

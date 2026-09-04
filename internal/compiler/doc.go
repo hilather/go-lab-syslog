@@ -1,2 +1,3 @@
-// Package compiler normalizes, validates, and compiles a Snapshot from a Document.
+// Package compiler normalizes and validates a Document.
+// Compile-to-snapshot is STA-001.
 package compiler
