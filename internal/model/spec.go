@@ -66,7 +66,7 @@ type ManagementListener struct {
 	MCPPath  string `json:"mcpPath" yaml:"mcpPath"`
 }
 
-// Auth is bearer-only (ADR 0005). spec.management.auth is unknown.
+// Auth is bearer-only (ADR 0005).
 type Auth struct {
 	Mode   string      `json:"mode" yaml:"mode"`
 	Tokens []AuthToken `json:"tokens,omitempty" yaml:"tokens,omitempty"`
@@ -84,7 +84,7 @@ type UI struct {
 	Enabled *bool `json:"enabled" yaml:"enabled"`
 }
 
-// Management is HTTP limits, origins, and MCP flags. originAllowlist rejects.
+// Management is HTTP limits, origins, and MCP flags.
 type Management struct {
 	AllowedOrigins    []string      `json:"allowedOrigins,omitempty" yaml:"allowedOrigins,omitempty"`
 	MCP               ManagementMCP `json:"mcp" yaml:"mcp"`
@@ -172,7 +172,7 @@ type Observability struct {
 	Audit    ObservabilityAudit `json:"audit" yaml:"audit"`
 }
 
-// Metrics controls GET /v1/metrics. metrics.listen is not a 1.0 field.
+// Metrics controls GET /v1/metrics.
 type Metrics struct {
 	PublicPath bool `json:"publicPath" yaml:"publicPath"`
 }

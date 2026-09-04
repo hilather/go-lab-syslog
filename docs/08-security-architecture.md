@@ -21,7 +21,7 @@ in AGENTS.md are rejected at decode.
 
 - Default and only 1.0 mode `bearer`. Token from `secretFile`, ≥32 bytes.
 - No HTTP Basic. No `dev-loopback-unauth`.
-- Auth lives at `spec.auth` (LabNTP shape). `spec.auth` rejects as unknown.
+- Auth lives at `spec.auth` (LabNTP shape). `spec.management.auth` is an unknown field and rejects.
 - Cookie `labsyslog_session` is `HttpOnly`, `SameSite=Lax`,
   `Path=/`, no `Secure` required on loopback HTTP (lab). CSRF header
   `X-LabSyslog-CSRF` on cookie-authenticated mutating REST.
@@ -29,12 +29,11 @@ in AGENTS.md are rejected at decode.
 
 ## Origin
 
-`spec.management.allowedOrigins` is an exact list.
-`spec.management.originAllowlist` accepts the same list plus
-sentinels `"*"` and `"private"` (RFC 1918 / 4193 / loopback).
-Default `[]` = loopback only. Non-allowed Origin on SPA JS or
-mutating REST → `403 origin_not_allowed`. No CORS `*` reflection.
-`OPTIONS` is 403.
+`spec.management.allowedOrigins` is an exact list. Default `[]` =
+loopback only. `originAllowlist` is an unknown field and rejects.
+1.0 has no `"*"` / `"private"` sentinels. Non-allowed Origin on SPA
+JS or mutating REST → `403 origin_not_allowed`. No CORS `*`
+reflection. `OPTIONS` is 403.
 
 ## Container
 
