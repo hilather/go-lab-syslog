@@ -1,0 +1,16 @@
+{
+  "comment": "PRI 200 with bestEffort false still stores unknown_facility (not a drop)",
+  "raw": "<200>Sep  4 20:52:35 sut-1 app: hi",
+  "options": {"rfc3164": true, "rfc5424": true, "bestEffort": false},
+  "warning": "unknown_facility",
+  "parsed": {
+    "pri": 200,
+    "facility": 25,
+    "severity": 0,
+    "version": 0,
+    "timestamp": "2026-09-04T20:52:35Z",
+    "hostname": "sut-1",
+    "appName": "app",
+    "message": "hi"
+  }
+}

@@ -24,9 +24,6 @@ func parseRFC5424(data []byte, bestEffort bool, _ time.Time) (model.Parsed, stri
 	p := parsedPRI(pri)
 	p.Version = 1
 	if out {
-		if !bestEffort {
-			return model.Parsed{}, "", unparseable("PRI out of range")
-		}
 		warn = WarnUnknownFacility
 	}
 	if len(rest) < 2 || rest[0] != '1' || rest[1] != ' ' {
@@ -103,7 +100,8 @@ func parseRFC5424(data []byte, bestEffort bool, _ time.Time) (model.Parsed, stri
 		if !bestEffort {
 			return p, warn, err
 		}
-		p.Message = string(rest)
+		p.Structured = elems
+		p.Message = string(rest2)
 		return p, warn, nil
 	}
 	p.Structured = elems

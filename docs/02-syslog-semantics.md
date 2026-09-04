@@ -53,9 +53,10 @@ digits, 0–191 inclusive. `facility = PRI / 8`, `severity = PRI % 8`.
 | 0 emerg | 1 alert | 2 crit | 3 err | 4 warning | 5 notice | 6 info | 7 debug |
 
 Unknown facility numbers outside 0–23 are a parse warning
-(`parseWarning=unknown_facility`); the numeric value is still stored.
-PRI missing: if `bestEffort` is true, treat as `<13>` (user.notice) and
-set `parseWarning=missing_pri`. If `bestEffort` is false, drop.
+(`parseWarning=unknown_facility`); the numeric PRI and facility are
+still stored. This is not gated on `bestEffort`. PRI missing: if
+`bestEffort` is true, treat as `<13>` (user.notice) and set
+`parseWarning=missing_pri`. If `bestEffort` is false, drop.
 
 ## RFC 5424
 
@@ -113,7 +114,7 @@ when more than one applies):
 | `utf8_bom` | RFC 5424 MSG started with UTF-8 BOM `EF BB BF` (stripped) |
 | `no_parser` | neither parser selected for this byte pattern; `bestEffort` |
 | `rfc5424_disabled` | bytes match `^<\d{1,3}>1 ` but `parse.rfc5424` is false; `bestEffort` |
-| `unknown_facility` | PRI yielded facility > 23; numeric PRI/facility still stored |
+| `unknown_facility` | PRI yielded facility > 23; numeric PRI/facility still stored (not a drop) |
 
 Serialize exists for tests and export. It is not a forward path.
 

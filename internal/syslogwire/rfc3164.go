@@ -28,9 +28,6 @@ func parseRFC3164(data []byte, bestEffort bool, now time.Time) (model.Parsed, st
 		var out bool
 		pri, out = priFromScan(n)
 		if out {
-			if !bestEffort {
-				return model.Parsed{}, "", unparseable("PRI out of range")
-			}
 			warn = WarnUnknownFacility
 		}
 	}
@@ -62,7 +59,7 @@ func parseRFC3164(data []byte, bestEffort bool, now time.Time) (model.Parsed, st
 }
 
 func parseRFC3164Stamp(b []byte, now time.Time) (time.Time, []byte, bool) {
-	// Mmm[ SP (SP DIGIT / 2DIGIT) SP hh:mm:ss ]
+	// Day is space-padded; year uses now's location and rolls back if >24h ahead.
 	if len(b) < 15 {
 		return time.Time{}, b, false
 	}

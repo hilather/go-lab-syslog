@@ -128,6 +128,29 @@ func TestBestEffortEmpty(t *testing.T) {
 	}
 }
 
+func TestUnknownFacilityNotDroppedWhenStrict(t *testing.T) {
+	raw := []byte("<200>Sep  4 20:52:35 sut-1 app: hi")
+	p, warn, err := Parse(raw, Options{RFC3164: true, RFC5424: true, BestEffort: false, Now: goldenNow()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if warn != WarnUnknownFacility {
+		t.Fatalf("warning = %q", warn)
+	}
+	if p.PRI != 200 || p.Facility != 25 || p.Severity != 0 {
+		t.Fatalf("%+v", p)
+	}
+
+	raw5424 := []byte("<200>1 2026-09-04T20:52:35Z sut-1 app - - - hi")
+	p, warn, err = Parse(raw5424, Options{RFC3164: true, RFC5424: true, BestEffort: false, Now: goldenNow()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if warn != WarnUnknownFacility || p.PRI != 200 || p.Version != 1 || p.Message != "hi" {
+		t.Fatalf("warn=%q parsed=%+v", warn, p)
+	}
+}
+
 func TestRFC5424IncompleteStrict(t *testing.T) {
 	_, _, err := Parse([]byte("<13>1 2026-09-04T20:52:35Z only-host"), Options{
 		RFC5424: true, BestEffort: false, Now: goldenNow(),

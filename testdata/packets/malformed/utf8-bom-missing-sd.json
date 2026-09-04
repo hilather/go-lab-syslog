@@ -1,6 +1,6 @@
 {
-  "comment": "well-formed RFC 5424 MSG UTF-8 BOM after NILVALUE STRUCTURED-DATA",
-  "rawBase64": "PDEzPjEgMjAyNi0wOS0wNFQyMDo1MjozNS4wMDBaIGhvc3QgYXBwIC0gLSAtIO+7v2hlbGxv",
+  "comment": "BOM after MSGID with STRUCTURED-DATA omitted; bestEffort leftover is MSG",
+  "rawBase64": "PDEzPjEgMjAyNi0wOS0wNFQyMDo1MjozNS4wMDBaIGhvc3QgYXBwIC0gLSDvu79oZWxsbw==",
   "warning": "utf8_bom",
   "parsed": {
     "pri": 13,

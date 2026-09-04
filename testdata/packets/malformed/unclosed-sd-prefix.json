@@ -1,0 +1,24 @@
+{
+  "comment": "later SD-ELEMENT unclosed; bestEffort keeps the parsed prefix element",
+  "raw": "<13>1 2026-09-04T20:52:35Z host app 1 - [good k=\"v\"][unclosed",
+  "warning": "",
+  "parsed": {
+    "pri": 13,
+    "facility": 1,
+    "severity": 5,
+    "version": 1,
+    "timestamp": "2026-09-04T20:52:35Z",
+    "hostname": "host",
+    "appName": "app",
+    "procID": "1",
+    "structured": [
+      {
+        "id": "good",
+        "params": [
+          {"name": "k", "value": "v"}
+        ]
+      }
+    ],
+    "message": "[unclosed"
+  }
+}
