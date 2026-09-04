@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -29,11 +30,9 @@ var noDialPkgs = []string{
 	"internal/syslogframing",
 }
 
-var forbiddenIdent = map[string]bool{
-	"Dial":        true,
-	"DialTimeout": true,
-	"Dialer":      true,
-	"NewRequest":  true,
+var adapterPkgs = []string{
+	"internal/control/rest",
+	"internal/control/mcp",
 }
 
 var forbiddenModules = []string{
@@ -107,41 +106,109 @@ func TestImportFence(t *testing.T) {
 	}
 	scanForbidden("internal")
 	scanForbidden("cmd")
+
+	assertNoUnlistedNested(t, root, fencePkgList())
 }
 
 func TestNoDialIdentifiers(t *testing.T) {
 	root := moduleRoot(t)
 	fset := token.NewFileSet()
 	for _, rel := range noDialPkgs {
-		dir := filepath.Join(root, filepath.FromSlash(rel))
-		ents, err := os.ReadDir(dir)
-		if err != nil {
-			if os.IsNotExist(err) {
-				t.Errorf("missing package %s", rel)
-				continue
-			}
-			t.Fatal(err)
-		}
-		for _, e := range ents {
-			if e.IsDir() || !isProductionGo(e.Name()) {
-				continue
-			}
-			path := filepath.Join(dir, e.Name())
-			f, err := parser.ParseFile(fset, path, nil, 0)
+		walkProductionGo(t, root, rel, func(fileRel string) {
+			f, err := parser.ParseFile(fset, filepath.Join(root, filepath.FromSlash(fileRel)), nil, 0)
 			if err != nil {
-				t.Fatalf("parse %s: %v", path, err)
+				t.Fatalf("parse %s: %v", fileRel, err)
 			}
 			ast.Inspect(f, func(n ast.Node) bool {
 				id, ok := n.(*ast.Ident)
 				if !ok {
 					return true
 				}
-				if forbiddenIdent[id.Name] {
-					t.Errorf("%s/%s: forbidden identifier %s", rel, e.Name(), id.Name)
+				if forbiddenIdentName(id.Name) {
+					t.Errorf("%s: forbidden identifier %s", fileRel, id.Name)
 				}
 				return true
 			})
-		}
+		})
+	}
+}
+
+func TestForbiddenIdentSnippets(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want []string
+	}{
+		{
+			name: "Dial",
+			src:  "package p\nimport \"net\"\nfunc f() { _, _ = net.Dial(\"udp\", \"\") }\n",
+			want: []string{"Dial"},
+		},
+		{
+			name: "DialTimeout",
+			src:  "package p\nimport \"net\"\nfunc f() { _, _ = net.DialTimeout(\"tcp\", \"\", 0) }\n",
+			want: []string{"DialTimeout"},
+		},
+		{
+			name: "Dialer",
+			src:  "package p\nimport \"net\"\nvar _ = net.Dialer{}\n",
+			want: []string{"Dialer"},
+		},
+		{
+			name: "DialContext",
+			src:  "package p\nimport (\n\"context\"\n\"net\"\n)\nfunc f() { var d net.Dialer; _, _ = d.DialContext(context.Background(), \"udp\", \"\") }\n",
+			want: []string{"DialContext", "Dialer"},
+		},
+		{
+			name: "DialUDP",
+			src:  "package p\nimport \"net\"\nfunc f() { _, _ = net.DialUDP(\"udp\", nil, nil) }\n",
+			want: []string{"DialUDP"},
+		},
+		{
+			name: "DialTCP",
+			src:  "package p\nimport \"net\"\nfunc f() { _, _ = net.DialTCP(\"tcp\", nil, nil) }\n",
+			want: []string{"DialTCP"},
+		},
+		{
+			name: "DialIP",
+			src:  "package p\nimport \"net\"\nfunc f() { _, _ = net.DialIP(\"ip4:icmp\", nil, nil) }\n",
+			want: []string{"DialIP"},
+		},
+		{
+			name: "DialUnix",
+			src:  "package p\nimport \"net\"\nfunc f() { _, _ = net.DialUnix(\"unix\", nil, nil) }\n",
+			want: []string{"DialUnix"},
+		},
+		{
+			name: "NewRequest",
+			src:  "package p\nimport \"net/http\"\nfunc f() { _, _ = http.NewRequest(\"GET\", \"/\", nil) }\n",
+			want: []string{"NewRequest"},
+		},
+		{
+			name: "NewRequestWithContext",
+			src:  "package p\nimport (\n\"context\"\n\"net/http\"\n)\nfunc f() { _, _ = http.NewRequestWithContext(context.Background(), \"GET\", \"/\", nil) }\n",
+			want: []string{"NewRequestWithContext"},
+		},
+		{
+			name: "ListenPacket allowed",
+			src:  "package p\nimport \"net\"\nfunc f() { _, _ = net.ListenPacket(\"udp\", \":0\") }\n",
+		},
+		{
+			name: "Listen allowed",
+			src:  "package p\nimport \"net\"\nfunc f() { _, _ = net.Listen(\"tcp\", \":0\") }\n",
+		},
+		{
+			name: "Accept allowed",
+			src:  "package p\nimport \"net\"\nfunc f(l net.Listener) { _, _ = l.Accept() }\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := forbiddenIdentsInSource(t, tt.src)
+			if strings.Join(got, ",") != strings.Join(tt.want, ",") {
+				t.Fatalf("forbidden idents = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -159,7 +226,7 @@ func TestNoImportCycles(t *testing.T) {
 				}
 				return nil
 			}
-			if !strings.HasSuffix(d.Name(), ".go") {
+			if !isProductionGo(d.Name()) {
 				return nil
 			}
 			relDir, err := filepath.Rel(root, filepath.Dir(p))
@@ -223,21 +290,84 @@ func TestNoImportCycles(t *testing.T) {
 
 func productionImports(t *testing.T, root, rel string) []string {
 	t.Helper()
+	var out []string
+	walkProductionGo(t, root, rel, func(fileRel string) {
+		out = append(out, fileImports(t, filepath.Join(root, filepath.FromSlash(fileRel)))...)
+	})
+	return out
+}
+
+func walkProductionGo(t *testing.T, root, rel string, fn func(fileRel string)) {
+	t.Helper()
 	dir := filepath.Join(root, filepath.FromSlash(rel))
-	ents, err := os.ReadDir(dir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			t.Errorf("missing package %s", rel)
+	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) {
+				t.Errorf("missing package %s", rel)
+				return fs.SkipAll
+			}
+			return err
+		}
+		if d.IsDir() {
+			if d.Name() == "testdata" {
+				return fs.SkipDir
+			}
 			return nil
 		}
+		if !isProductionGo(d.Name()) {
+			return nil
+		}
+		fileRel, err := filepath.Rel(root, p)
+		if err != nil {
+			return err
+		}
+		fn(filepath.ToSlash(fileRel))
+		return nil
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func assertNoUnlistedNested(t *testing.T, root string, listed []string) {
+	t.Helper()
+	set := map[string]bool{}
+	for _, p := range listed {
+		set[p] = true
+	}
+	for _, rel := range listed {
+		walkProductionGo(t, root, rel, func(fileRel string) {
+			pkg := path.Dir(fileRel)
+			if !set[pkg] {
+				t.Errorf("%s: nested package %s is not on the fence list", fileRel, pkg)
+			}
+		})
+	}
+}
+
+func fencePkgList() []string {
+	seen := map[string]bool{}
 	var out []string
-	for _, e := range ents {
-		if e.IsDir() || !isProductionGo(e.Name()) {
+	for _, p := range dataPlanePkgs {
+		if seen[p] {
 			continue
 		}
-		out = append(out, fileImports(t, filepath.Join(dir, e.Name()))...)
+		seen[p] = true
+		out = append(out, p)
+	}
+	for _, p := range noDialPkgs {
+		if seen[p] {
+			continue
+		}
+		seen[p] = true
+		out = append(out, p)
+	}
+	for _, p := range adapterPkgs {
+		if seen[p] {
+			continue
+		}
+		seen[p] = true
+		out = append(out, p)
 	}
 	return out
 }
@@ -258,6 +388,35 @@ func fileImports(t *testing.T, path string) []string {
 
 func isProductionGo(name string) bool {
 	return strings.HasSuffix(name, ".go") && !strings.HasSuffix(name, "_test.go")
+}
+
+func forbiddenIdentName(name string) bool {
+	return strings.HasPrefix(name, "Dial") || strings.HasPrefix(name, "NewRequest")
+}
+
+func forbiddenIdentsInSource(t *testing.T, src string) []string {
+	t.Helper()
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "snippet.go", src, 0)
+	if err != nil {
+		t.Fatalf("parse snippet: %v", err)
+	}
+	seen := map[string]bool{}
+	var out []string
+	ast.Inspect(f, func(n ast.Node) bool {
+		id, ok := n.(*ast.Ident)
+		if !ok {
+			return true
+		}
+		if !forbiddenIdentName(id.Name) || seen[id.Name] {
+			return true
+		}
+		seen[id.Name] = true
+		out = append(out, id.Name)
+		return true
+	})
+	sort.Strings(out)
+	return out
 }
 
 func forbiddenImport(imp string) bool {
