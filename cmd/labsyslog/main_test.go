@@ -48,7 +48,7 @@ func TestHelp(t *testing.T) {
 }
 
 func TestUnimplementedFailClosed(t *testing.T) {
-	for _, cmd := range []string{"serve", "healthcheck", "mcp-stdio"} {
+	for _, cmd := range []string{"healthcheck", "mcp-stdio"} {
 		var stdout, stderr bytes.Buffer
 		code := run([]string{"labsyslog", cmd}, &stdout, &stderr)
 		if code == 0 {

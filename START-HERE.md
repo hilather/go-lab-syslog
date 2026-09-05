@@ -18,12 +18,15 @@ syslog session and never forwards.
 4. `./bin/labsyslog help`
 5. Write a `labsyslog.dev/v1alpha1` file (or use `testdata/config/valid/defaults.yaml`).
 6. `./bin/labsyslog validate --config testdata/config/valid/defaults.yaml`
-7. `./bin/labsyslog serve --config testdata/config/valid/defaults.yaml --syslog-udp-listen 127.0.0.1:10514 --syslog-tcp-listen 127.0.0.1:10514 --management-listen 127.0.0.1:8088`
+7. `./bin/labsyslog serve --config testdata/config/valid/defaults.yaml --syslog-udp-listen 127.0.0.1:10514 --management-listen=off`
 
 `validate` and `canonicalize` load one fail-closed YAML document. `serve`
-binds UDP and TCP syslog plus native `/v1` REST, the operator SPA at `/`,
-and `POST /mcp`. Default lab auth is bearer. For a local browser session
-without tokens is **not** supported in 1.0. Management bind requires a usable bearer file unless `--management-listen=off`.
+binds UDP syslog today (`--syslog-udp-listen`). TCP, native `/v1` REST,
+the operator SPA at `/`, and `POST /mcp` land in later waves.
+`--management-listen=off` is first-class: UDP still accepts. Default lab
+auth is bearer. A local browser session without tokens is **not**
+supported in 1.0. Management bind requires a usable bearer file unless
+`--management-listen=off`.
 
 Read the loaded snapshot with `GET /v1/state`. Validate a candidate with
 `POST /v1/state:validate`. Dry-run and commit mutations with

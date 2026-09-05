@@ -17,6 +17,7 @@ test that fails before the fix.
 | Framing | `testdata/framing/` | octet-counting, NL, NUL trailer, auto heuristic, oversize, idle |
 | Store | `internal/store` | evict, reject, wait existing/inserted/timeout/wipe, generation |
 | Admission / filters | `internal/syslogserver` | CIDR miss silent, first-match, unmatched capture |
+| UDP sink | `internal/syslogserver` | dual-stack 127.0.0.1 and ::1; oversize/empty drop; `truncated` false; serve `--management-listen=off` |
 | Import fence | `internal/testutil/fence_test.go` | no Dial in server/store/app/wire; no syslog libs; no control import from data plane |
 | REST contract | `internal/control/rest` | problem+json codes, wait, pagination |
 | MCP + parity | `make test-parity` | every PARITY_REQUIRED row |

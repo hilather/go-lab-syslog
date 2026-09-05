@@ -76,6 +76,26 @@ UDP and TCP keep running if management is off or wedged.
 - `--management-listen` may be omitted. Serve-without-management is a
   first-class mode and is how M1 is accepted.
 
+## Ingest pipeline
+
+`internal/syslogserver` owns ingest. Binding order (do not reorder):
+
+1. **Size/framing** — UDP oversize or empty datagram: drop, metric, store
+   nothing. TCP framing lands in TCP-001.
+2. **Admission** — first policy gate after size/framing. UDP-001 stubs
+   allow-all; FIL-001 fills CIDR and rate.
+3. **`behavior.mode`** — UDP-001 stubs `accept`; FIL-001 applies
+   spec/snapshot. `drop-silent` / `close` discard after admission and
+   before parse. UDP `close` is drop-silent.
+4. **Parse** — `syslogwire` inside the pipeline. UDP/TCP call sites must
+   not parse before this hook. `unknown_facility` is a warning, not a drop.
+5. **Classify** — UDP-001 stubs capture-all; FIL-001 fills first-match.
+6. **`Handler.Insert(model.Message)`** — already parsed and classified.
+   STORE-001 implements Insert. FIL-001 wires `store.Store` from serve.
+
+IPv4-mapped IPv6 addresses are unmapped before admission. `Message.truncated`
+is always false in 1.0; oversize is not stored.
+
 ## Desired state
 
 One document:

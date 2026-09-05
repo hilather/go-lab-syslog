@@ -15,10 +15,14 @@ and the golden files under `testdata/packets/` and `testdata/framing/`.
 | TLS | 5425 | TLS then 6587 | no — v1.1 |
 | Unix socket | — | — | no |
 
-UDP has no framing. A datagram larger than `udpMaxDatagramBytes` is
-dropped, a metric is incremented, and nothing is stored. A datagram
-that parses but exceeds `maxMessageBytes` is dropped the same way.
-LabSyslog does **not** split UDP datagrams.
+UDP has no framing. `net.ListenPacket("udp", addr)` is dual-stack.
+One datagram is one message. IPv4-mapped IPv6 remotes are unmapped
+before admission. A datagram larger than `udpMaxDatagramBytes` or
+`maxMessageBytes` is dropped, metrics `labsyslog_udp_oversize_total`
+and `labsyslog_messages_dropped_total{reason="oversize"}` increment,
+and nothing is stored (`truncated` is not set). An empty datagram is
+dropped the same way (metric `reason="empty"`). LabSyslog does **not**
+split UDP datagrams.
 
 TCP is a byte stream. Framing is configured by
 `spec.listeners.tcp.framing`:

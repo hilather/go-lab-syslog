@@ -1,6 +1,6 @@
 # UDP-001: UDP sink (RFC 5426)
 
-Status: not-started
+Status: done
 Recommended owner: data-plane agent
 Dependencies: WIRE-001
 Exclusive ownership: `internal/syslogserver` UDP path, `cmd/labsyslog/serve.go` UDP bind
@@ -14,21 +14,21 @@ CIDR match.
 
 ## Design references
 
-- [ ] `docs/01-architecture.md` import fence
-- [ ] `docs/02-syslog-semantics.md` UDP section
-- [ ] LabNTP `internal/ntpserver` listen pattern
+- [x] `docs/01-architecture.md` import fence
+- [x] `docs/02-syslog-semantics.md` UDP section
+- [x] LabNTP `internal/ntpserver` listen pattern
 
 ## Scope
 
-- [ ] `net.ListenPacket("udp", addr)`
-- [ ] One datagram = one message. No framing.
-- [ ] Datagram larger than `udpMaxDatagramBytes` / `maxMessageBytes`:
+- [x] `net.ListenPacket("udp", addr)`
+- [x] One datagram = one message. No framing.
+- [x] Datagram larger than `udpMaxDatagramBytes` / `maxMessageBytes`:
       drop, increment metric, store nothing
-- [ ] Empty datagram: drop, metric
-- [ ] Admission hook (FIL-001 may stub allow-all until that wave)
-- [ ] `--syslog-udp-listen` flag overrides YAML
-- [ ] Serve with `--management-listen=off` still accepts
-- [ ] Import fence test: package does not import `internal/control`,
+- [x] Empty datagram: drop, metric
+- [x] Admission hook (FIL-001 may stub allow-all until that wave)
+- [x] `--syslog-udp-listen` flag overrides YAML
+- [x] Serve with `--management-listen=off` still accepts
+- [x] Import fence test: package does not import `internal/control`,
       `internal/web`, `net/http`
 
 ## Explicit non-scope
@@ -39,10 +39,10 @@ CIDR match.
 
 ## Required tests
 
-- [ ] Dual-stack send from 127.0.0.1 and ::1
-- [ ] Oversize drop
-- [ ] Management unbound does not block UDP
-- [ ] Import fence
+- [x] Dual-stack send from 127.0.0.1 and ::1
+- [x] Oversize drop
+- [x] Management unbound does not block UDP
+- [x] Import fence
 
 ## Acceptance criteria
 

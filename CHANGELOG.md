@@ -4,6 +4,14 @@
 
 ### Added
 
+- UDP sink (UDP-001): `internal/syslogserver` RFC 5426 `ListenPacket`
+  path and ingest pipeline (size/framing → admission → behavior → parse →
+  classify → `Handler.Insert`) with stub allow-all admission, `accept`
+  behavior, and capture-all classifier. Parse runs inside the pipeline via
+  `syslogwire`. Oversize and empty datagrams are dropped with a metric and
+  are not stored; `truncated` stays false. `labsyslog serve --config FILE
+  --syslog-udp-listen ADDR --management-listen=off` binds UDP without a
+  management plane. TCP listen and store-as-Handler wiring are later waves.
 - First-party RFC 3164 and RFC 5424 codec (WIRE-001): `internal/syslogwire`
   parse/serialize into `model.Parsed` with `parseWarning` tokens
   (`missing_pri`, `utf8_bom`, `no_parser`, `rfc5424_disabled`,
