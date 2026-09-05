@@ -148,6 +148,9 @@ func (s *Service) Messages() *store.Store { return s.store }
 // AuditRing is the mutation log.
 func (s *Service) AuditRing() *audit.Ring { return s.audit }
 
+// Metrics is the shared ingest counters (UDP and TCP).
+func (s *Service) Metrics() *syslogserver.Metrics { return s.metrics }
+
 // UDPAddr is the bound UDP address, or nil.
 func (s *Service) UDPAddr() net.Addr {
 	s.mu.Lock()
@@ -252,14 +255,107 @@ func (s *Service) bindLocked(ctx context.Context, snap *snapshot.Snapshot) error
 		return err
 	}
 
-	if err := s.syncUDP(ctx, cfg, udpOn, udpAddr); err != nil {
-		return err
+	// Bind every new socket first. Drain old listeners only after all listens
+	// succeed so a later plane failure cannot leave new sockets + old snapshot.
+	type pending struct {
+		udp, tcp *syslogserver.Server
+		mgmt     net.Listener
+		dropUDP  bool
+		dropTCP  bool
+		dropMgmt bool
+		udpAddr  string
+		tcpAddr  string
+		mgmtAddr string
 	}
-	if err := s.syncTCP(ctx, cfg, tcpOn, tcpAddr); err != nil {
-		return err
+	var p pending
+	rollback := true
+	defer func() {
+		if !rollback {
+			return
+		}
+		if p.udp != nil {
+			_ = p.udp.Close()
+		}
+		if p.tcp != nil {
+			_ = p.tcp.Close()
+		}
+		if p.mgmt != nil {
+			_ = p.mgmt.Close()
+		}
+	}()
+
+	if udpOn {
+		if s.udp == nil || s.udpAddr != udpAddr {
+			cfg.Addr = udpAddr
+			next, err := syslogserver.ListenUDP(ctx, cfg)
+			if err != nil {
+				return err
+			}
+			p.udp = next
+			p.udpAddr = udpAddr
+		}
+	} else if s.udp != nil {
+		p.dropUDP = true
 	}
-	if err := s.syncMgmt(mgmtOn, mgmtAddr); err != nil {
-		return err
+	if tcpOn {
+		if s.tcp == nil || s.tcpAddr != tcpAddr {
+			cfg.Addr = tcpAddr
+			next, err := syslogserver.ListenTCP(ctx, cfg)
+			if err != nil {
+				return err
+			}
+			p.tcp = next
+			p.tcpAddr = tcpAddr
+		}
+	} else if s.tcp != nil {
+		p.dropTCP = true
+	}
+	if mgmtOn {
+		if s.mgmt == nil || s.mgmtAddr != mgmtAddr {
+			ln, err := net.Listen("tcp", mgmtAddr)
+			if err != nil {
+				return err
+			}
+			p.mgmt = ln
+			p.mgmtAddr = mgmtAddr
+		}
+	} else if s.mgmt != nil {
+		p.dropMgmt = true
+	}
+
+	rollback = false
+	if p.udp != nil {
+		if s.udp != nil {
+			_ = s.udp.Close()
+		}
+		s.udp = p.udp
+		s.udpAddr = p.udpAddr
+	} else if p.dropUDP {
+		_ = s.udp.Close()
+		s.udp = nil
+		s.udpAddr = ""
+	}
+	if p.tcp != nil {
+		if s.tcp != nil {
+			_ = s.tcp.Close()
+		}
+		s.tcp = p.tcp
+		s.tcpAddr = p.tcpAddr
+	} else if p.dropTCP {
+		_ = s.tcp.Close()
+		s.tcp = nil
+		s.tcpAddr = ""
+	}
+	if p.mgmt != nil {
+		if s.mgmt != nil {
+			_ = s.mgmt.Close()
+		}
+		s.mgmt = p.mgmt
+		s.mgmtAddr = p.mgmtAddr
+	} else if p.dropMgmt {
+		_ = s.mgmt.Close()
+		s.mgmt = nil
+		s.mgmtAddr = ""
 	}
 	s.pushLiveLocked(snap)
 	return nil
@@ -297,80 +393,6 @@ func (s *Service) ingestConfig(snap *snapshot.Snapshot) (syslogserver.Config, er
 	}, nil
 }
 
-func (s *Service) syncUDP(ctx context.Context, cfg syslogserver.Config, on bool, addr string) error {
-	if !on {
-		if s.udp != nil {
-			_ = s.udp.Close()
-			s.udp = nil
-		}
-		s.udpAddr = ""
-		return nil
-	}
-	if s.udp != nil && s.udpAddr == addr {
-		return nil
-	}
-	cfg.Addr = addr
-	next, err := syslogserver.ListenUDP(ctx, cfg)
-	if err != nil {
-		return err
-	}
-	if s.udp != nil {
-		_ = s.udp.Close()
-	}
-	s.udp = next
-	s.udpAddr = addr
-	return nil
-}
-
-func (s *Service) syncTCP(ctx context.Context, cfg syslogserver.Config, on bool, addr string) error {
-	if !on {
-		if s.tcp != nil {
-			_ = s.tcp.Close()
-			s.tcp = nil
-		}
-		s.tcpAddr = ""
-		return nil
-	}
-	if s.tcp != nil && s.tcpAddr == addr {
-		return nil
-	}
-	cfg.Addr = addr
-	next, err := syslogserver.ListenTCP(ctx, cfg)
-	if err != nil {
-		return err
-	}
-	if s.tcp != nil {
-		_ = s.tcp.Close()
-	}
-	s.tcp = next
-	s.tcpAddr = addr
-	return nil
-}
-
-func (s *Service) syncMgmt(on bool, addr string) error {
-	if !on {
-		if s.mgmt != nil {
-			_ = s.mgmt.Close()
-			s.mgmt = nil
-		}
-		s.mgmtAddr = ""
-		return nil
-	}
-	if s.mgmt != nil && s.mgmtAddr == addr {
-		return nil
-	}
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
-	if s.mgmt != nil {
-		_ = s.mgmt.Close()
-	}
-	s.mgmt = ln
-	s.mgmtAddr = addr
-	return nil
-}
-
 func (s *Service) pushLiveLocked(snap *snapshot.Snapshot) {
 	if snap == nil {
 		return
@@ -394,6 +416,8 @@ func (s *Service) pushLiveLocked(snap *snapshot.Snapshot) {
 		MaxTCPConns:         spec.Admission.MaxTCPConns,
 		MaxTCPConnsPerIP:    spec.Admission.MaxTCPConnsPerIP,
 		SessionTimeout:      spec.Admission.SessionTimeout.Duration(),
+		Framing:             spec.Listeners.TCP.Framing,
+		TCPIdleTimeout:      spec.Syslog.TCPIdleTimeout.Duration(),
 	}
 	if s.udp != nil {
 		s.udp.PushLive(live)

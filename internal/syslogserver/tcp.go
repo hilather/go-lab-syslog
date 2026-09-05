@@ -106,10 +106,10 @@ func (s *Server) handleConn(conn net.Conn) {
 	live := s.current()
 	r := &deadlineReader{
 		Conn:    conn,
-		idle:    s.cfg.TCPIdleTimeout,
+		idle:    live.TCPIdleTimeout,
 		session: time.Now().Add(live.SessionTimeout),
 	}
-	sc := syslogframing.NewScanner(r, s.cfg.Framing, live.MaxMessageBytes)
+	sc := syslogframing.NewScanner(r, live.Framing, live.MaxMessageBytes)
 	for {
 		if s.ctx.Err() != nil {
 			return

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hilather/go-lab-syslog/internal/app"
 	"github.com/hilather/go-lab-syslog/internal/compiler"
-	"github.com/hilather/go-lab-syslog/internal/config"
 	"github.com/hilather/go-lab-syslog/internal/store"
 	"github.com/hilather/go-lab-syslog/internal/syslogserver"
 	"github.com/hilather/go-lab-syslog/internal/syslogtest"
@@ -217,36 +217,14 @@ const (
 )
 
 func TestServeStoreHandlerUDP3164AndTCP5424(t *testing.T) {
-	path := filepath.Join(repoRoot(t), "testdata", "config", "valid", "defaults.yaml")
-	doc, err := config.LoadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := compiler.Check(doc, filepath.Dir(path)); err != nil {
-		t.Fatal(err)
-	}
-	cfg, st, err := ingestFromDoc(doc)
-	if err != nil {
-		t.Fatal(err)
+	svc := startServeService(t, "")
+	udpAddr := svc.UDPAddr()
+	tcpAddr := svc.TCPAddr()
+	if udpAddr == nil || tcpAddr == nil {
+		t.Fatal("udp/tcp not bound")
 	}
 
-	udpCfg := cfg
-	udpCfg.Addr = "127.0.0.1:0"
-	udp, err := syslogserver.ListenUDP(testutil.Context(t), udpCfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	testutil.Cleanup(t, func() { _ = udp.Close() })
-
-	tcpCfg := cfg
-	tcpCfg.Addr = "127.0.0.1:0"
-	tcp, err := syslogserver.ListenTCP(testutil.Context(t), tcpCfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	testutil.Cleanup(t, func() { _ = tcp.Close() })
-
-	c, err := net.Dial("udp4", udp.LocalAddr().String())
+	c, err := net.Dial("udp4", udpAddr.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,12 +232,12 @@ func TestServeStoreHandlerUDP3164AndTCP5424(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = c.Close()
-	udpMsg := syslogtest.Wait(t, st, store.ListFilter{Transport: store.TransportUDP}, 0)
+	udpMsg := syslogtest.Wait(t, svc.Messages(), store.ListFilter{Transport: store.TransportUDP}, 0)
 	if udpMsg.Message.Parsed.Version != 0 || udpMsg.Message.Parsed.PRI != 34 {
 		t.Fatalf("udp parsed=%+v", udpMsg.Message.Parsed)
 	}
 
-	tc, err := net.Dial("tcp", tcp.LocalAddr().String())
+	tc, err := net.Dial("tcp", tcpAddr.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -268,12 +246,12 @@ func TestServeStoreHandlerUDP3164AndTCP5424(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = tc.Close()
-	tcpMsg := syslogtest.Wait(t, st, store.ListFilter{Transport: store.TransportTCP}, 0)
+	tcpMsg := syslogtest.Wait(t, svc.Messages(), store.ListFilter{Transport: store.TransportTCP}, 0)
 	if tcpMsg.Message.Parsed.Version != 1 || tcpMsg.Message.Parsed.PRI != 165 {
 		t.Fatalf("tcp parsed=%+v", tcpMsg.Message.Parsed)
 	}
 
-	listed, err := st.List(store.ListFilter{}, "", 0)
+	listed, err := svc.Messages().List(store.ListFilter{}, "", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,30 +261,19 @@ func TestServeStoreHandlerUDP3164AndTCP5424(t *testing.T) {
 }
 
 func TestServeBehaviorFromSpecDropSilent(t *testing.T) {
-	path := filepath.Join(repoRoot(t), "testdata", "config", "valid", "defaults.yaml")
-	doc, err := config.LoadFile(path)
-	if err != nil {
-		t.Fatal(err)
+	svc := startServeService(t, `
+  syslog:
+    behavior:
+      mode: drop-silent
+`)
+	if svc.Snapshot().Document.Spec.Syslog.Behavior.Mode != syslogserver.BehaviorDropSilent {
+		t.Fatalf("behavior = %q", svc.Snapshot().Document.Spec.Syslog.Behavior.Mode)
 	}
-	if err := compiler.Check(doc, filepath.Dir(path)); err != nil {
-		t.Fatal(err)
+	addr := svc.UDPAddr()
+	if addr == nil {
+		t.Fatal("udp not bound")
 	}
-	doc.Spec.Syslog.Behavior.Mode = syslogserver.BehaviorDropSilent
-	cfg, st, err := ingestFromDoc(doc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cfg.Behavior.Mode != syslogserver.BehaviorDropSilent {
-		t.Fatalf("behavior = %q", cfg.Behavior.Mode)
-	}
-	udpCfg := cfg
-	udpCfg.Addr = "127.0.0.1:0"
-	udp, err := syslogserver.ListenUDP(testutil.Context(t), udpCfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	testutil.Cleanup(t, func() { _ = udp.Close() })
-	c, err := net.Dial("udp4", udp.LocalAddr().String())
+	c, err := net.Dial("udp4", addr.String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -316,17 +283,64 @@ func TestServeBehaviorFromSpecDropSilent(t *testing.T) {
 	_ = c.Close()
 	deadline := time.Now().Add(200 * time.Millisecond)
 	for time.Now().Before(deadline) {
-		if udp.Metrics().DroppedBehavior.Load() >= 1 {
+		if svc.Metrics().DroppedBehavior.Load() >= 1 {
 			break
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
-	if udp.Metrics().DroppedBehavior.Load() < 1 {
+	if svc.Metrics().DroppedBehavior.Load() < 1 {
 		t.Fatal("drop-silent did not discard")
 	}
-	if n := st.Stats().Messages; n != 0 {
+	if n := svc.Messages().Stats().Messages; n != 0 {
 		t.Fatalf("stored %d after drop-silent", n)
 	}
+}
+
+func startServeService(t *testing.T, extraSpec string) *app.Service {
+	t.Helper()
+	dir := t.TempDir()
+	tok := filepath.Join(dir, "token")
+	if err := os.WriteFile(tok, bytes.Repeat([]byte("t"), 32), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	body := `apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  listeners:
+    udp:
+      enabled: true
+      address: "127.0.0.1:0"
+    tcp:
+      enabled: true
+      address: "127.0.0.1:0"
+  auth:
+    tokens:
+      - id: operator
+        secretFile: ` + tok + `
+  admission:
+    allowClientCidrs: ["127.0.0.0/8", "::1/128"]
+` + extraSpec
+	path := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	svc, err := app.New(app.Config{
+		BootstrapPath: path,
+		Compiler: compiler.Options{
+			ConfigDir:        dir,
+			ManagementListen: "off",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	testutil.Cleanup(t, func() { _ = svc.Close() })
+	return svc
 }
 
 func waitListenPrefix(t *testing.T, stderr *lockedBuffer, prefix string) string {

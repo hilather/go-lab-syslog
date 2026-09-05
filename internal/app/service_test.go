@@ -13,7 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hilather/go-lab-syslog/internal/audit"
 	"github.com/hilather/go-lab-syslog/internal/auth"
+	"github.com/hilather/go-lab-syslog/internal/compiler"
 	"github.com/hilather/go-lab-syslog/internal/config"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
 	"github.com/hilather/go-lab-syslog/internal/model"
@@ -376,5 +378,321 @@ func TestStateDriftedAfterApply(t *testing.T) {
 	}
 	if !svc.State(ctx).Drifted {
 		t.Fatal("live apply should set drifted")
+	}
+}
+
+func TestPlanAudits(t *testing.T) {
+	svc := newTestService(t, "")
+	ctx := testutil.Context(t)
+	_, err := svc.Plan(ctx, PlanRequest{
+		ExpectedRevision: svc.State(ctx).Revision,
+		Operations:       []Operation{{Type: OpReplaceObservability, LogLevel: "debug"}},
+		Actor:            "tester",
+		Reason:           "dry-run",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	events := svc.AuditRing().List()
+	if len(events) == 0 || events[0].Operation != audit.OpPlan {
+		t.Fatalf("audit = %+v", events)
+	}
+	if events[0].Actor != "tester" || events[0].Reason != "dry-run" {
+		t.Fatalf("plan audit %+v", events[0])
+	}
+}
+
+func TestIdempotencyConflictDifferentBody(t *testing.T) {
+	svc := newTestService(t, "")
+	ctx := testutil.Context(t)
+	rev := svc.State(ctx).Revision
+	_, err := svc.Apply(ctx, ApplyRequest{
+		ExpectedRevision: rev,
+		Operations:       []Operation{{Type: OpReplaceObservability, LogLevel: "debug"}},
+		IdempotencyKey:   "same-key",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = svc.Apply(ctx, ApplyRequest{
+		ExpectedRevision: svc.State(ctx).Revision,
+		Operations:       []Operation{{Type: OpReplaceObservability, LogLevel: "warn"}},
+		IdempotencyKey:   "same-key",
+	})
+	if !domainerr.Is(err, domainerr.IdempotencyConflict) {
+		t.Fatalf("got %v", err)
+	}
+	if svc.Snapshot().Document.Spec.Observability.LogLevel != "debug" {
+		t.Fatal("conflict must not apply the second body")
+	}
+}
+
+func TestApplyReplaceStoreCapsShrink(t *testing.T) {
+	svc := newTestService(t, "")
+	ctx := testutil.Context(t)
+	for i := 0; i < 3; i++ {
+		if _, err := svc.Messages().Insert(model.Message{Transport: "udp", Raw: []byte("m")}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := svc.Messages().Stats().Messages; n != 3 {
+		t.Fatalf("stored %d", n)
+	}
+	st := svc.Snapshot().Document.Spec.Store
+	st.MaxMessages = 1
+	_, err := svc.Apply(ctx, ApplyRequest{
+		ExpectedRevision: svc.State(ctx).Revision,
+		Operations:       []Operation{{Type: OpReplaceStoreCaps, Store: &st}},
+		IdempotencyKey:   "caps",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stats := svc.Messages().Stats()
+	if stats.Messages != 1 {
+		t.Fatalf("after shrink messages = %d", stats.Messages)
+	}
+	if stats.MaxMessages != 1 {
+		t.Fatalf("maxMessages = %d", stats.MaxMessages)
+	}
+	if stats.Evicted < 2 {
+		t.Fatalf("evicted = %d", stats.Evicted)
+	}
+}
+
+func TestApplyReplaceSyslogParseRaisesMaxMessageBytes(t *testing.T) {
+	svc := newTestService(t, `
+  syslog:
+    maxMessageBytes: 1KiB
+    udpMaxDatagramBytes: 64KiB
+`)
+	ctx := testutil.Context(t)
+	if err := svc.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	addr := svc.UDPAddr()
+	if addr == nil {
+		t.Fatal("udp not bound")
+	}
+	max := 64 * model.KiB
+	tru := true
+	_, err := svc.Apply(ctx, ApplyRequest{
+		ExpectedRevision: svc.State(ctx).Revision,
+		Operations: []Operation{{
+			Type:            OpReplaceSyslogParse,
+			Parse:           &model.SyslogParse{RFC3164: &tru, RFC5424: &tru, BestEffort: &tru},
+			MaxMessageBytes: &max,
+		}},
+		IdempotencyKey: "raise-cap",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := append([]byte("<14>"), bytes.Repeat([]byte("x"), 2048)...)
+	sendUDP(t, addr.String(), payload)
+	msg := syslogtest.Wait(t, svc.Messages(), store.ListFilter{Transport: store.TransportUDP}, 0)
+	if msg.Message.Truncated {
+		t.Fatal("truncated flag set")
+	}
+	if len(msg.Message.Raw) != len(payload) {
+		t.Fatalf("stored %d bytes, want full %d (truncated prefix)", len(msg.Message.Raw), len(payload))
+	}
+}
+
+func TestResetBootstrapInvalidKeepsSnapshot(t *testing.T) {
+	svc := newTestService(t, "")
+	ctx := testutil.Context(t)
+	if _, err := svc.Messages().Insert(model.Message{Transport: "udp", Raw: []byte("keep")}); err != nil {
+		t.Fatal(err)
+	}
+	rev := svc.State(ctx).Revision
+	if err := os.WriteFile(svc.cfg.BootstrapPath, []byte("not: valid: yaml: ["), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := svc.Reset(ctx)
+	if !domainerr.Is(err, domainerr.BootstrapInvalid) {
+		t.Fatalf("got %v", err)
+	}
+	if svc.State(ctx).Revision != rev {
+		t.Fatal("revision changed on bootstrap_invalid")
+	}
+	if svc.Messages().Stats().Messages != 1 {
+		t.Fatal("store wiped on failed reset")
+	}
+}
+
+func TestResetReappliesListenFlags(t *testing.T) {
+	dir := t.TempDir()
+	tok := filepath.Join(dir, "token")
+	if err := os.WriteFile(tok, bytes.Repeat([]byte("t"), auth.MinTokenBytes), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "config.yaml")
+	body := `apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  listeners:
+    udp:
+      address: ":514"
+    tcp:
+      address: ":514"
+  auth:
+    tokens:
+      - id: operator
+        secretFile: ` + tok + `
+  admission:
+    allowClientCidrs: ["127.0.0.0/8", "::1/128"]
+`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	svc, err := New(Config{
+		BootstrapPath: path,
+		Compiler: compiler.Options{
+			ConfigDir:        dir,
+			UDPListen:        "127.0.0.1:0",
+			TCPListen:        "127.0.0.1:0",
+			ManagementListen: "off",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = svc.Close() })
+	if svc.Snapshot().Document.Spec.Listeners.UDP.Address != "127.0.0.1:0" {
+		t.Fatalf("serve overlay missing: %q", svc.Snapshot().Document.Spec.Listeners.UDP.Address)
+	}
+	_, err = svc.Apply(testutil.Context(t), ApplyRequest{
+		ExpectedRevision: svc.State(testutil.Context(t)).Revision,
+		Operations:       []Operation{{Type: OpReplaceObservability, LogLevel: "debug"}},
+		IdempotencyKey:   "flag-reset",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Reset(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	if svc.Snapshot().Document.Spec.Listeners.UDP.Address != "127.0.0.1:0" {
+		t.Fatalf("reset dropped listen overlay: %q", svc.Snapshot().Document.Spec.Listeners.UDP.Address)
+	}
+	if svc.Snapshot().Document.Spec.Observability.LogLevel != "info" {
+		t.Fatal("reset did not restore bootstrap logLevel")
+	}
+}
+
+func TestResetTCPBindFailureKeepsUDPAndRevision(t *testing.T) {
+	svc := newTestService(t, "")
+	ctx := testutil.Context(t)
+	if err := svc.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	udpAddr := svc.UDPAddr().String()
+	rev := svc.State(ctx).Revision
+
+	held, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = held.Close() })
+
+	tok := svc.Snapshot().Document.Spec.Auth.Tokens[0].SecretFile
+	body := `apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  listeners:
+    udp:
+      enabled: true
+      address: "127.0.1.1:0"
+    tcp:
+      enabled: true
+      address: "` + held.Addr().String() + `"
+  auth:
+    tokens:
+      - id: operator
+        secretFile: ` + tok + `
+  admission:
+    allowClientCidrs: ["127.0.0.0/8", "::1/128"]
+`
+	if err := os.WriteFile(svc.cfg.BootstrapPath, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Reset(ctx); err == nil {
+		t.Fatal("expected TCP bind failure")
+	}
+	if got := svc.UDPAddr().String(); got != udpAddr {
+		t.Fatalf("udp rebound on failed reset: %s -> %s", udpAddr, got)
+	}
+	if svc.State(ctx).Revision != rev {
+		t.Fatal("revision changed on failed reset bind")
+	}
+}
+
+func TestCandidateDiffAppliesListenOverlays(t *testing.T) {
+	dir := t.TempDir()
+	tok := filepath.Join(dir, "token")
+	if err := os.WriteFile(tok, bytes.Repeat([]byte("t"), auth.MinTokenBytes), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "config.yaml")
+	body := `apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  listeners:
+    udp:
+      address: ":514"
+    tcp:
+      address: ":514"
+  auth:
+    tokens:
+      - id: operator
+        secretFile: ` + tok + `
+  admission:
+    allowClientCidrs: ["127.0.0.0/8", "::1/128"]
+`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	svc, err := New(Config{
+		BootstrapPath: path,
+		Compiler: compiler.Options{
+			ConfigDir:        dir,
+			UDPListen:        "127.0.0.1:0",
+			TCPListen:        "127.0.0.1:0",
+			ManagementListen: "off",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = svc.Close() })
+
+	cand, err := config.LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cand.Spec.Filters = []model.Filter{{
+		Name:   "only-filters",
+		Action: model.FilterAction{Mode: "capture"},
+	}}
+	_, err = svc.Apply(testutil.Context(t), ApplyRequest{
+		ExpectedRevision: svc.State(testutil.Context(t)).Revision,
+		Candidate:        cand,
+		IdempotencyKey:   "overlay-cand",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if svc.Snapshot().Document.Spec.Listeners.UDP.Address != "127.0.0.1:0" {
+		t.Fatal("flag overlay lost")
+	}
+	if n := len(svc.Snapshot().Document.Spec.Filters); n != 1 || svc.Snapshot().Document.Spec.Filters[0].Name != "only-filters" {
+		t.Fatalf("filters = %+v", svc.Snapshot().Document.Spec.Filters)
 	}
 }

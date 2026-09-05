@@ -34,7 +34,8 @@ type Config struct {
 	Metrics             *Metrics
 }
 
-// Live is the apply-mutable ingest policy. Reset-only fields stay on Config.
+// Live is the apply-mutable ingest policy. Reset-only fields that can change
+// without a rebind (framing, tcpIdleTimeout) live here so PushLive sees them.
 type Live struct {
 	Admission           Admission
 	Classifier          Classifier
@@ -45,6 +46,8 @@ type Live struct {
 	MaxTCPConns         int
 	MaxTCPConnsPerIP    int
 	SessionTimeout      time.Duration
+	Framing             string
+	TCPIdleTimeout      time.Duration
 }
 
 // Server is one ingest pipeline with an optional UDP PacketConn and/or TCP Listener.
@@ -161,6 +164,12 @@ func (s *Server) PushLive(live Live) {
 	if l.SessionTimeout <= 0 {
 		l.SessionTimeout = s.cfg.SessionTimeout
 	}
+	if l.Framing == "" {
+		l.Framing = s.cfg.Framing
+	}
+	if l.TCPIdleTimeout <= 0 {
+		l.TCPIdleTimeout = s.cfg.TCPIdleTimeout
+	}
 	s.live.Store(&l)
 }
 
@@ -175,6 +184,8 @@ func liveFromConfig(cfg Config) Live {
 		MaxTCPConns:         cfg.MaxTCPConns,
 		MaxTCPConnsPerIP:    cfg.MaxTCPConnsPerIP,
 		SessionTimeout:      cfg.SessionTimeout,
+		Framing:             cfg.Framing,
+		TCPIdleTimeout:      cfg.TCPIdleTimeout,
 	}
 }
 

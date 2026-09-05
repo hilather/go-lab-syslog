@@ -32,6 +32,12 @@ func (s *Service) Plan(_ context.Context, req PlanRequest) (Plan, error) {
 	if err != nil {
 		return Plan{}, err
 	}
+	s.audit.Append(audit.Event{
+		Actor:     req.Actor,
+		Operation: audit.OpPlan,
+		Reason:    req.Reason,
+		Revision:  cand.plan.NextRevision,
+	})
 	return cand.plan, nil
 }
 
@@ -94,7 +100,7 @@ func (s *Service) prepareLocked(expected string, ops []Operation, candidate *mod
 
 	var err error
 	if len(ops) == 0 && candidate != nil {
-		ops, err = diffOperations(cur.Document, *candidate, s.cfg.Compiler.ConfigDir)
+		ops, err = diffOperations(cur.Document, *candidate, s.cfg.Compiler)
 		if err != nil {
 			return prepared{}, err
 		}
@@ -186,9 +192,10 @@ func immutableDetail(ops []Operation) string {
 	return OpReplaceListeners
 }
 
-func diffOperations(current, candidate model.Document, configDir string) ([]Operation, error) {
+func diffOperations(current, candidate model.Document, opts compiler.Options) ([]Operation, error) {
 	cand := compiler.CloneDocument(candidate)
-	if err := compiler.Check(&cand, configDir); err != nil {
+	compiler.ApplyListenOverrides(&cand, opts)
+	if err := compiler.Check(&cand, opts.ConfigDir); err != nil {
 		return nil, err
 	}
 	cur := current.Spec

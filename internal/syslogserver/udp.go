@@ -12,11 +12,9 @@ const maxUDPPayload = 65535
 
 func (s *Server) serveUDP() {
 	defer s.wg.Done()
-	limit := s.cfg.effectiveCap()
-	if limit > maxUDPPayload {
-		limit = maxUDPPayload
-	}
-	buf := make([]byte, limit+1)
+	// Size at the UDP ceiling so a live raise of maxMessageBytes / udpMaxDatagramBytes
+	// can still observe the full datagram. handleDatagram applies live caps.
+	buf := make([]byte, maxUDPPayload+1)
 	for {
 		n, addr, err := s.pc.ReadFrom(buf)
 		if err != nil {
