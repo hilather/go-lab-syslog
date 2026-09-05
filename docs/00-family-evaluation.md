@@ -91,7 +91,7 @@ ADRs before invariant changes, reviewer checklists, generated contracts).
 | Syslog UDP | 514/udp | `:514/udp` | 10514/udp | `LABSYSLOG_SYSLOG_PORT=514` when preflight allows |
 | Syslog TCP | 514/tcp | `:514/tcp` | 10514/tcp | `LABSYSLOG_SYSLOG_TCP_PORT=514` |
 | Syslog TLS | 6514/tcp | `:6514/tcp` | not published in 1.0 | v1.1 |
-| Management | n/a | `:8088/tcp` | 18514/tcp | `LABSYSLOG_MGMT_PORT` |
+| Management | n/a | `:8088/tcp` | 18514/tcp | `LABSYSLOG_REST_PORT` |
 
 Preflight occupancy is `/proc/net` UDP bound + TCP LISTEN. `EACCES` /
 `EPERM` is **not** occupied (UID cannot bind 514; dockerd can publish).

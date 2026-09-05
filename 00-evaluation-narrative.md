@@ -236,7 +236,7 @@ Not copied:
 
 **LabSyslog contract.**
 
-- Profile vars: `LABSYSLOG_SYSLOG_PORT`, `LABSYSLOG_SYSLOG_TCP_PORT`, `LABSYSLOG_MGMT_PORT`.
+- Profile vars: `LABSYSLOG_SYSLOG_PORT`, `LABSYSLOG_SYSLOG_TCP_PORT`, `LABSYSLOG_REST_PORT`.
 - `make reload APP=labsyslog` recreates only that container.
 - Preflight treats 514 UDP/TCP occupancy via `/proc/net`; `EACCES` is not occupied.
 - Do not add a Go `userland-proxy` probe. Document NAT only if UDP source address matters for filters (it does: `remoteAddr` is stored and may match `allowClientCidrs`). Same class of note as LabNTP ADR 0014, but syslog is a sink so source preservation is observability-quality, not correctness-of-time.

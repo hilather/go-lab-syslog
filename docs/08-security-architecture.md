@@ -46,7 +46,9 @@ wipes with the store on reset.
 ## Container
 
 UID 65532, read-only rootfs, `cap_drop: ALL`, `no-new-privileges`,
-tmpfs `/tmp`. Integrator may add `NET_BIND_SERVICE` for host 514.
+tmpfs `/tmp`. Integrator compose adds `NET_BIND_SERVICE` whenever the
+container process binds `:514`, including host 10514→514. This repo's
+`:1514` smoke must not add the cap (ADR 0010).
 Secrets mounted `ro` at `0o644` so UID 65532 can read them (0o600
 fails the bind-mount for non-root).
 

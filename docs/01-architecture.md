@@ -258,5 +258,5 @@ Operators who want deny-by-default add an explicit last filter with
 - `cap_drop: ALL`
 - `no-new-privileges`
 - `/tmp` on tmpfs
-- Integrator compose may add `NET_BIND_SERVICE` when publishing host 514
-- This repo's `make test-container` binds `:1514` and does not need the cap
+- Integrator compose adds `NET_BIND_SERVICE` whenever the container process binds `:514`, including host 10514→514 (ADR 0010)
+- This repo's `make test-container` binds `:1514` and must not add the cap

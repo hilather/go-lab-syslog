@@ -24,11 +24,20 @@ func TestLabOverlayYAML(t *testing.T) {
 	if doc.APIVersion != "labsyslog.dev/v1alpha1" || doc.Kind != "LabSyslog" {
 		t.Fatalf("identity %s %s", doc.APIVersion, doc.Kind)
 	}
+	if doc.Spec.Listeners.UDP.Enabled == nil || !*doc.Spec.Listeners.UDP.Enabled {
+		t.Fatal("udp.enabled must be true")
+	}
+	if doc.Spec.Listeners.TCP.Enabled == nil || !*doc.Spec.Listeners.TCP.Enabled {
+		t.Fatal("tcp.enabled must be true")
+	}
 	if doc.Spec.Listeners.UDP.Address != ":514" {
 		t.Fatalf("udp address %q, want :514", doc.Spec.Listeners.UDP.Address)
 	}
 	if doc.Spec.Listeners.TCP.Address != ":514" {
 		t.Fatalf("tcp address %q, want :514", doc.Spec.Listeners.TCP.Address)
+	}
+	if len(doc.Spec.Filters) != 0 {
+		t.Fatalf("lab overlay filters %d, want capture-all empty", len(doc.Spec.Filters))
 	}
 	if doc.Spec.Listeners.TLS.Enabled {
 		t.Fatal("tls.enabled must be false in 1.0")
