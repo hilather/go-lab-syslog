@@ -13,7 +13,7 @@ const TransportUDP = "udp"
 // TransportTCP is Message.Transport for RFC 6587 streams.
 const TransportTCP = "tcp"
 
-// Classifier actions (docs/04). FIL-001 fills real first-match.
+// Classifier actions (docs/04).
 const (
 	ActionCapture    = "capture"
 	ActionDropSilent = "drop-silent"
@@ -39,28 +39,27 @@ const (
 	ReasonStoreFull     = "store_full"
 )
 
-// Handler receives a parsed, classified message. STORE-001 implements Insert;
-// FIL-001 wires store.Store (or an adapter) from serve.
+// Handler receives a parsed, classified message.
 type Handler interface {
 	Insert(ctx context.Context, msg model.Message) error
 }
 
-// Admission is the first policy gate after size/framing. UDP-001 stubs allow-all.
+// Admission is the first policy gate after size/framing.
 type Admission interface {
 	Allow(remote netip.Addr) (ok bool, reason string)
 }
 
-// Classifier is first-match capture/drop/tag after parse. UDP-001 stubs capture-all.
+// Classifier is first-match capture/drop/tag after parse.
 type Classifier interface {
 	Classify(msg *model.Message) (action string, tag string)
 }
 
-// Behavior is process-wide ingest mode. UDP-001 stubs accept.
+// Behavior is process-wide ingest mode.
 type Behavior struct {
 	Mode string
 }
 
-// NopHandler discards Insert. Serve uses it until FIL-001 wires the store.
+// NopHandler discards Insert.
 type NopHandler struct{}
 
 func (NopHandler) Insert(context.Context, model.Message) error { return nil }
@@ -72,12 +71,12 @@ func (f HandlerFunc) Insert(ctx context.Context, msg model.Message) error {
 	return f(ctx, msg)
 }
 
-// AllowAll is the UDP-001 admission stub.
+// AllowAll admits every remote. Tests that do not exercise CIDR use it.
 type AllowAll struct{}
 
 func (AllowAll) Allow(netip.Addr) (bool, string) { return true, "" }
 
-// CaptureAll is the UDP-001 classifier stub.
+// CaptureAll classifies every message as capture.
 type CaptureAll struct{}
 
 func (CaptureAll) Classify(*model.Message) (string, string) { return ActionCapture, "" }

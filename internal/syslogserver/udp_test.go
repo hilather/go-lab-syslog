@@ -275,6 +275,42 @@ func TestUDPCallSiteDoesNotImportSyslogwire(t *testing.T) {
 	}
 }
 
+func TestUDPOutsideAllowListNeverStored(t *testing.T) {
+	a := mustAdmission(t, model.Admission{AllowClientCIDRs: []string{"10.99.42.0/24"}})
+	srv, h := startUDP(t, Config{Addr: "127.0.0.1:0", Admission: a})
+	sendUDP(t, "udp4", srv.LocalAddr().String(), []byte(helloPayload))
+	waitMetric(t, srv.Metrics().DroppedAdmission.Load, 1)
+	if n := len(h.snapshot()); n != 0 {
+		t.Fatalf("outside allow-list stored %d", n)
+	}
+	if srv.Metrics().Received.Load() != 0 {
+		t.Fatal("received counts pre-admission")
+	}
+}
+
+func TestUDPNoFilterAllowListHitCaptures(t *testing.T) {
+	a := mustAdmission(t, model.Admission{AllowClientCIDRs: []string{"127.0.0.0/8", "::1/128"}})
+	c := mustClassifier(t, nil)
+	srv, h := startUDP(t, Config{Addr: "127.0.0.1:0", Admission: a, Classifier: c})
+	sendUDP(t, "udp4", srv.LocalAddr().String(), []byte(helloPayload))
+	m := waitMsg(t, h)
+	if m.Transport != TransportUDP {
+		t.Fatalf("transport = %q", m.Transport)
+	}
+	if len(m.Tags) != 0 {
+		t.Fatalf("unmatched capture tags = %q", m.Tags)
+	}
+}
+
+func TestUDPBehaviorDropSilentNotStored(t *testing.T) {
+	srv, h := startUDP(t, Config{Addr: "127.0.0.1:0", Behavior: Behavior{Mode: BehaviorDropSilent}})
+	sendUDP(t, "udp4", srv.LocalAddr().String(), []byte(helloPayload))
+	waitMetric(t, srv.Metrics().DroppedBehavior.Load, 1)
+	if n := len(h.snapshot()); n != 0 {
+		t.Fatalf("behavior drop stored %d", n)
+	}
+}
+
 func TestUnmapIPv4Mapped(t *testing.T) {
 	mapped := netip.MustParseAddr("::ffff:127.0.0.1")
 	got := mapped.Unmap()

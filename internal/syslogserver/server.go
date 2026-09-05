@@ -14,8 +14,7 @@ import (
 
 const defaultCap = 64 * model.KiB
 
-// Config is a UDP/TCP listener plus ingest stubs. FIL-001 replaces Admission,
-// Classifier, and Behavior; STORE-001/FIL-001 replace Handler.
+// Config is a UDP/TCP listener plus ingest policy.
 type Config struct {
 	Addr                string
 	UDPMaxDatagramBytes int

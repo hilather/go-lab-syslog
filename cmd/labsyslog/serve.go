@@ -13,6 +13,8 @@ import (
 
 	"github.com/hilather/go-lab-syslog/internal/compiler"
 	"github.com/hilather/go-lab-syslog/internal/config"
+	"github.com/hilather/go-lab-syslog/internal/model"
+	"github.com/hilather/go-lab-syslog/internal/store"
 	"github.com/hilather/go-lab-syslog/internal/syslogserver"
 	"github.com/hilather/go-lab-syslog/internal/syslogwire"
 )
@@ -70,17 +72,10 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	}
 	mgmtOff := mgmt == "" || strings.EqualFold(mgmt, "off")
 
-	ingest := syslogserver.Config{
-		UDPMaxDatagramBytes: int(doc.Spec.Syslog.UDPMaxDatagramBytes),
-		MaxMessageBytes:     int(doc.Spec.Syslog.MaxMessageBytes),
-		Framing:             doc.Spec.Listeners.TCP.Framing,
-		TCPIdleTimeout:      doc.Spec.Syslog.TCPIdleTimeout.Duration(),
-		SessionTimeout:      doc.Spec.Admission.SessionTimeout.Duration(),
-		MaxTCPConns:         doc.Spec.Admission.MaxTCPConns,
-		MaxTCPConnsPerIP:    doc.Spec.Admission.MaxTCPConnsPerIP,
-		Parse:               syslogwire.OptionsFromParse(doc.Spec.Syslog.Parse),
-		Behavior:            syslogserver.Behavior{Mode: syslogserver.BehaviorAccept},
-		Handler:             syslogserver.NopHandler{},
+	ingest, _, err := ingestFromDoc(doc)
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "labsyslog serve: ingest: %v\n", err)
+		return 1
 	}
 
 	if udpOn {
@@ -122,4 +117,38 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 
 	<-ctx.Done()
 	return 0
+}
+
+func ingestFromDoc(doc *model.Document) (syslogserver.Config, *store.Store, error) {
+	if doc == nil {
+		return syslogserver.Config{}, nil, fmt.Errorf("document is empty")
+	}
+	admit, err := syslogserver.NewCIDRAdmission(doc.Spec.Admission)
+	if err != nil {
+		return syslogserver.Config{}, nil, err
+	}
+	class, err := syslogserver.NewFilterClassifier(doc.Spec.Filters)
+	if err != nil {
+		return syslogserver.Config{}, nil, err
+	}
+	st := store.NewFromSpec(doc.Spec.Store)
+	cfg := syslogserver.Config{
+		UDPMaxDatagramBytes: int(doc.Spec.Syslog.UDPMaxDatagramBytes),
+		MaxMessageBytes:     int(doc.Spec.Syslog.MaxMessageBytes),
+		Framing:             doc.Spec.Listeners.TCP.Framing,
+		TCPIdleTimeout:      doc.Spec.Syslog.TCPIdleTimeout.Duration(),
+		SessionTimeout:      doc.Spec.Admission.SessionTimeout.Duration(),
+		MaxTCPConns:         doc.Spec.Admission.MaxTCPConns,
+		MaxTCPConnsPerIP:    doc.Spec.Admission.MaxTCPConnsPerIP,
+		Parse:               syslogwire.OptionsFromParse(doc.Spec.Syslog.Parse),
+		Admission:           admit,
+		Classifier:          class,
+		Behavior:            syslogserver.Behavior{Mode: doc.Spec.Syslog.Behavior.Mode},
+		Handler: syslogserver.HandlerFunc(func(_ context.Context, msg model.Message) error {
+			_, err := st.Insert(msg)
+			return err
+		}),
+		Metrics: &syslogserver.Metrics{},
+	}
+	return cfg, st, nil
 }

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hilather/go-lab-syslog/internal/model"
 	"github.com/hilather/go-lab-syslog/internal/syslogframing"
 	"github.com/hilather/go-lab-syslog/internal/testutil"
 )
@@ -284,6 +285,89 @@ func TestTCPMaxConnsPerIPRejects(t *testing.T) {
 	}
 	if n := len(h.snapshot()); n != 1 {
 		t.Fatalf("stored %d from rejected second conn", n)
+	}
+}
+
+func TestTCPOutsideAllowListClosesNoStore(t *testing.T) {
+	a := mustAdmission(t, model.Admission{AllowClientCIDRs: []string{"10.99.42.0/24"}})
+	srv, h := startTCP(t, Config{Addr: "127.0.0.1:0", Admission: a, Framing: syslogframing.OctetCounting})
+	c, err := net.Dial("tcp", srv.LocalAddr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if _, err := c.Write(octetFrame("<14>hello")); err != nil {
+		t.Fatal(err)
+	}
+	waitMetric(t, srv.Metrics().DroppedAdmission.Load, 1)
+	c.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if _, err := c.Read(make([]byte, 1)); err == nil {
+		t.Fatal("CIDR miss must close TCP")
+	}
+	if n := len(h.snapshot()); n != 0 {
+		t.Fatalf("CIDR miss stored %d", n)
+	}
+}
+
+func TestTCPNoFilterAllowListHitCaptures(t *testing.T) {
+	a := mustAdmission(t, model.Admission{AllowClientCIDRs: []string{"127.0.0.0/8", "::1/128"}})
+	c := mustClassifier(t, nil)
+	srv, h := startTCP(t, Config{Addr: "127.0.0.1:0", Admission: a, Classifier: c, Framing: syslogframing.OctetCounting})
+	sendTCP(t, srv.LocalAddr().String(), octetFrame("<14>hello"))
+	m := waitMsg(t, h)
+	if m.Transport != TransportTCP {
+		t.Fatalf("transport = %q", m.Transport)
+	}
+	if len(m.Tags) != 0 {
+		t.Fatalf("unmatched capture tags = %q", m.Tags)
+	}
+}
+
+func TestTCPBehaviorCloseClosesNoStore(t *testing.T) {
+	srv, h := startTCP(t, Config{
+		Addr:     "127.0.0.1:0",
+		Framing:  syslogframing.OctetCounting,
+		Behavior: Behavior{Mode: BehaviorClose},
+	})
+	c, err := net.Dial("tcp", srv.LocalAddr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if _, err := c.Write(octetFrame("<14>hello")); err != nil {
+		t.Fatal(err)
+	}
+	waitMetric(t, srv.Metrics().DroppedBehavior.Load, 1)
+	c.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if _, err := c.Read(make([]byte, 1)); err == nil {
+		t.Fatal("behavior close must close TCP")
+	}
+	if n := len(h.snapshot()); n != 0 {
+		t.Fatalf("behavior close stored %d", n)
+	}
+}
+
+func TestTCPBehaviorDropSilentLeavesConn(t *testing.T) {
+	srv, h := startTCP(t, Config{
+		Addr:     "127.0.0.1:0",
+		Framing:  syslogframing.OctetCounting,
+		Behavior: Behavior{Mode: BehaviorDropSilent},
+	})
+	c, err := net.Dial("tcp", srv.LocalAddr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	if _, err := c.Write(octetFrame("<14>one")); err != nil {
+		t.Fatal(err)
+	}
+	waitMetric(t, srv.Metrics().DroppedBehavior.Load, 1)
+	if _, err := c.Write(octetFrame("<14>two")); err != nil {
+		t.Fatal(err)
+	}
+	waitMetric(t, srv.Metrics().DroppedBehavior.Load, 2)
+	if n := len(h.snapshot()); n != 0 {
+		t.Fatalf("drop-silent stored %d", n)
 	}
 }
 

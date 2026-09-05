@@ -4,6 +4,16 @@
 
 ### Added
 
+- Admission, filters, and M1 serve glue (FIL-001): CIDR `allowClientCidrs`
+  (IPv4-mapped unmapped) and `maxDatagramsPerSec` / `maxDatagramsPerIP`
+  rate caps are the first policy gate after size/framing. Miss is silent
+  ignore (UDP) or close (TCP); nothing is stored. First-match
+  `spec.filters[]` (`name` + `action.mode`/`tag`) run in
+  `internal/syslogserver`; unmatched = capture (ADR 0009). `tag` writes
+  `Message.Tags`. `spec.syslog.behavior.mode` is applied after admission
+  and before parse. `labsyslog serve` loads YAML directly and installs
+  `store.Store` as the ingest Handler so a localhost UDP 3164 and TCP
+  5424 datagram are stored with `--management-listen=off`.
 - TCP sink (TCP-001): `internal/syslogframing` RFC 6587 splitter and
   `internal/syslogserver` Listen/Accept path. Frozen framing names are
   `auto`, `octet-counting`, and `non-transparent` (not `octet`/`newline`).

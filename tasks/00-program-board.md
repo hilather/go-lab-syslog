@@ -2,6 +2,7 @@
 
 Status: UDP-001 and STORE-001 done; next is TCP-001  
 Status: TCP-001 done; next is FIL-001 (STORE-001 is parallel after WIRE-001)  
+Status: FIL-001 done; next is STA-001 / APP-001  
 Last reviewed: 2026-09-04  
 Source of truth: the numbered `docs/` pack and accepted ADRs (0001–0012).
 
@@ -22,6 +23,7 @@ CFG → STA → API → SEC → MCP. Data plane proceeds after WIRE.
 | 5 | TCP sink RFC 6587 | TCP-001 | UDP-001 | Octet-counting + non-transparent, `framing: auto` | M1 | done |
 | 6 | Bounded message store | STORE-001 | WIRE-001 | ULID inbox, caps, wait, wipe, generation | M1 | not-started |
 | 7 | Admission + filters | FIL-001 | CFG-001, UDP-001 | CIDR admission, first-match classify/drop, unmatched = capture | M1 | not-started |
+| 7 | Admission + filters | FIL-001 | CFG-001, UDP-001 | CIDR admission, first-match classify/drop, unmatched = capture | M1 | done |
 | 8 | Snapshot plan/apply/reset | STA-001 / APP-001 | CFG-001, STORE-001 | `app.Service`, live vs reset-only, expectedRevision | M2 | not-started |
 | 9 | REST `/v1` + OpenAPI | API-001 | STA-001 | problem+json, wait, export, OpenAPI | M2 | not-started |
 | 10 | Auth bearer + CSRF | SEC-001 | API-001 | Token ≥32, cookie, CSRF, audit ring | M2 | not-started |

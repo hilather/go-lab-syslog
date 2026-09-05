@@ -5,10 +5,18 @@ import (
 	"context"
 	"net"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hilather/go-lab-syslog/internal/compiler"
+	"github.com/hilather/go-lab-syslog/internal/config"
+	"github.com/hilather/go-lab-syslog/internal/store"
+	"github.com/hilather/go-lab-syslog/internal/syslogserver"
+	"github.com/hilather/go-lab-syslog/internal/syslogtest"
+	"github.com/hilather/go-lab-syslog/internal/testutil"
 )
 
 type lockedBuffer struct {
@@ -134,6 +142,124 @@ func TestServeManagementOffAcceptsTCP(t *testing.T) {
 func waitListenAddr(t *testing.T, stderr *lockedBuffer) string {
 	t.Helper()
 	return waitListenPrefix(t, stderr, "syslog udp listen ")
+}
+
+const (
+	rfc3164Probe = "<34>Sep  4 20:52:35 sut-1 sshd[1234]: Failed password"
+	rfc5424Probe = `<165>1 2026-09-04T20:52:35.000Z sut-1 sshd 1234 ID47 [sshd@0 user="alice"] Failed password`
+)
+
+func TestServeStoreHandlerUDP3164AndTCP5424(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "testdata", "config", "valid", "defaults.yaml")
+	doc, err := config.LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := compiler.Check(doc, filepath.Dir(path)); err != nil {
+		t.Fatal(err)
+	}
+	cfg, st, err := ingestFromDoc(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	udpCfg := cfg
+	udpCfg.Addr = "127.0.0.1:0"
+	udp, err := syslogserver.ListenUDP(testutil.Context(t), udpCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testutil.Cleanup(t, func() { _ = udp.Close() })
+
+	tcpCfg := cfg
+	tcpCfg.Addr = "127.0.0.1:0"
+	tcp, err := syslogserver.ListenTCP(testutil.Context(t), tcpCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testutil.Cleanup(t, func() { _ = tcp.Close() })
+
+	c, err := net.Dial("udp4", udp.LocalAddr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Write([]byte(rfc3164Probe)); err != nil {
+		t.Fatal(err)
+	}
+	_ = c.Close()
+	udpMsg := syslogtest.Wait(t, st, store.ListFilter{Transport: store.TransportUDP}, 0)
+	if udpMsg.Message.Parsed.Version != 0 || udpMsg.Message.Parsed.PRI != 34 {
+		t.Fatalf("udp parsed=%+v", udpMsg.Message.Parsed)
+	}
+
+	tc, err := net.Dial("tcp", tcp.LocalAddr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	frame := strconv.Itoa(len(rfc5424Probe)) + " " + rfc5424Probe
+	if _, err := tc.Write([]byte(frame)); err != nil {
+		t.Fatal(err)
+	}
+	_ = tc.Close()
+	tcpMsg := syslogtest.Wait(t, st, store.ListFilter{Transport: store.TransportTCP}, 0)
+	if tcpMsg.Message.Parsed.Version != 1 || tcpMsg.Message.Parsed.PRI != 165 {
+		t.Fatalf("tcp parsed=%+v", tcpMsg.Message.Parsed)
+	}
+
+	listed, err := st.List(store.ListFilter{}, "", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(listed.Items) != 2 {
+		t.Fatalf("stored %d, want 2", len(listed.Items))
+	}
+}
+
+func TestServeBehaviorFromSpecDropSilent(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "testdata", "config", "valid", "defaults.yaml")
+	doc, err := config.LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := compiler.Check(doc, filepath.Dir(path)); err != nil {
+		t.Fatal(err)
+	}
+	doc.Spec.Syslog.Behavior.Mode = syslogserver.BehaviorDropSilent
+	cfg, st, err := ingestFromDoc(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Behavior.Mode != syslogserver.BehaviorDropSilent {
+		t.Fatalf("behavior = %q", cfg.Behavior.Mode)
+	}
+	udpCfg := cfg
+	udpCfg.Addr = "127.0.0.1:0"
+	udp, err := syslogserver.ListenUDP(testutil.Context(t), udpCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testutil.Cleanup(t, func() { _ = udp.Close() })
+	c, err := net.Dial("udp4", udp.LocalAddr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Write([]byte(rfc3164Probe)); err != nil {
+		t.Fatal(err)
+	}
+	_ = c.Close()
+	deadline := time.Now().Add(200 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		if udp.Metrics().DroppedBehavior.Load() >= 1 {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if udp.Metrics().DroppedBehavior.Load() < 1 {
+		t.Fatal("drop-silent did not discard")
+	}
+	if n := st.Stats().Messages; n != 0 {
+		t.Fatalf("stored %d after drop-silent", n)
+	}
 }
 
 func waitListenPrefix(t *testing.T, stderr *lockedBuffer, prefix string) string {

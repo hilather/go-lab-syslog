@@ -87,16 +87,21 @@ UDP and TCP keep running if management is off or wedged.
    the session with no partial store; non-transparent oversize drops the
    frame and the session continues. LF and NUL trailers (optional CR
    before LF) are stripped and are not part of `raw`.
-2. **Admission** — first policy gate after size/framing. UDP-001 stubs
-   allow-all; FIL-001 fills CIDR and rate.
-3. **`behavior.mode`** — UDP-001 stubs `accept`; FIL-001 applies
-   spec/snapshot. `drop-silent` / `close` discard after admission and
-   before parse. UDP `close` is drop-silent.
+2. **Admission** — first policy gate after size/framing. Source IP must
+   match `allowClientCidrs` (IPv4-mapped IPv6 unmapped first). Rate caps
+   `maxDatagramsPerSec` / `maxDatagramsPerIP`. Miss is silent ignore
+   (UDP) or connection close (TCP); nothing is stored.
+3. **`behavior.mode`** — from `spec.syslog.behavior.mode`. `drop-silent`
+   / `close` discard after admission and before parse. UDP `close` is
+   drop-silent.
 4. **Parse** — `syslogwire` inside the pipeline. UDP/TCP call sites must
    not parse before this hook. `unknown_facility` is a warning, not a drop.
-5. **Classify** — UDP-001 stubs capture-all; FIL-001 fills first-match.
+5. **Classify** — first enabled `spec.filters[]` match wins (list order,
+   not longest-prefix). Actions `capture` | `drop-silent` | `tag`.
+   Unmatched = **capture** (ADR 0009). No required catch-all.
 6. **`Handler.Insert(model.Message)`** — already parsed and classified.
-   STORE-001 implements Insert. FIL-001 wires `store.Store` from serve.
+   `cmd/labsyslog serve` installs `store.Store` (thin adapter) as the
+   Handler. STA-001 replaces the spec-direct load, not this Handler.
 
 IPv4-mapped IPv6 addresses are unmapped before admission. `Message.truncated`
 is always false in 1.0; oversize is not stored.
@@ -195,6 +200,7 @@ Message
   raw           []byte          # omitted from list views when rawRetain and not requested
   truncated     bool            # always false in 1.0; oversize is dropped, not stored
   parseWarning  string          # empty if clean
+  tags          []string        # appliance classification from filter action tag; not syslog content
   parsed        Parsed
     pri         uint8           # 0–191
     facility    uint8           # 0–23
@@ -225,8 +231,8 @@ Two stages, in order:
    silent ignore (UDP) or connection close (TCP). Nothing is stored.
 2. **Filters** (`spec.filters`). First enabled filter whose match
    hits wins (list order, not longest-prefix). Actions: `capture`
-   (default), `drop-silent`, `tag`. No matching filter = **capture**.
-   See ADR 0009.
+   (default), `drop-silent`, `tag`. `tag` appends `action.tag` to
+   `Message.Tags`. No matching filter = **capture**. See ADR 0009.
 
 This is the opposite of LabNTP unmatched-drop. A sink's job is capture.
 Operators who want deny-by-default add an explicit last filter with

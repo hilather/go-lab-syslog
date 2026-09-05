@@ -33,11 +33,12 @@ process binds `:514` (ADR 0010).
 ## NAT collision
 
 Docker `userland-proxy: true` SNATs UDP source addresses. Per-IP
-admission and filters that match source CIDRs other than the
-compose gateway are best-effort on host-publish UDP. Reliable path:
-clients on `mcplab-shared`. Do not add a Go userland-proxy probe
-(LabNTP ADR 0014 class). Document the collision; fail closed only
-on port occupancy.
+admission (`allowClientCidrs`, `maxDatagramsPerIP`) and filters that
+match `sourceCidrs` other than the compose gateway are best-effort on
+host-publish UDP: the appliance sees the proxy source-IP, not the
+client. Reliable path: clients on `mcplab-shared`. Do not add a Go
+userland-proxy probe (LabNTP ADR 0014 class). Document the collision;
+fail closed only on port occupancy.
 
 ## Compose smoke (this repo)
 

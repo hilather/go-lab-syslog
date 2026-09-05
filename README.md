@@ -34,6 +34,14 @@ ADDR --management-listen=off` work. `internal/syslogwire` parses RFC 3164
 / RFC 5424; `internal/syslogframing` splits RFC 6587; `internal/syslogserver`
 binds UDP and TCP through a stub Handler (store wiring is FIL-001).
 Later waves land the store, REST, MCP, UI, and the container image.
+**Implementation status.** FND-001, CFG-001, WIRE-001, UDP-001, TCP-001,
+STORE-001, and FIL-001 are in tree: `labsyslog version`, `help`,
+`validate`, `canonicalize`, and `serve --syslog-udp-listen ADDR
+--syslog-tcp-listen ADDR --management-listen=off` work.
+`internal/syslogwire` parses RFC 3164 / RFC 5424; `internal/syslogframing`
+splits RFC 6587; `internal/syslogserver` admits, classifies, and inserts
+into `internal/store`. Later waves land plan/apply, REST, MCP, UI, and
+the container image.
 Unimplemented CLI subcommands fail closed. Remaining placeholder Make
 targets exit 1.
 

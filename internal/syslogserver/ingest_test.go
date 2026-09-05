@@ -139,6 +139,85 @@ type errHandler struct{}
 
 func (errHandler) Insert(context.Context, model.Message) error { return errors.New("store_full") }
 
+func TestFirstMatchWinsOverBroaderCIDR(t *testing.T) {
+	h := newFakeHandler()
+	c := mustClassifier(t, []model.Filter{
+		{
+			Name:    "drop-host",
+			Enabled: boolPtr(true),
+			Match:   model.FilterMatch{SourceCIDRs: []string{"10.99.42.1/32"}},
+			Action:  model.FilterAction{Mode: ActionDropSilent},
+		},
+		{
+			Name:    "capture-net",
+			Enabled: boolPtr(true),
+			Match:   model.FilterMatch{SourceCIDRs: []string{"10.99.42.0/24"}},
+			Action:  model.FilterAction{Mode: ActionCapture},
+		},
+	})
+	a := mustAdmission(t, model.Admission{AllowClientCIDRs: []string{"10.99.42.0/24"}})
+	s := testPipeline(h, Config{Admission: a, Classifier: c})
+	if s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("10.99.42.1"), port: 1}, []byte(helloPayload)) {
+		t.Fatal("filter drop must not close")
+	}
+	if s.metrics.DroppedFilter.Load() != 1 {
+		t.Fatalf("narrower drop missing: %d", s.metrics.DroppedFilter.Load())
+	}
+	s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("10.99.42.2"), port: 1}, []byte(helloPayload))
+	m := waitMsg(t, h)
+	if m.RemoteIP.String() != "10.99.42.2" {
+		t.Fatalf("captured %s", m.RemoteIP)
+	}
+	if len(h.snapshot()) != 1 {
+		t.Fatalf("stored %d, want 1 (first-match drop, later capture)", len(h.snapshot()))
+	}
+}
+
+func TestTagActionSetsMessageTags(t *testing.T) {
+	h := newFakeHandler()
+	c := mustClassifier(t, []model.Filter{{
+		Name:    "tag-all",
+		Enabled: boolPtr(true),
+		Action:  model.FilterAction{Mode: ActionTag, Tag: "lab"},
+	}})
+	s := testPipeline(h, Config{Classifier: c})
+	s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("127.0.0.1"), port: 1}, []byte(helloPayload))
+	m := waitMsg(t, h)
+	if len(m.Tags) != 1 || m.Tags[0] != "lab" {
+		t.Fatalf("tags = %q", m.Tags)
+	}
+}
+
+func TestNoFilterAllowListHitCaptures(t *testing.T) {
+	h := newFakeHandler()
+	a := mustAdmission(t, model.Admission{AllowClientCIDRs: []string{"127.0.0.0/8", "::1/128"}})
+	c := mustClassifier(t, nil)
+	s := testPipeline(h, Config{Admission: a, Classifier: c})
+	s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("127.0.0.1"), port: 1}, []byte(helloPayload))
+	m := waitMsg(t, h)
+	if len(m.Tags) != 0 {
+		t.Fatalf("unmatched capture tags = %q", m.Tags)
+	}
+	if s.metrics.Stored.Load() != 1 {
+		t.Fatalf("stored = %d", s.metrics.Stored.Load())
+	}
+}
+
+func TestAdmissionCIDRMissNotStored(t *testing.T) {
+	h := newFakeHandler()
+	a := mustAdmission(t, model.Admission{AllowClientCIDRs: []string{"10.99.42.0/24"}})
+	s := testPipeline(h, Config{Admission: a})
+	if !s.ingest(context.Background(), TransportTCP, remoteAddr{ip: netip.MustParseAddr("192.0.2.1"), port: 1}, []byte(helloPayload)) {
+		t.Fatal("CIDR miss must close TCP")
+	}
+	if s.metrics.DroppedAdmission.Load() != 1 {
+		t.Fatalf("admission drops = %d", s.metrics.DroppedAdmission.Load())
+	}
+	if len(h.snapshot()) != 0 {
+		t.Fatal("CIDR miss stored a message")
+	}
+}
+
 func TestHandlerErrorIsStoreFullDrop(t *testing.T) {
 	s := testPipeline(errHandler{}, Config{})
 	s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("127.0.0.1"), port: 1}, []byte(helloPayload))
