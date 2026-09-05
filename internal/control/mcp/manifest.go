@@ -17,21 +17,27 @@ const ManifestAPIVersion = "labsyslog.dev/mcp/v1"
 // ManifestGeneratedBy is embedded so verify-generated can treat the file as generated.
 const ManifestGeneratedBy = "internal/control/mcp.RenderManifest; DO NOT EDIT."
 
-// Manifest is the generated MCP surface: protocol pin, tools, and resources.
+// Manifest is the generated MCP surface: protocol pin, tools, resources, and
+// per-tool input schemas inferred from the same types AddTool uses.
 type Manifest struct {
-	APIVersion     string   `json:"apiVersion"`
-	GeneratedBy    string   `json:"generatedBy"`
-	Protocol       string   `json:"protocol"`
-	SDK            string   `json:"sdk"`
-	SDKVersion     string   `json:"sdkVersion"`
-	Tools          []string `json:"tools"`
-	Resources      []string `json:"resources"`
-	MutatingTools  []string `json:"mutatingTools"`
-	HealthNotTools []string `json:"healthNotTools"`
+	APIVersion     string         `json:"apiVersion"`
+	GeneratedBy    string         `json:"generatedBy"`
+	Protocol       string         `json:"protocol"`
+	SDK            string         `json:"sdk"`
+	SDKVersion     string         `json:"sdkVersion"`
+	Tools          []string       `json:"tools"`
+	Resources      []string       `json:"resources"`
+	MutatingTools  []string       `json:"mutatingTools"`
+	HealthNotTools []string       `json:"healthNotTools"`
+	InputSchemas   map[string]any `json:"inputSchemas"`
 }
 
 // RenderManifest returns pretty-printed JSON for api/mcp/v1.json.
 func RenderManifest() ([]byte, error) {
+	schemas, err := ToolInputSchemas()
+	if err != nil {
+		return nil, err
+	}
 	doc := Manifest{
 		APIVersion:     ManifestAPIVersion,
 		GeneratedBy:    ManifestGeneratedBy,
@@ -42,6 +48,7 @@ func RenderManifest() ([]byte, error) {
 		Resources:      capabilities.Resources(),
 		MutatingTools:  capabilities.MutatingTools(),
 		HealthNotTools: capabilities.HealthNotTools(),
+		InputSchemas:   schemas,
 	}
 	raw, err := json.Marshal(doc)
 	if err != nil {

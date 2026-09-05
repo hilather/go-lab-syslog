@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- MCP `syslog_state_validate` / `syslog_change_plan` / `syslog_change_apply`
+  input schemas treat `document`/`candidate` as objects and
+  `Duration`/`ByteSize` as strings (`"60s"`, `"256MiB"`), matching REST.
+  `api/mcp/v1.json` now embeds those generated `inputSchemas`.
 - Health probes `GET /v1/health/live` and `GET /v1/health/ready` are
   exempt from management RPS and maxConcurrent so a parked wait or SSE
   client cannot 429 the DEP-001 healthcheck. Handler 404s keep their

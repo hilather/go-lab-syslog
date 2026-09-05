@@ -34,4 +34,12 @@ func TestManifestGolden(t *testing.T) {
 	if len(doc.Tools) == 0 || len(doc.Resources) == 0 {
 		t.Fatalf("manifest incomplete: %+v", doc)
 	}
+	if len(doc.InputSchemas) != len(doc.Tools) {
+		t.Fatalf("inputSchemas %d tools %d", len(doc.InputSchemas), len(doc.Tools))
+	}
+	for _, name := range doc.Tools {
+		if _, ok := doc.InputSchemas[name]; !ok {
+			t.Errorf("missing inputSchema for %s", name)
+		}
+	}
 }

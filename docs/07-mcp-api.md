@@ -34,7 +34,9 @@ MCPJungle 0.4.6 can register. Default in product YAML is false.
 | `syslog_audit_get` | `GET /v1/audit/{id}` | `syslog.audit.read` |
 
 Do not ship a second name for any tool. Input schemas live in
-`api/mcp/v1.json` and are generated.
+`api/mcp/v1.json` under `inputSchemas` and are generated from the
+same Go types `AddTool` uses (`model.Duration` and `model.ByteSize`
+are strings: `"2m"`, `"64KiB"`). Runtime `tools/list` is the live copy.
 
 `syslog_change_apply` takes `idempotencyKey` as a tool argument
 (MCP has no HTTP header).

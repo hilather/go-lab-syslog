@@ -52,5 +52,1971 @@
     "metrics.scrape",
     "ui.static",
     "events.stream"
-  ]
+  ],
+  "inputSchemas": {
+    "syslog_audit_get": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "syslog_audit_query": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "syslog_capabilities_get": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "syslog_change_apply": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate": {
+          "additionalProperties": false,
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "spec": {
+              "additionalProperties": false,
+              "properties": {
+                "admission": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "allowClientCidrs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    },
+                    "maxDatagramsPerIP": {
+                      "type": "integer"
+                    },
+                    "maxDatagramsPerSec": {
+                      "type": "integer"
+                    },
+                    "maxTcpConns": {
+                      "type": "integer"
+                    },
+                    "maxTcpConnsPerIP": {
+                      "type": "integer"
+                    },
+                    "sessionTimeout": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "auth": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "mode": {
+                      "type": "string"
+                    },
+                    "tokens": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "secretFile": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                },
+                "filters": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "mode": {
+                            "type": "string"
+                          },
+                          "tag": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "enabled": {
+                        "type": [
+                          "null",
+                          "boolean"
+                        ]
+                      },
+                      "match": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "appNames": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "facilities": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "hostnames": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "severities": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "severityAtLeast": {
+                            "type": "string"
+                          },
+                          "sourceCidrs": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "transports": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": [
+                    "null",
+                    "array"
+                  ]
+                },
+                "listeners": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "management": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "mcpPath": {
+                          "type": "string"
+                        },
+                        "restPath": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "tcp": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "enabled": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        },
+                        "framing": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "tls": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "caFile": {
+                          "type": "string"
+                        },
+                        "certFile": {
+                          "type": "string"
+                        },
+                        "clientAuth": {
+                          "type": "boolean"
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "keyFile": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "udp": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "enabled": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                },
+                "management": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "allowedOrigins": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    },
+                    "bodyLimit": {
+                      "type": "string"
+                    },
+                    "burst": {
+                      "type": "integer"
+                    },
+                    "maxConcurrent": {
+                      "type": "integer"
+                    },
+                    "mcp": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "allowLegacyClients": {
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestsPerSecond": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                },
+                "observability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "audit": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "ring": {
+                          "type": "integer"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "logLevel": {
+                      "type": "string"
+                    },
+                    "metrics": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "publicPath": {
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                },
+                "store": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "fullPolicy": {
+                      "type": "string"
+                    },
+                    "maxBytes": {
+                      "type": "string"
+                    },
+                    "maxMessages": {
+                      "type": "integer"
+                    },
+                    "maxWait": {
+                      "type": "string"
+                    },
+                    "rawRetain": {
+                      "type": [
+                        "null",
+                        "boolean"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                },
+                "syslog": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "behavior": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "mode": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "hostname": {
+                      "type": "string"
+                    },
+                    "maxMessageBytes": {
+                      "type": "string"
+                    },
+                    "parse": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "bestEffort": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        },
+                        "rfc3164": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        },
+                        "rfc5424": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "tcpIdleTimeout": {
+                      "type": "string"
+                    },
+                    "udpMaxDatagramBytes": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "ui": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": [
+                        "null",
+                        "boolean"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": [
+            "null",
+            "object"
+          ]
+        },
+        "expectedRevision": {
+          "type": "string"
+        },
+        "idempotencyKey": {
+          "type": "string"
+        },
+        "operations": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "admission": {
+                "additionalProperties": false,
+                "properties": {
+                  "allowClientCidrs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "maxDatagramsPerIP": {
+                    "type": "integer"
+                  },
+                  "maxDatagramsPerSec": {
+                    "type": "integer"
+                  },
+                  "maxTcpConns": {
+                    "type": "integer"
+                  },
+                  "maxTcpConnsPerIP": {
+                    "type": "integer"
+                  },
+                  "sessionTimeout": {
+                    "type": "string"
+                  }
+                },
+                "type": [
+                  "null",
+                  "object"
+                ]
+              },
+              "behavior": {
+                "additionalProperties": false,
+                "properties": {
+                  "mode": {
+                    "type": "string"
+                  }
+                },
+                "type": [
+                  "null",
+                  "object"
+                ]
+              },
+              "fields": {
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "filters": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "mode": {
+                          "type": "string"
+                        },
+                        "tag": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "enabled": {
+                      "type": [
+                        "null",
+                        "boolean"
+                      ]
+                    },
+                    "match": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "appNames": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        },
+                        "facilities": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        },
+                        "hostnames": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        },
+                        "severities": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        },
+                        "severityAtLeast": {
+                          "type": "string"
+                        },
+                        "sourceCidrs": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        },
+                        "transports": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "logLevel": {
+                "type": "string"
+              },
+              "maxMessageBytes": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "parse": {
+                "additionalProperties": false,
+                "properties": {
+                  "bestEffort": {
+                    "type": [
+                      "null",
+                      "boolean"
+                    ]
+                  },
+                  "rfc3164": {
+                    "type": [
+                      "null",
+                      "boolean"
+                    ]
+                  },
+                  "rfc5424": {
+                    "type": [
+                      "null",
+                      "boolean"
+                    ]
+                  }
+                },
+                "type": [
+                  "null",
+                  "object"
+                ]
+              },
+              "store": {
+                "additionalProperties": false,
+                "properties": {
+                  "fullPolicy": {
+                    "type": "string"
+                  },
+                  "maxBytes": {
+                    "type": "string"
+                  },
+                  "maxMessages": {
+                    "type": "integer"
+                  },
+                  "maxWait": {
+                    "type": "string"
+                  },
+                  "rawRetain": {
+                    "type": [
+                      "null",
+                      "boolean"
+                    ]
+                  }
+                },
+                "type": [
+                  "null",
+                  "object"
+                ]
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "syslog_change_plan": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate": {
+          "additionalProperties": false,
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "spec": {
+              "additionalProperties": false,
+              "properties": {
+                "admission": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "allowClientCidrs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    },
+                    "maxDatagramsPerIP": {
+                      "type": "integer"
+                    },
+                    "maxDatagramsPerSec": {
+                      "type": "integer"
+                    },
+                    "maxTcpConns": {
+                      "type": "integer"
+                    },
+                    "maxTcpConnsPerIP": {
+                      "type": "integer"
+                    },
+                    "sessionTimeout": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "auth": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "mode": {
+                      "type": "string"
+                    },
+                    "tokens": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "secretFile": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                },
+                "filters": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "mode": {
+                            "type": "string"
+                          },
+                          "tag": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "enabled": {
+                        "type": [
+                          "null",
+                          "boolean"
+                        ]
+                      },
+                      "match": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "appNames": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "facilities": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "hostnames": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "severities": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "severityAtLeast": {
+                            "type": "string"
+                          },
+                          "sourceCidrs": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "transports": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": [
+                    "null",
+                    "array"
+                  ]
+                },
+                "listeners": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "management": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "mcpPath": {
+                          "type": "string"
+                        },
+                        "restPath": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "tcp": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "enabled": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        },
+                        "framing": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "tls": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "caFile": {
+                          "type": "string"
+                        },
+                        "certFile": {
+                          "type": "string"
+                        },
+                        "clientAuth": {
+                          "type": "boolean"
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "keyFile": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "udp": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "enabled": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                },
+                "management": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "allowedOrigins": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    },
+                    "bodyLimit": {
+                      "type": "string"
+                    },
+                    "burst": {
+                      "type": "integer"
+                    },
+                    "maxConcurrent": {
+                      "type": "integer"
+                    },
+                    "mcp": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "allowLegacyClients": {
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestsPerSecond": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                },
+                "observability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "audit": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "ring": {
+                          "type": "integer"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "logLevel": {
+                      "type": "string"
+                    },
+                    "metrics": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "publicPath": {
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                },
+                "store": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "fullPolicy": {
+                      "type": "string"
+                    },
+                    "maxBytes": {
+                      "type": "string"
+                    },
+                    "maxMessages": {
+                      "type": "integer"
+                    },
+                    "maxWait": {
+                      "type": "string"
+                    },
+                    "rawRetain": {
+                      "type": [
+                        "null",
+                        "boolean"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                },
+                "syslog": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "behavior": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "mode": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "hostname": {
+                      "type": "string"
+                    },
+                    "maxMessageBytes": {
+                      "type": "string"
+                    },
+                    "parse": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "bestEffort": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        },
+                        "rfc3164": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        },
+                        "rfc5424": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "tcpIdleTimeout": {
+                      "type": "string"
+                    },
+                    "udpMaxDatagramBytes": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "ui": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": [
+                        "null",
+                        "boolean"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": [
+            "null",
+            "object"
+          ]
+        },
+        "expectedRevision": {
+          "type": "string"
+        },
+        "idempotencyKey": {
+          "type": "string"
+        },
+        "operations": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "admission": {
+                "additionalProperties": false,
+                "properties": {
+                  "allowClientCidrs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": [
+                      "null",
+                      "array"
+                    ]
+                  },
+                  "maxDatagramsPerIP": {
+                    "type": "integer"
+                  },
+                  "maxDatagramsPerSec": {
+                    "type": "integer"
+                  },
+                  "maxTcpConns": {
+                    "type": "integer"
+                  },
+                  "maxTcpConnsPerIP": {
+                    "type": "integer"
+                  },
+                  "sessionTimeout": {
+                    "type": "string"
+                  }
+                },
+                "type": [
+                  "null",
+                  "object"
+                ]
+              },
+              "behavior": {
+                "additionalProperties": false,
+                "properties": {
+                  "mode": {
+                    "type": "string"
+                  }
+                },
+                "type": [
+                  "null",
+                  "object"
+                ]
+              },
+              "fields": {
+                "items": {
+                  "type": "string"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "filters": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "mode": {
+                          "type": "string"
+                        },
+                        "tag": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "enabled": {
+                      "type": [
+                        "null",
+                        "boolean"
+                      ]
+                    },
+                    "match": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "appNames": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        },
+                        "facilities": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        },
+                        "hostnames": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        },
+                        "severities": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        },
+                        "severityAtLeast": {
+                          "type": "string"
+                        },
+                        "sourceCidrs": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        },
+                        "transports": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": [
+                            "null",
+                            "array"
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": [
+                  "null",
+                  "array"
+                ]
+              },
+              "logLevel": {
+                "type": "string"
+              },
+              "maxMessageBytes": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "parse": {
+                "additionalProperties": false,
+                "properties": {
+                  "bestEffort": {
+                    "type": [
+                      "null",
+                      "boolean"
+                    ]
+                  },
+                  "rfc3164": {
+                    "type": [
+                      "null",
+                      "boolean"
+                    ]
+                  },
+                  "rfc5424": {
+                    "type": [
+                      "null",
+                      "boolean"
+                    ]
+                  }
+                },
+                "type": [
+                  "null",
+                  "object"
+                ]
+              },
+              "store": {
+                "additionalProperties": false,
+                "properties": {
+                  "fullPolicy": {
+                    "type": "string"
+                  },
+                  "maxBytes": {
+                    "type": "string"
+                  },
+                  "maxMessages": {
+                    "type": "integer"
+                  },
+                  "maxWait": {
+                    "type": "string"
+                  },
+                  "rawRetain": {
+                    "type": [
+                      "null",
+                      "boolean"
+                    ]
+                  }
+                },
+                "type": [
+                  "null",
+                  "object"
+                ]
+              },
+              "type": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": [
+            "null",
+            "array"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "syslog_features_list": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "syslog_message_delete": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "syslog_message_get": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "raw": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "syslog_message_raw_get": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "syslog_messages_clear": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "syslog_messages_list": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "type": "string"
+        },
+        "appName": {
+          "type": "string"
+        },
+        "before": {
+          "type": "string"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "facility": {
+          "type": "string"
+        },
+        "hostname": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "messageContains": {
+          "type": "string"
+        },
+        "msgID": {
+          "type": "string"
+        },
+        "parseWarning": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        },
+        "procID": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "severityAtLeast": {
+          "type": "string"
+        },
+        "sourceCidr": {
+          "type": "string"
+        },
+        "transport": {
+          "type": "string"
+        },
+        "truncated": {
+          "type": [
+            "null",
+            "boolean"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "syslog_messages_wait": {
+      "additionalProperties": false,
+      "properties": {
+        "filter": {
+          "additionalProperties": false,
+          "properties": {
+            "after": {
+              "type": "string"
+            },
+            "appName": {
+              "type": "string"
+            },
+            "before": {
+              "type": "string"
+            },
+            "facility": {
+              "type": "string"
+            },
+            "hostname": {
+              "type": "string"
+            },
+            "messageContains": {
+              "type": "string"
+            },
+            "msgID": {
+              "type": "string"
+            },
+            "parseWarning": {
+              "type": [
+                "null",
+                "boolean"
+              ]
+            },
+            "procID": {
+              "type": "string"
+            },
+            "protocol": {
+              "type": "string"
+            },
+            "severity": {
+              "type": "string"
+            },
+            "severityAtLeast": {
+              "type": "string"
+            },
+            "sourceCidr": {
+              "type": "string"
+            },
+            "transport": {
+              "type": "string"
+            },
+            "truncated": {
+              "type": [
+                "null",
+                "boolean"
+              ]
+            }
+          },
+          "type": [
+            "null",
+            "object"
+          ]
+        },
+        "timeout": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "syslog_schema_get": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "syslog_state_export": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "syslog_state_get": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "syslog_state_reset": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "syslog_state_validate": {
+      "additionalProperties": false,
+      "properties": {
+        "document": {
+          "additionalProperties": false,
+          "properties": {
+            "apiVersion": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "metadata": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "spec": {
+              "additionalProperties": false,
+              "properties": {
+                "admission": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "allowClientCidrs": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    },
+                    "maxDatagramsPerIP": {
+                      "type": "integer"
+                    },
+                    "maxDatagramsPerSec": {
+                      "type": "integer"
+                    },
+                    "maxTcpConns": {
+                      "type": "integer"
+                    },
+                    "maxTcpConnsPerIP": {
+                      "type": "integer"
+                    },
+                    "sessionTimeout": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "auth": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "mode": {
+                      "type": "string"
+                    },
+                    "tokens": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "secretFile": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                },
+                "filters": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "mode": {
+                            "type": "string"
+                          },
+                          "tag": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "enabled": {
+                        "type": [
+                          "null",
+                          "boolean"
+                        ]
+                      },
+                      "match": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "appNames": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "facilities": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "hostnames": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "severities": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "severityAtLeast": {
+                            "type": "string"
+                          },
+                          "sourceCidrs": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          },
+                          "transports": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": [
+                              "null",
+                              "array"
+                            ]
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": [
+                    "null",
+                    "array"
+                  ]
+                },
+                "listeners": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "management": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "mcpPath": {
+                          "type": "string"
+                        },
+                        "restPath": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "tcp": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "enabled": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        },
+                        "framing": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "tls": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "caFile": {
+                          "type": "string"
+                        },
+                        "certFile": {
+                          "type": "string"
+                        },
+                        "clientAuth": {
+                          "type": "boolean"
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "keyFile": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "udp": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "enabled": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                },
+                "management": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "allowedOrigins": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": [
+                        "null",
+                        "array"
+                      ]
+                    },
+                    "bodyLimit": {
+                      "type": "string"
+                    },
+                    "burst": {
+                      "type": "integer"
+                    },
+                    "maxConcurrent": {
+                      "type": "integer"
+                    },
+                    "mcp": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "allowLegacyClients": {
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "requestsPerSecond": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                },
+                "observability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "audit": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "ring": {
+                          "type": "integer"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "logLevel": {
+                      "type": "string"
+                    },
+                    "metrics": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "publicPath": {
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                },
+                "store": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "fullPolicy": {
+                      "type": "string"
+                    },
+                    "maxBytes": {
+                      "type": "string"
+                    },
+                    "maxMessages": {
+                      "type": "integer"
+                    },
+                    "maxWait": {
+                      "type": "string"
+                    },
+                    "rawRetain": {
+                      "type": [
+                        "null",
+                        "boolean"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                },
+                "syslog": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "behavior": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "mode": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "hostname": {
+                      "type": "string"
+                    },
+                    "maxMessageBytes": {
+                      "type": "string"
+                    },
+                    "parse": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "bestEffort": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        },
+                        "rfc3164": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        },
+                        "rfc5424": {
+                          "type": [
+                            "null",
+                            "boolean"
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "tcpIdleTimeout": {
+                      "type": "string"
+                    },
+                    "udpMaxDatagramBytes": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "ui": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": [
+                        "null",
+                        "boolean"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": [
+            "null",
+            "object"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "syslog_stats_get": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "syslog_status_get": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "syslog_version_get": {
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
 }

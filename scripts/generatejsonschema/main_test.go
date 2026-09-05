@@ -76,6 +76,8 @@ func TestMCPManifestProtocol(t *testing.T) {
 		"syslog_messages_wait",
 		"labsyslog://messages",
 		"github.com/modelcontextprotocol/go-sdk",
+		`"inputSchemas"`,
+		`"document"`,
 	} {
 		if !bytes.Contains(b, []byte(want)) {
 			t.Fatalf("mcp manifest missing %s", want)

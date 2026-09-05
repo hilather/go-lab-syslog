@@ -62,6 +62,28 @@ func TestParityEveryRequiredRowHasToolAndREST(t *testing.T) {
 			t.Errorf("%s tool %s not registered", row.ID, row.MCPTool)
 		}
 	}
+	if len(live) != len(capabilities.Tools()) {
+		t.Fatalf("live tools %d want %d extras=%v", len(live), len(capabilities.Tools()), extraTools(live, capabilities.Tools()))
+	}
+	for _, name := range capabilities.Tools() {
+		if !live[name] {
+			t.Errorf("golden tool %s not live", name)
+		}
+	}
+}
+
+func extraTools(live map[string]bool, want []string) []string {
+	set := map[string]bool{}
+	for _, n := range want {
+		set[n] = true
+	}
+	var extra []string
+	for n := range live {
+		if !set[n] {
+			extra = append(extra, n)
+		}
+	}
+	return extra
 }
 
 func TestParityGoldens(t *testing.T) {
@@ -92,6 +114,9 @@ func TestParityLiveResources(t *testing.T) {
 		if !live[uri] {
 			t.Errorf("resource %s not registered", uri)
 		}
+	}
+	if len(live) != len(capabilities.Resources()) {
+		t.Fatalf("live resources %d want %d", len(live), len(capabilities.Resources()))
 	}
 }
 

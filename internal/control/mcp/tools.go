@@ -94,22 +94,14 @@ func (s *Server) registerTools() {
 		return stateJSON(s.svc.State(ctx)), nil
 	})
 	addTool(s, "syslog_change_plan", planDesc, false, true, func(ctx context.Context, p auth.Principal, in changeIn) (any, error) {
-		req, err := in.planRequest(p.ID)
-		if err != nil {
-			return nil, err
-		}
-		plan, err := s.svc.Plan(ctx, req)
+		plan, err := s.svc.Plan(ctx, in.planRequest(p.ID))
 		if err != nil {
 			return nil, err
 		}
 		return plan, nil
 	})
 	addTool(s, "syslog_change_apply", applyDesc, true, true, func(ctx context.Context, p auth.Principal, in changeIn) (any, error) {
-		req, err := in.applyRequest(p.ID)
-		if err != nil {
-			return nil, err
-		}
-		out, err := s.svc.Apply(ctx, req)
+		out, err := s.svc.Apply(ctx, in.applyRequest(p.ID))
 		if err != nil {
 			return nil, err
 		}
@@ -292,6 +284,7 @@ func addTool[In any](s *Server, name, desc string, mutating, idempotent bool, h 
 		Title:       title,
 		Description: desc,
 		Annotations: ann,
+		InputSchema: mustInputSchema[In](name),
 	}, func(ctx context.Context, _ *sdk.CallToolRequest, in In) (*sdk.CallToolResult, any, error) {
 		p := s.principalFrom(ctx)
 		if err := s.authorizeTool(p, name); err != nil {

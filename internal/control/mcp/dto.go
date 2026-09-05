@@ -1,10 +1,7 @@
 package mcp
 
 import (
-	"encoding/json"
-
 	"github.com/hilather/go-lab-syslog/internal/app"
-	"github.com/hilather/go-lab-syslog/internal/config"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
 	"github.com/hilather/go-lab-syslog/internal/model"
 )
@@ -24,7 +21,7 @@ type exportIn struct {
 }
 
 type validateIn struct {
-	Document json.RawMessage `json:"document"`
+	Document *model.Document `json:"document,omitempty"`
 }
 
 type changeIn struct {
@@ -32,7 +29,7 @@ type changeIn struct {
 	IdempotencyKey   string          `json:"idempotencyKey,omitempty"`
 	Reason           string          `json:"reason,omitempty"`
 	Operations       []app.Operation `json:"operations,omitempty"`
-	Candidate        json.RawMessage `json:"candidate,omitempty"`
+	Candidate        *model.Document `json:"candidate,omitempty"`
 }
 
 type messageGetIn struct {
@@ -66,46 +63,31 @@ type waitIn struct {
 }
 
 func (in validateIn) document() (*model.Document, error) {
-	if len(bytesTrim(in.Document)) == 0 {
+	if in.Document == nil {
 		return nil, domainerr.New(domainerr.ValidationFailed, "document is required")
 	}
-	return config.DecodeJSON(in.Document)
+	return in.Document, nil
 }
 
-func (in changeIn) candidate() (*model.Document, error) {
-	if len(bytesTrim(in.Candidate)) == 0 {
-		return nil, nil
-	}
-	return config.DecodeJSON(in.Candidate)
-}
-
-func (in changeIn) planRequest(actor string) (app.PlanRequest, error) {
-	cand, err := in.candidate()
-	if err != nil {
-		return app.PlanRequest{}, err
-	}
+func (in changeIn) planRequest(actor string) app.PlanRequest {
 	return app.PlanRequest{
 		ExpectedRevision: in.ExpectedRevision,
 		Operations:       in.Operations,
-		Candidate:        cand,
+		Candidate:        in.Candidate,
 		Reason:           in.Reason,
 		Actor:            actor,
-	}, nil
+	}
 }
 
-func (in changeIn) applyRequest(actor string) (app.ApplyRequest, error) {
-	cand, err := in.candidate()
-	if err != nil {
-		return app.ApplyRequest{}, err
-	}
+func (in changeIn) applyRequest(actor string) app.ApplyRequest {
 	return app.ApplyRequest{
 		ExpectedRevision: in.ExpectedRevision,
 		Operations:       in.Operations,
-		Candidate:        cand,
+		Candidate:        in.Candidate,
 		Reason:           in.Reason,
 		Actor:            actor,
 		IdempotencyKey:   in.IdempotencyKey,
-	}, nil
+	}
 }
 
 func (in messagesListIn) filter() messageFilter {
@@ -126,23 +108,4 @@ func (in messagesListIn) filter() messageFilter {
 		Truncated:       in.Truncated,
 		ParseWarning:    in.ParseWarning,
 	}
-}
-
-func bytesTrim(b []byte) []byte {
-	return bytesTrimSpace(b)
-}
-
-func bytesTrimSpace(b json.RawMessage) []byte {
-	i, j := 0, len(b)
-	for i < j && (b[i] == ' ' || b[i] == '\n' || b[i] == '\t' || b[i] == '\r') {
-		i++
-	}
-	for j > i && (b[j-1] == ' ' || b[j-1] == '\n' || b[j-1] == '\t' || b[j-1] == '\r') {
-		j--
-	}
-	out := b[i:j]
-	if len(out) == 0 || string(out) == "null" {
-		return nil
-	}
-	return out
 }
