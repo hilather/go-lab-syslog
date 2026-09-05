@@ -1,0 +1,68 @@
+# Lab overlay BOM for mcp-integration-lab (SWAP-001).
+# Integrator copies this to profiles/default/labsyslog/bootstrap.yaml.
+# Product default allowLegacyClients is false; the lab overlay sets true
+# for MCPJungle 0.4.6. Listeners bind :514 (UID 65532 needs NET_BIND_SERVICE).
+# Do not recopy testdata/config/valid/lab-overlay.yaml blindly: that fixture
+# includes a sample drop-debug filter. The lab overlay is capture-all.
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  listeners:
+    udp:
+      address: ":514"
+      enabled: true
+    tcp:
+      address: ":514"
+      enabled: true
+      framing: auto
+    tls:
+      enabled: false
+    management:
+      address: ":8088"
+      restPath: /v1
+      mcpPath: /mcp
+  auth:
+    mode: bearer
+    tokens:
+      - id: admin
+        role: administrator
+        secretFile: /run/secrets/labsyslog-token
+  ui:
+    enabled: true
+  management:
+    allowedOrigins: []
+    mcp:
+      allowLegacyClients: true
+    bodyLimit: 1MiB
+    requestsPerSecond: 32
+    burst: 64
+    maxConcurrent: 256
+  syslog:
+    parse:
+      rfc3164: true
+      rfc5424: true
+      bestEffort: true
+    hostname: labsyslog.lab
+    maxMessageBytes: 64KiB
+    udpMaxDatagramBytes: 64KiB
+    tcpIdleTimeout: 2m
+    behavior:
+      mode: accept
+  store:
+    maxMessages: 10000
+    maxBytes: 256MiB
+    fullPolicy: evict_oldest
+    maxWait: 60s
+    rawRetain: true
+  admission:
+    allowClientCidrs:
+      - "10.99.42.0/24"
+      - "127.0.0.0/8"
+      - "::1/128"
+    maxDatagramsPerSec: 20000
+    maxDatagramsPerIP: 2000
+    maxTcpConns: 256
+    maxTcpConnsPerIP: 16
+  filters: []

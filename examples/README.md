@@ -2,7 +2,9 @@
 
 DEP-001 ships the `:1514` compose smoke. SWAP-001 ships the lab overlay,
 labinfo, and MCPJungle BOM (`examples/labsyslog.yaml`,
-`examples/labinfo/`, `examples/mcpjungle/`).
+`examples/labinfo/`, `examples/mcpjungle/`). SWAP-001 does not own
+`examples/compose.smoke.yaml`. The integrator vendor pin is a follow-on
+after the first `v*` tag.
 
 ## compose.smoke.yaml
 
@@ -19,14 +21,14 @@ chmod 644 testdata/container/token
 docker compose -f examples/compose.smoke.yaml up --build
 ```
 
-Product YAML binds `:514` and is SWAP-001.
-
 ## labsyslog.yaml (product + lab overlay)
 
-See the document in [docs/01-architecture.md](../docs/01-architecture.md)
-and the integrator copy in
+Lab overlay for mcp-integration-lab
+(`profiles/default/labsyslog/bootstrap.yaml`). Product YAML binds
+`:514`. Integrator compose maps residual host **10514** → container
+**514** and adds `cap_add: [NET_BIND_SERVICE]` because the process
+binds `:514` (C17 / ADR 0010). Contract:
 [docs/13-integration-lab-swap.md](../docs/13-integration-lab-swap.md).
-Shipped as a real file in SWAP-001.
 
 Frozen shape:
 
@@ -37,3 +39,17 @@ Frozen shape:
 - `spec.auth.mode: bearer`
 - `spec.management.mcp.allowLegacyClients: true` in the lab overlay
 - `spec.admission.allowClientCidrs` includes `10.99.42.0/24`
+
+## labinfo/services-labsyslog.yaml
+
+Catalog fragment. Integrator merges into
+`profiles/default/labinfo/services.yaml`. Id is `labsyslog` from day
+one (not `syslog`, not a `maildev`-style alias). A `connection` block
+is required.
+
+## mcpjungle/servers/labsyslog.json
+
+MCPJungle 0.4.6 registration. Filename equals JSON `name`. URL is
+`http://labsyslog:8088/mcp`. Bearer interpolates `${LABSYSLOG_TOKEN}`.
+The integrator adds the server to the curated tool group so
+`make smoke` can call `syslog_messages_wait`.

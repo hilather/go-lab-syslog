@@ -41,6 +41,9 @@ stdio adapter (`--token-file` is verified). Session cookie
 `labsyslog send` is forbidden. The scratch image and
 `examples/compose.smoke.yaml` (`:1514`, no `NET_BIND_SERVICE`) are
 DEP-001; `make test-container` mints a bearer token and waits over REST.
+The lab overlay BOM (`examples/labsyslog.yaml`, `examples/labinfo/`,
+`examples/mcpjungle/`) is SWAP-001; integrator compose adds
+`cap_add: [NET_BIND_SERVICE]` when the process binds `:514`.
 
 ## What to read next
 

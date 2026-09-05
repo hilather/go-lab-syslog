@@ -24,7 +24,7 @@ help:
 		'  test-fuzz-smoke     short go-fuzz of syslogwire.Parse + syslogframing.Next' \
 		'  test-parity         REST/MCP capability parity goldens' \
 		'  test-config-compat  valid/invalid YAML fixture suite' \
-		'  test-docs           required documents, markdown links, required phrases' \
+		'  test-docs           required documents, markdown links, NAT/userland-proxy/cap_add phrases' \
 		'  test-container      scratch image, :1514 compose smoke, Bearer wait/reset' \
 		'  security-scan       go vet + govulncheck (tool, not a product module)' \
 		'  test-changelog      observable paths require a CHANGELOG.md entry' \

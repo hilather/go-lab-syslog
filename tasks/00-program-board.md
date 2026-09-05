@@ -1,15 +1,6 @@
 # Program board — LabSyslog 1.0
 
-Status: UDP-001 and STORE-001 done; next is TCP-001  
-Status: TCP-001 done; next is FIL-001 (STORE-001 is parallel after WIRE-001)  
-Status: FIL-001 done; next is STA-001 / APP-001  
-Status: STA-001 / APP-001 done; next is API-001  
-Status: API-001 done; next is SEC-001  
-Status: SEC-001 done; next is MCP-001  
-Status: OBS-001 done; next is SEC-001 (M2) then DEP-001 (M3)  
-Status: MCP-001 done; next is OBS-001  
-Status: SEC-001, OBS-001, and DEP-001 done; next is MCP-001, UI-001, SWAP-001  
-Status: UI-001 done on this branch; MCP-001 / OBS-001 / DEP-001 remain  
+Status: UI-001 and SWAP-001 done; next is GA-001
 Last reviewed: 2026-09-04  
 Source of truth: the numbered `docs/` pack and accepted ADRs (0001–0012).
 
@@ -25,24 +16,17 @@ CFG → STA → API → SEC → MCP. Data plane proceeds after WIRE.
 | 2 | Domain + fail-closed YAML | CFG-001 | FND-001 | `labsyslog.dev/v1alpha1`, KnownFields, reserved-key reject, revisions | M0 | done |
 | 3 | First-party syslogwire codec | WIRE-001 | CFG-001 | RFC 3164 + RFC 5424 parse/serialize, PRI, SD, testdata/packets | M1 | done |
 | 4 | UDP sink RFC 5426 | UDP-001 | WIRE-001 | `internal/syslogserver` UDP, one datagram = one message | M1 | done |
-| 5 | TCP sink RFC 6587 | TCP-001 | WIRE-001 | Octet-counting + non-transparent NL, `framing: auto` | M1 | not-started |
-| 6 | Bounded message store | STORE-001 | WIRE-001 | ULID inbox, caps, wait, wipe, generation | M1 | done |
 | 5 | TCP sink RFC 6587 | TCP-001 | UDP-001 | Octet-counting + non-transparent, `framing: auto` | M1 | done |
-| 6 | Bounded message store | STORE-001 | WIRE-001 | ULID inbox, caps, wait, wipe, generation | M1 | not-started |
-| 7 | Admission + filters | FIL-001 | CFG-001, UDP-001 | CIDR admission, first-match classify/drop, unmatched = capture | M1 | not-started |
+| 6 | Bounded message store | STORE-001 | WIRE-001 | ULID inbox, caps, wait, wipe, generation | M1 | done |
 | 7 | Admission + filters | FIL-001 | CFG-001, UDP-001 | CIDR admission, first-match classify/drop, unmatched = capture | M1 | done |
 | 8 | Snapshot plan/apply/reset | STA-001 / APP-001 | CFG-001, STORE-001 | `app.Service`, live vs reset-only, expectedRevision | M2 | done |
 | 9 | REST `/v1` + OpenAPI | API-001 | STA-001 | problem+json, wait, export, OpenAPI | M2 | done |
 | 10 | Auth bearer + CSRF | SEC-001 | API-001 | Token ≥32, cookie, CSRF, audit ring | M2 | done |
-| 11 | MCP Streamable HTTP + parity | MCP-001 | API-001, SEC-001 | `syslog_*`, `labsyslog://`, `make test-parity` | M2 | not-started |
-| 12 | Observability | OBS-001 | UDP-001, API-001 | slog JSON, hand-rolled OpenMetrics, ready semantics | M3 | done |
 | 11 | MCP Streamable HTTP + parity | MCP-001 | API-001, SEC-001 | `syslog_*`, `labsyslog://`, `make test-parity` | M2 | done |
-| 12 | Observability | OBS-001 | UDP-001, API-001 | slog JSON, hand-rolled OpenMetrics, ready semantics | M3 | not-started |
-| 13 | CLI + scratch image | DEP-001 | UDP-001, TCP-001, API-001, OBS-001 | Hardened image, compose.smoke, healthcheck | M3 | not-started |
+| 12 | Observability | OBS-001 | UDP-001, API-001 | slog JSON, hand-rolled OpenMetrics, ready semantics | M3 | done |
 | 13 | CLI + scratch image | DEP-001 | UDP-001, TCP-001, API-001, OBS-001 | Hardened image, compose.smoke, healthcheck | M3 | done |
-| 14 | Operator SPA | UI-001 | API-001, SEC-001 | Embedded inbox, no localStorage tokens | M4 | not-started |
 | 14 | Operator SPA | UI-001 | API-001, SEC-001 | Embedded inbox, no localStorage tokens | M4 | done |
-| 15 | Integration-lab BOM | SWAP-001 | MCP-001, SEC-001, DEP-001 | examples for vendor/compose/labinfo/jungle | M4 | not-started |
+| 15 | Integration-lab BOM | SWAP-001 | MCP-001, SEC-001, DEP-001 | examples for vendor/compose/labinfo/jungle | M4 | done |
 | 16 | GA hardening | GA-001 | 1–15 | Fuzz, soak, release notes, known limitations | M5 | not-started |
 | — | RFC 5425 TLS listener | TLS-001 | DEP-001 | v1.1 only; 1.0 rejects `tls.enabled: true` | v1.1 | not-started |
 

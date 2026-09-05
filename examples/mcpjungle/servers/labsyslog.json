@@ -1,0 +1,7 @@
+{
+  "name": "labsyslog",
+  "transport": "streamable_http",
+  "description": "Receive-only syslog sink (LabSyslog): RFC 3164 + RFC 5424 over UDP/TCP, wait/list/export, plan/apply/reset over REST /v1 and MCP /mcp.",
+  "url": "http://labsyslog:8088/mcp",
+  "bearer_token": "${LABSYSLOG_TOKEN}"
+}

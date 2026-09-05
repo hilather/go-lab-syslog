@@ -15,8 +15,12 @@ integrator.
 layout, gateway policy, preflight, and smoke. It vendors appliance
 repos into `third_party/` at a pinned tag.
 
-LabSyslog ships the examples this document names. The integrator
-change is a follow-on PR after the first appliance tag exists.
+LabSyslog ships the examples this document names (`examples/labsyslog.yaml`,
+`examples/labinfo/services-labsyslog.yaml`,
+`examples/mcpjungle/servers/labsyslog.json`). SWAP-001 is in-repo
+examples only. The actual integrator PR (vendor pin, compose, profile,
+secrets, `make smoke`) is a follow-on after the first `v*` tag. Do not
+implement `internal/lab/vendor.go` in this tree.
 
 ## Naming in the lab
 
@@ -34,6 +38,12 @@ change is a follow-on PR after the first appliance tag exists.
 
 Do not reuse the LabMail `maildev` rename wart. The id is `labsyslog`
 from day one.
+
+Current mcp-integration-lab labinfo catalog ids we must not collide
+with: `gateway`, `labdns`, `labldap`, `labtacacs`, `maildev`, `nfs`,
+`labmitm`, `labgraph`, `labntp`, `labsso`. Compose `APP` names also
+include `labinfo` and `mcpjungle`. Do not reuse any of those, and do
+not ship id `syslog`.
 
 ## Vendor pin
 
@@ -68,6 +78,7 @@ labsyslog:
   read_only: true
   tmpfs: ["/tmp"]
   cap_drop: [ALL]
+  cap_add: [NET_BIND_SERVICE]
   security_opt: ["no-new-privileges:true"]
   restart: unless-stopped
   ports:
@@ -85,10 +96,13 @@ labsyslog:
     start_period: 3s
 ```
 
-`cap_add: [NET_BIND_SERVICE]` is added **only** when the profile
-publishes host 514. The default residual 10514 does not need it.
-The appliance's own `examples/compose.smoke.yaml` binds `:1514` and
-never adds `NET_BIND_SERVICE`.
+`cap_add: [NET_BIND_SERVICE]` is required whenever the container
+process binds `:514`, including the default residual host map
+10514→514 (C17 / ADR 0010). Mapping host 10514 to container 514 still
+needs the cap inside the container because UID 65532 cannot bind
+privileged ports without it. The appliance's own
+`examples/compose.smoke.yaml` binds `:1514` and never adds
+`NET_BIND_SERVICE`.
 
 Same Docker network as the rest of `mcplab` (`mcplab-shared`,
 `LAB_DOCKER_SUBNET` default `10.99.42.0/24`).
@@ -130,8 +144,7 @@ Also add `LABSYSLOG_SYSLOG_PORT`, `LABSYSLOG_SYSLOG_TCP_PORT`, and
 ## Bootstrap YAML (profile-owned)
 
 `profiles/default/labsyslog/bootstrap.yaml` is lab-owned desired
-state. Appliance examples ship a copy under
-`examples/labinfo/`-adjacent `examples/labsyslog.yaml`.
+state. Appliance examples ship the copy at `examples/labsyslog.yaml`.
 
 ```yaml
 apiVersion: labsyslog.dev/v1alpha1

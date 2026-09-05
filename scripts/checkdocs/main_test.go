@@ -41,6 +41,19 @@ func TestCheckReportsMissingAndBroken(t *testing.T) {
 	}
 }
 
+func TestRequiredPhrasesLockCapAdd(t *testing.T) {
+	found := false
+	for _, p := range RequiredPhrases {
+		if p == "cap_add: [NET_BIND_SERVICE]" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("RequiredPhrases must lock cap_add: [NET_BIND_SERVICE] (C17)")
+	}
+}
+
 func TestCheckReportsMissingPhrases(t *testing.T) {
 	dir := t.TempDir()
 	for _, rel := range RequiredRootDocs {

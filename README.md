@@ -21,47 +21,18 @@ log collector.
 | License | Apache-2.0 |
 | User | `65532:65532` |
 
-**Implementation status.** FND-001, CFG-001, WIRE-001, UDP-001, and
-STORE-001 are in tree: `labsyslog version`, `help`, `validate`,
-`canonicalize`, and `serve --syslog-udp-listen ADDR --management-listen=off`
-work. `internal/syslogwire` parses RFC 3164 / RFC 5424; `internal/syslogserver`
-binds RFC 5426 UDP through a stub Handler (store wiring is FIL-001);
-`internal/store` is the bounded ULID inbox (wait, wipe, generation).
-Later waves land TCP, REST, MCP, UI, and the container image.
-TCP-001 are in tree: `labsyslog version`, `help`, `validate`,
-`canonicalize`, and `serve --syslog-udp-listen ADDR --syslog-tcp-listen
-ADDR --management-listen=off` work. `internal/syslogwire` parses RFC 3164
-/ RFC 5424; `internal/syslogframing` splits RFC 6587; `internal/syslogserver`
-binds UDP and TCP through a stub Handler (store wiring is FIL-001).
-Later waves land the store, REST, MCP, UI, and the container image.
-**Implementation status.** FND-001, CFG-001, WIRE-001, UDP-001, TCP-001,
-STORE-001, and FIL-001 are in tree: `labsyslog version`, `help`,
-`validate`, `canonicalize`, and `serve --syslog-udp-listen ADDR
---syslog-tcp-listen ADDR --management-listen=off` work.
-`internal/syslogwire` parses RFC 3164 / RFC 5424; `internal/syslogframing`
-splits RFC 6587; `internal/syslogserver` admits, classifies, and inserts
-into `internal/store`. Later waves land plan/apply, REST, MCP, UI, and
-the container image.
-**Implementation status.** FND-001 through API-001 and OBS-001 are in
-**Implementation status.** FND-001 through OBS-001 and DEP-001 are in
-tree: `labsyslog version`, `help`, `validate`, `canonicalize`,
-`serve`, and `healthcheck --url=` work. REST `/v1` is mounted on the
-management listener with bearer auth. JSON slog and hand-rolled
+**Implementation status.** Through MCP-001, DEP-001, SWAP-001, and
+UI-001: `labsyslog version`, `help`, `validate`, `canonicalize`,
+`serve`, `healthcheck --url=`, and `mcp-stdio --config --token-file`
+work. Management REST `/v1` and Streamable HTTP `POST /mcp` share
+`app.Service`. The operator SPA is at `/`. JSON slog and hand-rolled
 OpenMetrics land at `GET /v1/metrics` when `publicPath` is true. The
 scratch image is UID `65532:65532`; `examples/compose.smoke.yaml`
-binds `:1514`. Later waves land MCP, UI, and the integrator BOM.
-**Implementation status.** FND-001 through SEC-001 and UI-001 are in
-tree: `labsyslog version`, `help`, `validate`, `canonicalize`, and
-`serve` with UDP/TCP plus management REST and the operator SPA at `/`.
-`make web-test` and `make web-build` are implemented. Later waves land
-MCP, observability, and the container image.
-Unimplemented CLI subcommands fail closed. Remaining placeholder Make
-targets exit 1.
-**Implementation status.** Through MCP-001: `labsyslog version`, `help`,
-`validate`, `canonicalize`, `serve`, and `mcp-stdio --config --token-file`
-work. Management REST `/v1` and Streamable HTTP `POST /mcp` share
-`app.Service`. Remaining waves land observability, the container image,
-and the operator UI. Unimplemented CLI subcommands fail closed. Remaining
+binds `:1514`. The lab overlay BOM is `examples/labsyslog.yaml`,
+`examples/labinfo/`, and `examples/mcpjungle/` (integrator pin is a
+follow-on after the first `v*` tag). `make web-test` and
+`make web-build` are implemented. Later waves land GA.
+Unimplemented CLI subcommands fail closed. Remaining
 placeholder Make targets exit 1.
 
 Documentation

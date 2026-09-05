@@ -58,10 +58,11 @@ var RequiredRootDocs = []string{
 	".github/workflows/ci.yml",
 }
 
-// RequiredPhrases must appear in docs/ (NAT / userland-proxy).
+// RequiredPhrases must appear in docs/ (NAT / userland-proxy / C17 cap_add).
 var RequiredPhrases = []string{
 	"NAT collision",
 	"userland-proxy",
+	"cap_add: [NET_BIND_SERVICE]",
 }
 
 var mdLink = regexp.MustCompile(`\[[^\]]*\]\(([^)]+)\)`)

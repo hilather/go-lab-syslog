@@ -16,6 +16,19 @@
 
 ### Added
 
+- Integration-lab BOM (SWAP-001): in-repo examples the integrator copies
+  after the first `v*` tag. `examples/labsyslog.yaml` is the lab overlay
+  (container `:514`, `allowLegacyClients: true`, lab CIDRs).
+  `examples/labinfo/services-labsyslog.yaml` is the catalog fragment
+  (id `labsyslog` from day one).
+  `examples/mcpjungle/servers/labsyslog.json` registers Streamable HTTP
+  at `http://labsyslog:8088/mcp`. `docs/13-integration-lab-swap.md`
+  compose adds `cap_add: [NET_BIND_SERVICE]` whenever the container
+  process binds `:514`, including host 10514→514 (C17). Management env
+  is `LABSYSLOG_REST_PORT` (C24). Smoke recipe uses
+  `syslog_messages_wait`. Does not own `examples/compose.smoke.yaml`.
+  The integrator vendor pin is a follow-on after the first tag; this
+  repo does not change `mcp-integration-lab` or `vendor.go`.
 - Streamable HTTP MCP adapter and REST parity (MCP-001): `POST /mcp` on the
   management listener, protocol `2026-07-28`, official SDK v1.7.0 only on
   `internal/control/mcp`. Tools are the frozen `syslog_*` table; resources
@@ -165,13 +178,10 @@
 - Program board and wave implementation notes FND-001 through TLS-001.
 
 `make generate`, `make verify-generated`, `make test-config-compat`,
-`make test-fuzz-smoke`, `make test-container`, and `make security-scan`
-are implemented. Remaining placeholder Make targets fail closed
+`make test-fuzz-smoke`, `make test-container`, `make test-parity`,
+`make security-scan`, `make web-test`, and `make web-build` are
+implemented. Remaining placeholder Make targets fail closed
 (`exit 1`). Default CI runs format, lint, unit, race, fuzz-smoke, docs,
-changelog, generated, config-compat, security-scan, and container-test.
-MCP, UI, and the integrator BOM land in later waves.
-`make test-fuzz-smoke`, `make web-test`, and `make web-build` are
-implemented. Remaining placeholder Make targets fail closed (`exit 1`).
-Default CI runs format, lint, unit, race, fuzz-smoke, docs, changelog,
-generated, config-compat, and web. MCP and the container image land in
-later waves.
+changelog, generated, config-compat, parity, security-scan,
+container-test, and web. GA lands in a later wave.
+The integrator vendor pin is a follow-on after the first `v*` tag.

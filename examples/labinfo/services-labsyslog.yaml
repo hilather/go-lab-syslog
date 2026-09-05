@@ -1,0 +1,40 @@
+# labinfo catalog fragment. Integrator merges this into
+# profiles/default/labinfo/services.yaml. Catalog id is labsyslog from
+# day one (Q1). labinfo fails to start without a connection block.
+services:
+  - id: labsyslog
+    name: Syslog sink (LabSyslog, receive-only)
+    description: Receive-only syslog sink. RFC 3164 and RFC 5424 over UDP and TCP. REST /v1, MCP /mcp, operator UI. Never forwards.
+    urls:
+      - name: Web UI
+        url: http://${LAB_PUBLIC_HOST}:${LABSYSLOG_REST_PORT}/
+      - name: REST API (native /v1)
+        url: http://${LAB_PUBLIC_HOST}:${LABSYSLOG_REST_PORT}/v1
+      - name: MCP endpoint
+        url: http://${LAB_PUBLIC_HOST}:${LABSYSLOG_REST_PORT}/mcp
+    note: "Syslog ingest (no auth, no TLS in 1.0): UDP and TCP ${LAB_PUBLIC_HOST}:${LABSYSLOG_SYSLOG_PORT}. Point systems under test at it as their remote syslog destination. Nothing is forwarded."
+    credential:
+      file: /run/lab-secrets/labsyslog-token
+      usage: "HTTP header 'Authorization: Bearer <token>' for native /v1 and MCP; on the lab host: secrets/labsyslog-token"
+    connection:
+      endpoints:
+        - name: Syslog ingest (UDP)
+          protocol: syslog-udp
+          address: ${LAB_PUBLIC_HOST}:${LABSYSLOG_SYSLOG_PORT}
+          note: RFC 3164 or RFC 5424; one datagram is one message; no framing
+        - name: Syslog ingest (TCP)
+          protocol: syslog-tcp
+          address: ${LAB_PUBLIC_HOST}:${LABSYSLOG_SYSLOG_TCP_PORT}
+          note: RFC 6587 framing auto (octet-counting if the first bytes are DIGIT+SP, else non-transparent NL)
+        - name: MCP (streamable HTTP)
+          protocol: mcp-streamable-http
+          address: http://${LAB_PUBLIC_HOST}:${LABSYSLOG_REST_PORT}/mcp
+          note: bearer only; gateway interpolates LABSYSLOG_TOKEN
+      parameters:
+        auth: "none on the data plane"
+        tls: "not available in 1.0; spec.listeners.tls.enabled must be false"
+        formats: "rfc3164, rfc5424, best-effort raw store on parse failure"
+      credentials:
+        - name: labsyslog-token
+          file: /run/lab-secrets/labsyslog-token
+          usage: "HTTP header 'Authorization: Bearer <token>' for native /v1 and MCP"

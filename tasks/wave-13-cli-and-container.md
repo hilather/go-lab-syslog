@@ -17,7 +17,7 @@ will copy.
 ## Design references
 
 - [x] `docs/11-deployment.md`
-- [ ] `docs/13-integration-lab-swap.md` (SWAP-001)
+- [x] `docs/13-integration-lab-swap.md` (SWAP-001)
 
 ## Scope
 
@@ -26,9 +26,9 @@ will copy.
 - [x] `scripts/test-container.sh` binds `:1514` udp+tcp, `cap_drop ALL`,
       no `NET_BIND_SERVICE`
 - [x] `examples/compose.smoke.yaml`
-- [ ] `examples/labsyslog.yaml` (SWAP-001)
-- [ ] `examples/labinfo/services-labsyslog.yaml` (SWAP-001)
-- [ ] `examples/mcpjungle/servers/labsyslog.json` (SWAP-001)
+- [x] `examples/labsyslog.yaml` (SWAP-001)
+- [x] `examples/labinfo/services-labsyslog.yaml` (SWAP-001)
+- [x] `examples/mcpjungle/servers/labsyslog.json` (SWAP-001)
 - [x] CLI: serve, validate, canonicalize, healthcheck, version;
       mcp-stdio remains MCP-001
 - [x] Optional `labsyslog send` is **forbidden** in production packages
