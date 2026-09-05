@@ -22,8 +22,8 @@ syslog session and never forwards.
 
 `validate` and `canonicalize` load one fail-closed YAML document. `serve`
 binds UDP and TCP syslog (`--syslog-udp-listen`, `--syslog-tcp-listen`).
-Native `/v1` REST and Streamable HTTP `POST /mcp` mount on the management
-listener. The operator SPA at `/` lands in UI-001. `--management-listen=off`
+When management is bound, native `/v1` REST, Streamable HTTP `POST /mcp`,
+and the operator SPA at `/` share the listener. `--management-listen=off`
 is first-class: UDP and TCP still accept.
 Default lab auth is bearer. A local browser session without tokens is
 **not** supported in 1.0. Management bind requires a usable bearer file

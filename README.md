@@ -50,6 +50,11 @@ management listener with bearer auth. JSON slog and hand-rolled
 OpenMetrics land at `GET /v1/metrics` when `publicPath` is true. The
 scratch image is UID `65532:65532`; `examples/compose.smoke.yaml`
 binds `:1514`. Later waves land MCP, UI, and the integrator BOM.
+**Implementation status.** FND-001 through SEC-001 and UI-001 are in
+tree: `labsyslog version`, `help`, `validate`, `canonicalize`, and
+`serve` with UDP/TCP plus management REST and the operator SPA at `/`.
+`make web-test` and `make web-build` are implemented. Later waves land
+MCP, observability, and the container image.
 Unimplemented CLI subcommands fail closed. Remaining placeholder Make
 targets exit 1.
 **Implementation status.** Through MCP-001: `labsyslog version`, `help`,

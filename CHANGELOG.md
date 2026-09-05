@@ -41,6 +41,18 @@
   `make security-scan` (`go vet` + `govulncheck`; not a product
   module) are real work. `labsyslog send` is forbidden in
   production packages.
+- Operator SPA (UI-001): Vite + React + TypeScript console under `web/`
+  (Node 22.14.0), embedded with `go:embed` in `internal/web` and wired
+  from `cmd/labsyslog` (rest does not import web). Session login
+  exchanges a bearer for `labsyslog_session`; mutations send
+  `X-LabSyslog-CSRF` from memory (tokens never in `localStorage`).
+  Pages: live tail/list, message detail (`textContent` only), status,
+  filters view (enable/disable via `replaceFilters` plan/apply), audit,
+  gated reset and clear. SSE `/v1/events/stream` with poll fallback.
+  `spec.ui.enabled: false` does not serve the SPA. `make web-test` and
+  `make web-build` are real. Mira review is required before v1.0.0
+  ([docs/reviews/mira-ui-001.md](docs/reviews/mira-ui-001.md)); it is
+  not a merge gate for this PR.
 - Auth, CSRF, and audit (SEC-001): `spec.auth.mode` is bearer only.
   Tokens ≥32 bytes are compared as SHA-256 digests in constant time.
   Roles expand to scopes (`administrator` all four, `reader`
@@ -156,3 +168,8 @@ are implemented. Remaining placeholder Make targets fail closed
 (`exit 1`). Default CI runs format, lint, unit, race, fuzz-smoke, docs,
 changelog, generated, config-compat, security-scan, and container-test.
 MCP, UI, and the integrator BOM land in later waves.
+`make test-fuzz-smoke`, `make web-test`, and `make web-build` are
+implemented. Remaining placeholder Make targets fail closed (`exit 1`).
+Default CI runs format, lint, unit, race, fuzz-smoke, docs, changelog,
+generated, config-compat, and web. MCP and the container image land in
+later waves.

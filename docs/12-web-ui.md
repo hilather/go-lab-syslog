@@ -30,7 +30,20 @@ Message `message` and `raw` are rendered as text (`textContent`).
 No `innerHTML`, no `srcdoc`, no markdown. Origin policy from
 docs/08.
 
+## Build
+
+`make web-test` runs Vitest in `web/`. `make web-build` emits
+`web/dist` and copies it to `internal/web/dist` for `go:embed`.
+Node **22.14.0**. `spec.ui.enabled: false` does not serve the SPA
+(`GET /` is `404` problem+json). There is no relay or forward
+control.
+
 ## GA rule
 
 UI is required for 1.0 GA (LabMail PR 12 precedent). rc.1 may ship
 API-complete without UI; 1.0 does not.
+
+Mira review after first UI implementation is required before
+**v1.0.0** (GA-001). It is not a merge gate for UI-001. Track the
+outcome in [reviews/mira-ui-001.md](reviews/mira-ui-001.md); that
+file is a placeholder until the review lands.

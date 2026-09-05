@@ -16,6 +16,7 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/control/mcp"
 	"github.com/hilather/go-lab-syslog/internal/control/rest"
 	"github.com/hilather/go-lab-syslog/internal/observability"
+	"github.com/hilather/go-lab-syslog/internal/web"
 )
 
 func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -125,11 +126,31 @@ func mountManagement(svc *app.Service) (*http.Server, *mcp.Server, error) {
 	if snap := svc.Snapshot(); snap != nil && snap.Document.Spec.Listeners.Management.MCPPath != "" {
 		path = snap.Document.Spec.Listeners.Management.MCPPath
 	}
+	restSrv := rest.Mount(svc, rest.Options{
+		UI:        web.NewHandler(nil),
+		UIEnabled: func() bool { return uiEnabled(svc) },
+	})
 	mux := http.NewServeMux()
 	mux.Handle(path, mcpSrv.Handler())
-	mux.Handle("/", rest.New(svc))
+	if restSrv != nil && restSrv.Handler != nil {
+		mux.Handle("/", restSrv.Handler)
+	}
 	return &http.Server{
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}, mcpSrv, nil
+}
+
+func uiEnabled(svc *app.Service) bool {
+	if svc == nil {
+		return false
+	}
+	snap := svc.Snapshot()
+	if snap == nil {
+		return false
+	}
+	if snap.Document.Spec.UI.Enabled == nil {
+		return true
+	}
+	return *snap.Document.Spec.UI.Enabled
 }

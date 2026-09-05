@@ -83,7 +83,7 @@ func TestContractPerCapability(t *testing.T) {
 				}
 				defer resp.Body.Close()
 				if resp.StatusCode != http.StatusNotFound {
-					t.Fatalf("ui.static status %d want 404 until UI-001", resp.StatusCode)
+					t.Fatalf("ui.static status %d want 404 when SPA is not mounted", resp.StatusCode)
 				}
 				return
 			case "metrics.scrape":

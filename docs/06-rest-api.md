@@ -48,6 +48,7 @@ Everything else requires bearer or a valid session cookie.
 | GET | `/v1/session` | cookie/bearer | |
 | DELETE | `/v1/session` | cookie/bearer | CSRF when cookie |
 | GET | `/v1/metrics` | publicPath true: unauthenticated scrape; false: 404 even with auth | Hand-rolled OpenMetrics (`api/metrics/v1alpha1.json`). No `metrics.listen`. |
+| GET | `/` | — | Operator SPA when `spec.ui.enabled`; 404 problem+json when disabled. Wired from `cmd/labsyslog`, not from rest. |
 
 ## List response
 

@@ -8,7 +8,7 @@ GOVULNCHECK_MOD ?= golang.org/x/vuln/cmd/govulncheck@v1.1.4
 
 .PHONY: help format lint generate verify-generated test test-race \
 	test-fuzz-smoke test-parity test-config-compat test-docs test-container \
-	security-scan test-changelog web-test web-build
+	security-scan test-changelog web-install web-test web-build web-embed
 
 help:
 	@printf '%s\n' \
@@ -27,8 +27,8 @@ help:
 		'  test-container      scratch image, :1514 compose smoke, Bearer wait/reset' \
 		'  security-scan       go vet + govulncheck (tool, not a product module)' \
 		'  test-changelog      observable paths require a CHANGELOG.md entry' \
-		'  web-test            placeholder (UI-001)' \
-		'  web-build           placeholder (UI-001)' \
+		'  web-test            vitest in web/ (Node 22.14.0)' \
+		'  web-build           vite production build + embed into internal/web/dist' \
 		'Placeholder targets exit 1. Default CI runs only implemented targets.'
 
 format:
@@ -79,5 +79,22 @@ security-scan:
 	$(GO) run $(GOVULNCHECK_MOD) ./...
 
 test-parity web-test web-build:
+test-parity test-container security-scan:
 	@echo '$@: not implemented yet; placeholder fails closed' >&2
 	@exit 1
+
+web-install:
+	npm --prefix web ci
+
+web-test:
+	npm --prefix web test
+
+web-build:
+	npm --prefix web run build
+	$(MAKE) web-embed
+
+web-embed:
+	@mkdir -p internal/web/dist
+	@rm -rf internal/web/dist/assets
+	@if [ -d web/dist ]; then cp -a web/dist/. internal/web/dist/; fi
+	@echo "copied web/dist -> internal/web/dist"

@@ -254,6 +254,121 @@ spec:
 	}
 }
 
+func TestServeUIEnabledIsHTML(t *testing.T) {
+	addr, cancel := startManagementServe(t, "")
+	defer cancel()
+
+	resp, err := http.Get("http://" + addr + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET / status %d body=%s", resp.StatusCode, body)
+	}
+	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "text/html") {
+		t.Fatalf("content-type %q", ct)
+	}
+	if !strings.Contains(string(body), "LabSyslog") {
+		t.Fatalf("body %s", body)
+	}
+
+	st, err := http.Get("http://" + addr + "/v1/state")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Body.Close()
+	if st.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("GET /v1/state status %d want 401", st.StatusCode)
+	}
+}
+
+func TestServeUIDisabledDoesNotServeSPA(t *testing.T) {
+	addr, cancel := startManagementServe(t, `
+  ui:
+    enabled: false
+`)
+	defer cancel()
+
+	resp, err := http.Get("http://" + addr + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("GET / status %d body=%s", resp.StatusCode, body)
+	}
+	if strings.Contains(string(body), "<!doctype") || strings.Contains(string(body), "<html") {
+		t.Fatalf("ui.enabled false served HTML: %s", body)
+	}
+	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "problem+json") {
+		t.Fatalf("content-type %q", ct)
+	}
+}
+
+func startManagementServe(t *testing.T, extraSpec string) (addr string, cancel context.CancelFunc) {
+	t.Helper()
+	dir := t.TempDir()
+	tok := filepath.Join(dir, "token")
+	if err := os.WriteFile(tok, bytes.Repeat([]byte("t"), 32), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := filepath.Join(dir, "config.yaml")
+	body := []byte(`
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  auth:
+    tokens:
+      - id: operator
+        secretFile: ` + tok + `
+` + extraSpec)
+	if err := os.WriteFile(cfg, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	var stdout, stderr lockedBuffer
+	done := make(chan int, 1)
+	go func() {
+		done <- cmdServe(ctx, []string{
+			"--config", cfg,
+			"--syslog-udp-listen", "127.0.0.1:0",
+			"--syslog-tcp-listen", "127.0.0.1:0",
+			"--management-listen", "127.0.0.1:0",
+		}, &stdout, &stderr)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			t.Error("serve did not exit after cancel")
+		}
+	})
+	addr = waitListenPrefix(t, &stderr, "management listen ")
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err := http.Get("http://" + addr + "/v1/health/live")
+		if err == nil && resp.StatusCode == http.StatusOK {
+			_, _ = io.Copy(io.Discard, resp.Body)
+			_ = resp.Body.Close()
+			return addr, cancel
+		}
+		if resp != nil {
+			_, _ = io.Copy(io.Discard, resp.Body)
+			_ = resp.Body.Close()
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("management not ready; stderr=%q", stderr.String())
+	return addr, cancel
+}
+
 func TestServeRequiresConfig(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"labsyslog", "serve"}, &stdout, &stderr)

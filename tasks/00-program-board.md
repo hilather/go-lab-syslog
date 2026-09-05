@@ -9,6 +9,7 @@ Status: SEC-001 done; next is MCP-001
 Status: OBS-001 done; next is SEC-001 (M2) then DEP-001 (M3)  
 Status: MCP-001 done; next is OBS-001  
 Status: SEC-001, OBS-001, and DEP-001 done; next is MCP-001, UI-001, SWAP-001  
+Status: UI-001 done on this branch; MCP-001 / OBS-001 / DEP-001 remain  
 Last reviewed: 2026-09-04  
 Source of truth: the numbered `docs/` pack and accepted ADRs (0001–0012).
 
@@ -40,6 +41,7 @@ CFG → STA → API → SEC → MCP. Data plane proceeds after WIRE.
 | 13 | CLI + scratch image | DEP-001 | UDP-001, TCP-001, API-001, OBS-001 | Hardened image, compose.smoke, healthcheck | M3 | not-started |
 | 13 | CLI + scratch image | DEP-001 | UDP-001, TCP-001, API-001, OBS-001 | Hardened image, compose.smoke, healthcheck | M3 | done |
 | 14 | Operator SPA | UI-001 | API-001, SEC-001 | Embedded inbox, no localStorage tokens | M4 | not-started |
+| 14 | Operator SPA | UI-001 | API-001, SEC-001 | Embedded inbox, no localStorage tokens | M4 | done |
 | 15 | Integration-lab BOM | SWAP-001 | MCP-001, SEC-001, DEP-001 | examples for vendor/compose/labinfo/jungle | M4 | not-started |
 | 16 | GA hardening | GA-001 | 1–15 | Fuzz, soak, release notes, known limitations | M5 | not-started |
 | — | RFC 5425 TLS listener | TLS-001 | DEP-001 | v1.1 only; 1.0 rejects `tls.enabled: true` | v1.1 | not-started |

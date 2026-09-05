@@ -14,7 +14,7 @@ import (
 const defaultHeartbeat = 15 * time.Second
 
 // Server is the /v1 adapter. It calls app.Service only and must not import
-// internal/web or internal/control/mcp.
+// internal/web or internal/control/mcp. cmd/labsyslog injects the SPA via Options.
 type Server struct {
 	svc       *app.Service
 	mux       *http.ServeMux
@@ -22,6 +22,14 @@ type Server struct {
 	bucket    tokenBucket
 	inflight  atomic.Int64
 	heartbeat time.Duration
+	ui        http.Handler
+	uiEnabled func() bool
+}
+
+// Options is cmd/labsyslog wiring. rest must not import internal/web.
+type Options struct {
+	UI        http.Handler
+	UIEnabled func() bool
 }
 
 // New returns the management HTTP handler (stdlib mux, no framework).
@@ -41,12 +49,15 @@ func newServer(svc *app.Service) *Server {
 }
 
 // Mount returns an HTTP server for the management listener, or nil when off.
-func Mount(svc *app.Service) *http.Server {
+func Mount(svc *app.Service, opts Options) *http.Server {
 	if svc == nil || svc.ManagementListener() == nil {
 		return nil
 	}
+	s := newServer(svc)
+	s.ui = opts.UI
+	s.uiEnabled = opts.UIEnabled
 	return &http.Server{
-		Handler:           New(svc),
+		Handler:           s,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 }
@@ -72,7 +83,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.observeHTTP(hw, r)
 		return
 	}
-	if !publicPath(r) {
+	if !s.isPublic(r) {
 		p, err := s.authenticate(r)
 		if err != nil {
 			writeProblem(hw, err)
@@ -141,6 +152,9 @@ func (s *Server) routes() {
 }
 
 func (s *Server) unknown(w http.ResponseWriter, r *http.Request) {
+	if s.tryUI(w, r) {
+		return
+	}
 	writeProblem(w, domainerr.New(domainerr.NotFound, "no such route"))
 }
 

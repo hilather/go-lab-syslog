@@ -18,6 +18,7 @@ or capability IDs. If an invariant must change, write an ADR first.
 | [10-testing-strategy.md](10-testing-strategy.md) | Required locks |
 | [11-deployment.md](11-deployment.md) | Image, ports, compose |
 | [12-web-ui.md](12-web-ui.md) | Operator SPA |
+| [reviews/mira-ui-001.md](reviews/mira-ui-001.md) | Mira UI review placeholder (required before v1.0.0) |
 | [13-integration-lab-swap.md](13-integration-lab-swap.md) | mcp-integration-lab BOM |
 | [implementation-design.md](implementation-design.md) | Decisions, schema, PR plan |
 | [known-limitations.md](known-limitations.md) | 1.0 residual limits |
