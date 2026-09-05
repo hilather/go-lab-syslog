@@ -133,8 +133,8 @@ func (s *Store) Insert(msg model.Message) (uint64, error) {
 	}
 	msg.ID = id.String()
 
-	rawLen := len(msg.Raw)
-	size := rawLen + PerMessageOverhead
+	// Bill len(raw) at insert even when rawRetain drops the copy; Parsed.Message can still be large.
+	size := len(msg.Raw) + PerMessageOverhead
 	stored := cloneMessage(msg)
 	if !s.rawRetain {
 		stored.Raw = nil

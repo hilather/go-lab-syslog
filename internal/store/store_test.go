@@ -80,6 +80,44 @@ func TestCapEvictionOrder(t *testing.T) {
 	}
 }
 
+func TestMaxBytesEvictsSeveralToFitCandidate(t *testing.T) {
+	const (
+		smallRaw = 10
+		largeRaw = 300
+		maxBytes = 900
+	)
+	s := testStore(t, store.Config{
+		MaxMessages: 10,
+		MaxBytes:    maxBytes,
+		FullPolicy:  store.FullPolicyEvictOldest,
+	})
+	for _, body := range []string{"s1", "s2", "s3"} {
+		m := msg(body)
+		m.Raw = make([]byte, smallRaw)
+		mustInsert(t, s, m)
+	}
+	before := s.Stats().Generation
+	large := msg("large")
+	large.Raw = make([]byte, largeRaw)
+	after := mustInsert(t, s, large)
+	if after != before+1 {
+		t.Fatalf("generation %d -> %d, want +1", before, after)
+	}
+	got := listedBodies(t, s)
+	want := []string{"large", "s3"}
+	if len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("bodies = %v, want %v", got, want)
+	}
+	st := s.Stats()
+	if st.Evicted != 2 {
+		t.Fatalf("evicted = %d, want 2", st.Evicted)
+	}
+	wantBytes := (smallRaw + store.PerMessageOverhead) + (largeRaw + store.PerMessageOverhead)
+	if st.Bytes != wantBytes {
+		t.Fatalf("bytes = %d, want %d", st.Bytes, wantBytes)
+	}
+}
+
 func TestOversizedRejectedUnderEvictOldest(t *testing.T) {
 	maxBytes := 1000
 	s := testStore(t, store.Config{
@@ -169,12 +207,16 @@ func TestDeleteAndClear(t *testing.T) {
 func TestRawRetainFalseDropsRaw(t *testing.T) {
 	retain := false
 	s := testStore(t, store.Config{RawRetain: &retain})
-	mustInsert(t, s, msg("body"))
+	const n = 2
+	raw := []byte("body")
+	for i := 0; i < n; i++ {
+		mustInsert(t, s, msg("body"))
+	}
 	list, err := s.List(store.ListFilter{}, "", 0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list.Items) != 1 {
+	if len(list.Items) != n {
 		t.Fatal(list.Items)
 	}
 	if list.Items[0].Raw != nil {
@@ -189,6 +231,10 @@ func TestRawRetainFalseDropsRaw(t *testing.T) {
 	}
 	if got.Raw != nil {
 		t.Fatalf("get raw %q", got.Raw)
+	}
+	wantBytes := n * (len(raw) + store.PerMessageOverhead)
+	if s.Stats().Bytes != wantBytes {
+		t.Fatalf("bytes = %d, want %d (original raw billed after drop)", s.Stats().Bytes, wantBytes)
 	}
 }
 

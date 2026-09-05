@@ -54,10 +54,14 @@ and keep the connection (C18).
 | Field | Default | Meaning |
 |---|---|---|
 | `maxMessages` | 10000 | hard count including the candidate |
-| `maxBytes` | 256MiB | sum of `len(raw)` plus a fixed per-message overhead of 256 bytes |
+| `maxBytes` | 256MiB | sum of `len(raw)` at insert plus a fixed per-message overhead of 256 bytes |
 | `fullPolicy` | `evict_oldest` | see below |
 | `maxWait` | 60s | cap on `messages:wait` timeout |
 | `rawRetain` | true | keep `raw`; if false, `raw` is discarded after parse and raw GET returns 404 |
+
+`maxBytes` bills `len(raw)` at insert even when `rawRetain` is false
+and the stored copy is dropped. Dropping bodies does not enlarge the
+window (`Parsed.Message` can still be large).
 
 `fullPolicy`:
 

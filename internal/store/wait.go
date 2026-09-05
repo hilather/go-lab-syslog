@@ -50,9 +50,10 @@ func (s *Store) Wait(ctx context.Context, f ListFilter, timeout time.Duration) (
 		timeout = s.maxWait
 	}
 	if msg, ok := s.findNewest(cf); ok {
+		cloned := cloneMessage(msg)
 		gen := s.generation
 		s.mu.Unlock()
-		return WaitResult{Matched: MatchedExisting, Message: cloneMessage(msg), Generation: gen}, nil
+		return WaitResult{Matched: MatchedExisting, Message: cloned, Generation: gen}, nil
 	}
 	if err := ctx.Err(); err != nil {
 		gen := s.generation
@@ -74,7 +75,7 @@ func (s *Store) Wait(ctx context.Context, f ListFilter, timeout time.Duration) (
 		case out := <-w.ch:
 			return out.result()
 		default:
-			return WaitResult{Generation: s.generationLocked()}, ctx.Err()
+			return WaitResult{Generation: s.currentGeneration()}, ctx.Err()
 		}
 	case <-timer.C:
 		s.removeWaiter(w)
@@ -82,7 +83,7 @@ func (s *Store) Wait(ctx context.Context, f ListFilter, timeout time.Duration) (
 		case out := <-w.ch:
 			return out.result()
 		default:
-			return WaitResult{Generation: s.generationLocked()}, domainerr.New(domainerr.WaitTimeout, "wait timed out")
+			return WaitResult{Generation: s.currentGeneration()}, domainerr.New(domainerr.WaitTimeout, "wait timed out")
 		}
 	}
 }
@@ -123,7 +124,7 @@ func (s *Store) removeWaiter(target *waiter) {
 	}
 }
 
-func (s *Store) generationLocked() uint64 {
+func (s *Store) currentGeneration() uint64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.generation
