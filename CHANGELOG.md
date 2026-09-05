@@ -12,16 +12,28 @@
 
 ### Added
 
+- Auth, CSRF, and audit (SEC-001): `spec.auth.mode` is bearer only.
+  Tokens ≥32 bytes are compared as SHA-256 digests in constant time.
+  Roles expand to scopes (`administrator` all four, `reader`
+  `syslog.read`). REST requires bearer or `labsyslog_session` plus
+  `X-LabSyslog-CSRF` on cookie mutations. Health live/ready stay
+  unauthenticated; `GET /v1/metrics` is 404 when `publicPath` is
+  false. `allowedOrigins` is exact (default loopback); `OPTIONS` and
+  a non-allowed Origin are `403 origin_not_allowed`. Audit ring
+  records plan/apply/reset/delete/clear (`id`, `at`, `actor`,
+  `operation`, `reason`, `revision`) and wipes with the store on
+  reset. MCP is not present; `internal/auth.Verifier` is shared for
+  MCP-001.
 - REST `/v1` adapter and OpenAPI (API-001): `internal/control/rest` mounts
   on the serve process management listener. Frozen table routes plus
-  REST_ONLY health, session stubs, metrics placeholder, and SSE
+  REST_ONLY health, session exchange, metrics placeholder, and SSE
   `GET /v1/events/stream`. Errors are `application/problem+json` with
   `type: https://labsyslog.dev/errors/{code}`. Wait timeout is `504
   wait_timeout`; wipe during wait is `409 store_wiped`. Snapshot-backed
   `bodyLimit` is `413 payload_too_large`; RPS/burst/maxConcurrent is
   `429 rate_limited`. List cursors are process-local HMAC.
   `make generate` writes `api/openapi/v1.json`, `api/errors/v1.json`,
-  and `api/capabilities/v1.json`. No auth middleware yet (SEC-001).
+  and `api/capabilities/v1.json`.
 - Snapshot, plan, apply, and reset (STA-001 / APP-001): `app.Service`
   compiles an immutable `Snapshot` behind `atomic.Pointer`, with
   `Validate` / `Plan` / `Apply` / `Export` / `Reset` and no `net/http`.

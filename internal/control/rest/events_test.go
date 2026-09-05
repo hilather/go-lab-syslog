@@ -28,6 +28,7 @@ func TestEventsStreamReceived(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	setAuth(req)
 	resp, err := ts.Client().Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -98,6 +99,7 @@ func TestEventsStreamDeletedAndWiped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	setAuth(req)
 	resp, err := ts.Client().Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -114,6 +116,7 @@ func TestEventsStreamDeletedAndWiped(t *testing.T) {
 			t.Error(err)
 			return
 		}
+		setAuth(r)
 		out, err := ts.Client().Do(r)
 		if err != nil {
 			t.Error(err)

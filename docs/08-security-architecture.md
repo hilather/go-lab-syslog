@@ -20,12 +20,18 @@ in AGENTS.md are rejected at decode.
 ## Auth
 
 - Default and only 1.0 mode `bearer`. Token from `secretFile`, ≥32 bytes.
-- No HTTP Basic. No `dev-loopback-unauth`.
+  Compare is SHA-256 digest + `crypto/subtle` (constant time).
+- Roles: `administrator` → `syslog.read` `syslog.write` `syslog.admin`
+  `syslog.audit.read`; `reader` → `syslog.read`.
+- No HTTP Basic. No `dev-loopback-unauth`. Loopback still requires
+  bearer or a session cookie.
 - Auth lives at `spec.auth` (LabNTP shape). `spec.management.auth` is an unknown field and rejects.
 - Cookie `labsyslog_session` is `HttpOnly`, `SameSite=Lax`,
   `Path=/`, no `Secure` required on loopback HTTP (lab). CSRF header
   `X-LabSyslog-CSRF` on cookie-authenticated mutating REST.
 - Tokens are never written to `localStorage` by the SPA.
+- Management bind with zero usable tokens fail-closes. Management
+  REST is unusable without a valid token when `auth.mode=bearer`.
 
 ## Origin
 
@@ -33,7 +39,8 @@ in AGENTS.md are rejected at decode.
 loopback only. `originAllowlist` is an unknown field and rejects.
 1.0 has no `"*"` / `"private"` sentinels. Non-allowed Origin on SPA
 JS or mutating REST → `403 origin_not_allowed`. No CORS `*`
-reflection. `OPTIONS` is 403.
+reflection. `OPTIONS` is 403. Audit ring (plan/apply/reset/delete/clear)
+wipes with the store on reset.
 
 ## Container
 

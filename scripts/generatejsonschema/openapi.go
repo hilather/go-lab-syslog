@@ -27,8 +27,15 @@ func openAPI() obj {
 			{"version", "v1"},
 			{"description", "Native /v1 adapter over app.Service. Errors are application/problem+json with type https://labsyslog.dev/errors/{code}."},
 		}},
+		{"security", []any{obj{{"bearerAuth", []any{}}}}},
 		{"paths", paths},
 		{"components", obj{
+			{"securitySchemes", obj{
+				{"bearerAuth", obj{
+					{"type", "http"},
+					{"scheme", "bearer"},
+				}},
+			}},
 			{"schemas", obj{
 				{"Problem", obj{
 					{"type", "object"},
@@ -54,6 +61,10 @@ func openAPIOp(row capabilities.Row) obj {
 		op = append(op, kv{"description", "scope " + row.Scope})
 	}
 	switch row.ID {
+	case "health.live", "health.ready", "metrics.scrape":
+		op = append(op, kv{"security", []any{obj{}}})
+	}
+	switch row.ID {
 	case "change.plan", "change.apply", "state.validate", "messages.wait":
 		op = append(op, kv{"requestBody", obj{
 			{"required", true},
@@ -70,7 +81,9 @@ func openAPIOp(row capabilities.Row) obj {
 			kv{"504", problemResp("wait_timeout")},
 			kv{"409", problemResp("store_wiped")},
 		)
-	case row.RESTMethod == "DELETE" || row.ID == "messages.clear" || row.ID == "session.create" || row.ID == "session.delete":
+	case row.ID == "session.create":
+		responses = append(responses, kv{"200", obj{{"description", "session cookie and csrf"}}})
+	case row.RESTMethod == "DELETE" || row.ID == "messages.clear" || row.ID == "session.delete":
 		responses = append(responses, kv{"204", obj{{"description", "no content"}}})
 	case row.ID == "metrics.scrape":
 		responses = append(responses,

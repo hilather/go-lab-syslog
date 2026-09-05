@@ -5,10 +5,18 @@
     "version": "v1",
     "description": "Native /v1 adapter over app.Service. Errors are application/problem+json with type https://labsyslog.dev/errors/{code}."
   },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "paths": {
     "/v1/health/live": {
       "get": {
         "operationId": "health.live",
+        "security": [
+          {}
+        ],
         "responses": {
           "200": {
             "description": "success"
@@ -29,6 +37,9 @@
     "/v1/health/ready": {
       "get": {
         "operationId": "health.ready",
+        "security": [
+          {}
+        ],
         "responses": {
           "200": {
             "description": "success"
@@ -50,8 +61,8 @@
       "post": {
         "operationId": "session.create",
         "responses": {
-          "204": {
-            "description": "no content"
+          "200": {
+            "description": "session cookie and csrf"
           },
           "default": {
             "description": "application/problem+json",
@@ -105,6 +116,9 @@
     "/v1/metrics": {
       "get": {
         "operationId": "metrics.scrape",
+        "security": [
+          {}
+        ],
         "responses": {
           "200": {
             "description": "OpenMetrics text when publicPath is true"
@@ -653,6 +667,12 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
     "schemas": {
       "Problem": {
         "type": "object",

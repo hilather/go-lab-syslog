@@ -123,7 +123,7 @@ func (s *Server) messageRaw(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) messageDelete(w http.ResponseWriter, r *http.Request) {
-	err := s.svc.DeleteMessage(r.Context(), r.PathValue("id"), r.URL.Query().Get("actor"), r.URL.Query().Get("reason"))
+	err := s.svc.DeleteMessage(r.Context(), r.PathValue("id"), actorOf(r), r.URL.Query().Get("reason"))
 	if s.handle(w, err) {
 		return
 	}
@@ -131,7 +131,7 @@ func (s *Server) messageDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) messagesClear(w http.ResponseWriter, r *http.Request) {
-	s.svc.ClearMessages(r.Context(), r.URL.Query().Get("actor"), r.URL.Query().Get("reason"))
+	s.svc.ClearMessages(r.Context(), actorOf(r), r.URL.Query().Get("reason"))
 	w.WriteHeader(http.StatusNoContent)
 }
 

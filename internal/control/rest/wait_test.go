@@ -109,6 +109,7 @@ func postJSON(t *testing.T, ts *httptest.Server, path string, payload any) *http
 	if payload != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
+	setAuth(req)
 	resp, err := ts.Client().Do(req)
 	if err != nil {
 		t.Fatal(err)

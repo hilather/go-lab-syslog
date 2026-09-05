@@ -19,7 +19,7 @@ test that fails before the fix.
 | Admission / filters | `internal/syslogserver` | CIDR miss silent, first-match, unmatched capture |
 | UDP sink | `internal/syslogserver` | dual-stack 127.0.0.1 and ::1; oversize/empty drop; `truncated` false; serve `--management-listen=off` |
 | Import fence | `internal/testutil/fence_test.go` | no Dial in server/store/app/wire; no syslog libs; no control import from data plane |
-| REST contract | `internal/control/rest` | problem+json codes, wait, pagination |
+| REST contract | `internal/control/rest` | problem+json codes, wait, pagination, missing bearer 401, CSRF 403, origin_not_allowed |
 | MCP + parity | `make test-parity` | every PARITY_REQUIRED row |
 | Container | `make test-container` | bind `:1514`, cap_drop ALL, healthcheck |
 | Docs | `make test-docs` | links; phrases `NAT collision` and `userland-proxy` present in deploy docs |

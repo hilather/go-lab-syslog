@@ -3,10 +3,12 @@ package rest
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hilather/go-lab-syslog/api/jsonschema"
 	"github.com/hilather/go-lab-syslog/internal/app"
 	"github.com/hilather/go-lab-syslog/internal/audit"
+	"github.com/hilather/go-lab-syslog/internal/auth"
 	"github.com/hilather/go-lab-syslog/internal/buildinfo"
 	"github.com/hilather/go-lab-syslog/internal/capabilities"
 	"github.com/hilather/go-lab-syslog/internal/config"
@@ -172,7 +174,7 @@ func (s *Server) stateExport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) stateReset(w http.ResponseWriter, r *http.Request) {
-	if err := s.svc.Reset(r.Context()); s.handle(w, err) {
+	if err := s.svc.Reset(r.Context(), actorOf(r), r.URL.Query().Get("reason")); s.handle(w, err) {
 		return
 	}
 	writeJSON(w, http.StatusOK, stateJSON(s.svc.State(r.Context())))
@@ -183,6 +185,7 @@ func (s *Server) changePlan(w http.ResponseWriter, r *http.Request) {
 	if err := readJSON(r, &req); s.handle(w, err) {
 		return
 	}
+	req.Actor = actorOf(r)
 	plan, err := s.svc.Plan(r.Context(), req)
 	if s.handle(w, err) {
 		return
@@ -198,6 +201,7 @@ func (s *Server) changeApply(w http.ResponseWriter, r *http.Request) {
 	if k := strings.TrimSpace(r.Header.Get("Idempotency-Key")); k != "" {
 		req.IdempotencyKey = k
 	}
+	req.Actor = actorOf(r)
 	out, err := s.svc.Apply(r.Context(), req)
 	if s.handle(w, err) {
 		return
@@ -280,16 +284,60 @@ func auditDTO(e audit.Event) auditJSON {
 	}
 }
 
-func (s *Server) sessionCreate(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) sessionCreate(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		writeProblem(w, domainerr.New(domainerr.Unauthorized, "authentication required"))
+		return
+	}
+	cookie, csrf, sess, err := s.svc.Sessions().Create(p)
+	if s.handle(w, err) {
+		return
+	}
+	http.SetCookie(w, auth.NewSessionCookie(cookie, auth.CookieSecure(r), s.svc.Sessions().MaxAge()))
+	writeJSON(w, http.StatusOK, sessionView{
+		ID:        p.ID,
+		Role:      p.Role,
+		Scopes:    p.Scopes,
+		CSRF:      csrf,
+		ExpiresAt: s.svc.Sessions().ExpiresAt(sess).UTC().Format(time.RFC3339Nano),
+	})
+}
+
+func (s *Server) sessionGet(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		writeProblem(w, domainerr.New(domainerr.Unauthorized, "authentication required"))
+		return
+	}
+	out := sessionView{ID: p.ID, Role: p.Role, Scopes: p.Scopes}
+	if out.Scopes == nil {
+		out.Scopes = []string{}
+	}
+	if c, err := r.Cookie(auth.CookieName); err == nil && s.svc.Sessions() != nil {
+		if sess, csrf, ok := s.svc.Sessions().Lookup(c.Value); ok {
+			out.CSRF = csrf
+			out.ExpiresAt = s.svc.Sessions().ExpiresAt(sess).UTC().Format(time.RFC3339Nano)
+		}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (s *Server) sessionDelete(w http.ResponseWriter, r *http.Request) {
+	if c, err := r.Cookie(auth.CookieName); err == nil && s.svc.Sessions() != nil {
+		s.svc.Sessions().Delete(c.Value)
+	}
+	http.SetCookie(w, auth.ClearSessionCookie(auth.CookieSecure(r)))
+	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Server) sessionGet(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"authenticated": false})
-}
-
-func (s *Server) sessionDelete(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
+type sessionView struct {
+	ID        string   `json:"id"`
+	Role      string   `json:"role"`
+	Scopes    []string `json:"scopes"`
+	CSRF      string   `json:"csrf,omitempty"`
+	ExpiresAt string   `json:"expiresAt,omitempty"`
 }
 
 func (s *Server) metrics(w http.ResponseWriter, _ *http.Request) {

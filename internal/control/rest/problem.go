@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/hilather/go-lab-syslog/internal/auth"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
 )
 
@@ -22,6 +23,9 @@ func writeProblem(w http.ResponseWriter, err error) {
 	p := domainerr.ProblemOf(err)
 	if p.Status == 0 {
 		p.Status = http.StatusInternalServerError
+	}
+	if p.Code == domainerr.Unauthorized {
+		w.Header().Set("WWW-Authenticate", auth.WWWAuthenticate())
 	}
 	w.Header().Set("Content-Type", problemType)
 	w.WriteHeader(p.Status)

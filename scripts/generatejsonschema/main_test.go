@@ -62,6 +62,7 @@ func TestOpenAPIWaitTimeout(t *testing.T) {
 		"/v1/events/stream",
 		"application/problem+json",
 		"https://labsyslog.dev/errors/{code}",
+		"bearerAuth",
 	} {
 		if !bytes.Contains(b, []byte(want)) {
 			t.Fatalf("openapi missing %s", want)

@@ -46,4 +46,8 @@ or was not requested.
 ## Audit
 
 Ring of management mutations only (plan, apply, reset, delete, clear).
-Not every syslog line. Queried via `/v1/audit` and `syslog_audit_*`.
+Not every syslog line. Record fields: `id`, `at`, `actor`,
+`operation`, `reason`, `revision`. Size
+`spec.observability.audit.ring` (default 128). Reset wipes the
+audit ring with the store, then records `state.reset`. Queried via
+`/v1/audit` and `syslog_audit_*`.

@@ -22,6 +22,7 @@ func TestBodyLimitPayloadTooLarge(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	setAuth(req)
 	resp, err := ts.Client().Do(req)
 	if err != nil {
 		t.Fatal(err)

@@ -5,9 +5,13 @@ Last reviewed: 2026-09-04
 Base path `/v1`. JSON request/response. Errors
 `application/problem+json`. OpenAPI at `api/openapi/v1.json`.
 
-Unauthenticated: `GET /v1/health/live`, `GET /v1/health/ready`.
-Everything else requires bearer, Basic (when mode allows), or a
-valid session cookie.
+Unauthenticated: `GET /v1/health/live`, `GET /v1/health/ready`,
+and `GET /v1/metrics` only when `publicPath` is true (`false` is
+404 even with a token). Everything else requires bearer or a
+valid session cookie. Cookie sessions are REST-only. CSRF header
+`X-LabSyslog-CSRF` is required when the caller presents the cookie
+on a mutating request, not when presenting `Authorization`.
+`OPTIONS` is 403. Non-allowed `Origin` is `403 origin_not_allowed`.
 
 ## Endpoints
 
@@ -36,10 +40,10 @@ valid session cookie.
 | GET | `/v1/audit` | `syslog.audit.read` | ring, newest first |
 | GET | `/v1/audit/{id}` | `syslog.audit.read` | |
 | GET | `/v1/events/stream` | `syslog.read` | SSE: `syslog.received`, `syslog.deleted`, `store.wiped`; heartbeat 15s. Wait and SSE hold a `maxConcurrent` slot; `GET /v1/health/live` and `GET /v1/health/ready` do not. |
-| POST | `/v1/session` | bearer/basic | sets `labsyslog_session` |
+| POST | `/v1/session` | bearer | sets `labsyslog_session`; returns `csrf` |
 | GET | `/v1/session` | cookie/bearer | |
-| DELETE | `/v1/session` | cookie/bearer | |
-| GET | `/v1/metrics` | `syslog.read` when publicPath | OpenMetrics text |
+| DELETE | `/v1/session` | cookie/bearer | CSRF when cookie |
+| GET | `/v1/metrics` | unauthenticated when publicPath | OpenMetrics text; 404 when publicPath is false |
 
 ## List response
 

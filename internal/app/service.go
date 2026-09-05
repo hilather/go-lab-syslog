@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/hilather/go-lab-syslog/internal/audit"
+	"github.com/hilather/go-lab-syslog/internal/auth"
 	"github.com/hilather/go-lab-syslog/internal/compiler"
 	"github.com/hilather/go-lab-syslog/internal/config"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
@@ -27,12 +28,14 @@ type Config struct {
 // Service owns the snapshot, store, audit ring, and data-plane binds.
 // Adapters call this type; it does not import net/http.
 type Service struct {
-	cfg     Config
-	snaps   snapshot.Store
-	store   *store.Store
-	audit   *audit.Ring
-	handler syslogserver.Handler
-	metrics *syslogserver.Metrics
+	cfg      Config
+	snaps    snapshot.Store
+	store    *store.Store
+	audit    *audit.Ring
+	verifier *auth.Verifier
+	sessions *auth.Store
+	handler  syslogserver.Handler
+	metrics  *syslogserver.Metrics
 
 	mu       sync.Mutex
 	started  bool
@@ -71,12 +74,18 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 	st := store.NewFromSpec(snap.Document.Spec.Store)
+	ver, err := auth.FromSpec(snap.Document.Spec.Auth, cfg.Compiler.ConfigDir)
+	if err != nil {
+		return nil, err
+	}
 	s := &Service{
-		cfg:     cfg,
-		store:   st,
-		audit:   audit.New(snap.Document.Spec.Observability.Audit.Ring),
-		metrics: &syslogserver.Metrics{},
-		idem:    map[string]idemRecord{},
+		cfg:      cfg,
+		store:    st,
+		audit:    audit.New(snap.Document.Spec.Observability.Audit.Ring),
+		verifier: ver,
+		sessions: auth.NewStore(auth.DefaultSessionConfig()),
+		metrics:  &syslogserver.Metrics{},
+		idem:     map[string]idemRecord{},
 	}
 	s.handler = syslogserver.HandlerFunc(func(_ context.Context, msg model.Message) error {
 		_, err := s.store.Insert(msg)
@@ -147,6 +156,16 @@ func (s *Service) Messages() *store.Store { return s.store }
 
 // AuditRing is the mutation log.
 func (s *Service) AuditRing() *audit.Ring { return s.audit }
+
+// Verifier is the compiled bearer index. REST and MCP share this pointer.
+func (s *Service) Verifier() *auth.Verifier {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.verifier
+}
+
+// Sessions is the REST-only cookie table. MCP must not use it.
+func (s *Service) Sessions() *auth.Store { return s.sessions }
 
 // Metrics is the shared ingest counters (UDP and TCP).
 func (s *Service) Metrics() *syslogserver.Metrics { return s.metrics }

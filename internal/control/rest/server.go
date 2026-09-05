@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hilather/go-lab-syslog/internal/app"
+	"github.com/hilather/go-lab-syslog/internal/auth"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
 )
 
@@ -57,6 +58,26 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if release != nil {
 		defer release()
+	}
+	if err := s.checkOrigin(r); err != nil {
+		writeProblem(w, err)
+		return
+	}
+	if r.Method == http.MethodOptions {
+		writeProblem(w, domainerr.New(domainerr.OriginNotAllowed, "CORS is disabled"))
+		return
+	}
+	if !publicPath(r) {
+		p, err := s.authenticate(r)
+		if err != nil {
+			writeProblem(w, err)
+			return
+		}
+		if err := s.authorize(r, p); err != nil {
+			writeProblem(w, err)
+			return
+		}
+		r = r.WithContext(auth.ContextWithPrincipal(r.Context(), p))
 	}
 	hw := &hookWriter{ResponseWriter: w}
 	s.mux.ServeHTTP(hw, r)

@@ -5,6 +5,7 @@ Status: TCP-001 done; next is FIL-001 (STORE-001 is parallel after WIRE-001)
 Status: FIL-001 done; next is STA-001 / APP-001  
 Status: STA-001 / APP-001 done; next is API-001  
 Status: API-001 done; next is SEC-001  
+Status: SEC-001 done; next is MCP-001  
 Last reviewed: 2026-09-04  
 Source of truth: the numbered `docs/` pack and accepted ADRs (0001–0012).
 
@@ -28,7 +29,7 @@ CFG → STA → API → SEC → MCP. Data plane proceeds after WIRE.
 | 7 | Admission + filters | FIL-001 | CFG-001, UDP-001 | CIDR admission, first-match classify/drop, unmatched = capture | M1 | done |
 | 8 | Snapshot plan/apply/reset | STA-001 / APP-001 | CFG-001, STORE-001 | `app.Service`, live vs reset-only, expectedRevision | M2 | done |
 | 9 | REST `/v1` + OpenAPI | API-001 | STA-001 | problem+json, wait, export, OpenAPI | M2 | done |
-| 10 | Auth bearer + CSRF | SEC-001 | API-001 | Token ≥32, cookie, CSRF, audit ring | M2 | not-started |
+| 10 | Auth bearer + CSRF | SEC-001 | API-001 | Token ≥32, cookie, CSRF, audit ring | M2 | done |
 | 11 | MCP Streamable HTTP + parity | MCP-001 | API-001, SEC-001 | `syslog_*`, `labsyslog://`, `make test-parity` | M2 | not-started |
 | 12 | Observability | OBS-001 | UDP-001, API-001 | slog JSON, hand-rolled OpenMetrics, ready semantics | M3 | not-started |
 | 13 | CLI + scratch image | DEP-001 | UDP-001, TCP-001, API-001, OBS-001 | Hardened image, compose.smoke, healthcheck | M3 | not-started |

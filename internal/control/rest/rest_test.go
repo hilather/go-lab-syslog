@@ -21,6 +21,8 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/testutil"
 )
 
+var testBearerSecret = strings.Repeat("t", auth.MinTokenBytes)
+
 func TestUnknownRouteProblemJSON(t *testing.T) {
 	ts, _ := newREST(t, "")
 	resp := get(t, ts, "/v1/does-not-exist")
@@ -71,6 +73,7 @@ func TestContractPerCapability(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			setAuth(req)
 			switch row.ID {
 			case "ui.static":
 				resp, err := ts.Client().Do(req)
@@ -96,6 +99,7 @@ func TestContractPerCapability(t *testing.T) {
 				body = strings.NewReader(`{"apiVersion":"labsyslog.dev/v1alpha1","kind":"LabSyslog","metadata":{"name":"lab-sink"},"spec":{}}`)
 				req, _ = http.NewRequest(row.RESTMethod, ts.URL+path, body)
 				req.Header.Set("Content-Type", "application/json")
+				setAuth(req)
 			case "change.plan":
 				payload, _ := json.Marshal(map[string]any{
 					"expectedRevision": rev,
@@ -103,6 +107,7 @@ func TestContractPerCapability(t *testing.T) {
 				})
 				req, _ = http.NewRequest(row.RESTMethod, ts.URL+path, bytes.NewReader(payload))
 				req.Header.Set("Content-Type", "application/json")
+				setAuth(req)
 			case "change.apply":
 				payload, _ := json.Marshal(map[string]any{
 					"expectedRevision": rev,
@@ -112,14 +117,17 @@ func TestContractPerCapability(t *testing.T) {
 				req, _ = http.NewRequest(row.RESTMethod, ts.URL+path, bytes.NewReader(payload))
 				req.Header.Set("Content-Type", "application/json")
 				req.Header.Set("Idempotency-Key", "contract-apply")
+				setAuth(req)
 			case "messages.wait":
 				payload, _ := json.Marshal(map[string]any{"timeout": "20ms"})
 				req, _ = http.NewRequest(row.RESTMethod, ts.URL+path, bytes.NewReader(payload))
 				req.Header.Set("Content-Type", "application/json")
+				setAuth(req)
 			case "events.stream":
 				ctx, cancel := context.WithCancel(context.Background())
 				defer cancel()
 				req, _ = http.NewRequestWithContext(ctx, row.RESTMethod, ts.URL+path, nil)
+				setAuth(req)
 				resp, err := ts.Client().Do(req)
 				if err != nil {
 					t.Fatal(err)
@@ -333,7 +341,7 @@ func newService(t *testing.T, extraSpec string) *app.Service {
 	t.Helper()
 	dir := t.TempDir()
 	tok := filepath.Join(dir, "token")
-	if err := os.WriteFile(tok, bytes.Repeat([]byte("t"), auth.MinTokenBytes), 0o644); err != nil {
+	if err := os.WriteFile(tok, []byte(testBearerSecret), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	body := `apiVersion: labsyslog.dev/v1alpha1
@@ -383,11 +391,20 @@ func newTestServer(t *testing.T, h http.Handler) *httptest.Server {
 
 func get(t *testing.T, ts *httptest.Server, path string) *http.Response {
 	t.Helper()
-	resp, err := ts.Client().Get(ts.URL + path)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setAuth(req)
+	resp, err := ts.Client().Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return resp
+}
+
+func setAuth(req *http.Request) {
+	req.Header.Set("Authorization", "Bearer "+testBearerSecret)
 }
 
 func decodeProblem(t *testing.T, resp *http.Response) domainerr.Problem {

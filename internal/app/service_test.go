@@ -172,6 +172,9 @@ func TestResetWipesStoreAndRestoresFilters(t *testing.T) {
 	if n := len(svc.Snapshot().Document.Spec.Filters); n != 1 || svc.Snapshot().Document.Spec.Filters[0].Name != "live-drop" {
 		t.Fatalf("live filters = %+v", svc.Snapshot().Document.Spec.Filters)
 	}
+	if !auditHas(svc.AuditRing().List(), audit.OpApply) {
+		t.Fatal("apply was not audited")
+	}
 
 	path := svc.cfg.BootstrapPath
 	before, err := os.ReadFile(path)
@@ -181,7 +184,7 @@ func TestResetWipesStoreAndRestoresFilters(t *testing.T) {
 	if err := os.Chmod(path, 0o444); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.Reset(ctx); err != nil {
+	if err := svc.Reset(ctx, "operator", "test"); err != nil {
 		t.Fatal(err)
 	}
 	after, err := os.ReadFile(path)
@@ -193,6 +196,13 @@ func TestResetWipesStoreAndRestoresFilters(t *testing.T) {
 	}
 	if svc.Messages().Stats().Messages != 0 {
 		t.Fatal("reset did not wipe store")
+	}
+	afterReset := svc.AuditRing().List()
+	if auditHas(afterReset, audit.OpApply) {
+		t.Fatal("reset did not wipe the audit ring")
+	}
+	if !auditHas(afterReset, audit.OpReset) {
+		t.Fatal("reset was not audited")
 	}
 	filters := svc.Snapshot().Document.Spec.Filters
 	if len(filters) != 1 || filters[0].Name != "boot-keep" {
@@ -509,7 +519,7 @@ func TestResetBootstrapInvalidKeepsSnapshot(t *testing.T) {
 	if err := os.WriteFile(svc.cfg.BootstrapPath, []byte("not: valid: yaml: ["), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	err := svc.Reset(ctx)
+	err := svc.Reset(ctx, "operator", "test")
 	if !domainerr.Is(err, domainerr.BootstrapInvalid) {
 		t.Fatalf("got %v", err)
 	}
@@ -572,7 +582,7 @@ spec:
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.Reset(testutil.Context(t)); err != nil {
+	if err := svc.Reset(testutil.Context(t), "operator", "test"); err != nil {
 		t.Fatal(err)
 	}
 	if svc.Snapshot().Document.Spec.Listeners.UDP.Address != "127.0.0.1:0" {
@@ -621,7 +631,7 @@ spec:
 	if err := os.WriteFile(svc.cfg.BootstrapPath, []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := svc.Reset(ctx); err == nil {
+	if err := svc.Reset(ctx, "operator", "test"); err == nil {
 		t.Fatal("expected TCP bind failure")
 	}
 	if got := svc.UDPAddr().String(); got != udpAddr {
@@ -695,4 +705,13 @@ spec:
 	if n := len(svc.Snapshot().Document.Spec.Filters); n != 1 || svc.Snapshot().Document.Spec.Filters[0].Name != "only-filters" {
 		t.Fatalf("filters = %+v", svc.Snapshot().Document.Spec.Filters)
 	}
+}
+
+func auditHas(items []audit.Event, op string) bool {
+	for _, e := range items {
+		if e.Operation == op {
+			return true
+		}
+	}
+	return false
 }
