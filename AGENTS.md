@@ -134,7 +134,7 @@ testdata/container/            compose smoke
 examples/                      lab overlay, compose.smoke, labinfo, mcpjungle
 docs/                          numbered pack + ADRs
 tasks/                         program board + wave files
-scripts/                       generate, tag-gate
+scripts/                       generate, tag-gate, test-container
 ```
 
 ## Allowed 1.0 direct dependencies

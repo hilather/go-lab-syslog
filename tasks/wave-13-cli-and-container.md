@@ -1,9 +1,13 @@
 # DEP-001: CLI, container, examples BOM
 
-Status: not-started
+Status: done
 Recommended owner: deploy agent
 Dependencies: UDP-001, TCP-001, API-001, OBS-001
-Exclusive ownership: `Dockerfile`, `examples/`, `scripts/test-container.sh`
+Exclusive ownership: `Dockerfile`, `examples/compose.smoke.yaml`,
+`:1514` smoke overlay, `scripts/test-container.sh`
+
+SWAP-001 owns `examples/labsyslog.yaml`, `examples/labinfo/`, and
+`examples/mcpjungle/`.
 
 ## Goal
 
@@ -12,33 +16,36 @@ will copy.
 
 ## Design references
 
-- [ ] `docs/11-deployment.md`
-- [ ] `docs/13-integration-lab.md`
+- [x] `docs/11-deployment.md`
+- [ ] `docs/13-integration-lab-swap.md` (SWAP-001)
 
 ## Scope
 
-- [ ] Dockerfile scratch, `USER 65532`, CMD serve
+- [x] Dockerfile scratch, `USER 65532`, CMD serve
       `--config=/etc/labsyslog/config.yaml --management-listen=:8088`
-- [ ] `scripts/test-container.sh` binds `:1514` udp+tcp, `cap_drop ALL`,
+- [x] `scripts/test-container.sh` binds `:1514` udp+tcp, `cap_drop ALL`,
       no `NET_BIND_SERVICE`
-- [ ] `examples/compose.smoke.yaml`
-- [ ] `examples/labsyslog.yaml`
-- [ ] `examples/labinfo/services-labsyslog.yaml`
-- [ ] `examples/mcpjungle/servers/labsyslog.json`
-- [ ] CLI: serve, validate, canonicalize, healthcheck, version, mcp-stdio
-- [ ] Optional `labsyslog send` is **forbidden** in production packages
+- [x] `examples/compose.smoke.yaml`
+- [ ] `examples/labsyslog.yaml` (SWAP-001)
+- [ ] `examples/labinfo/services-labsyslog.yaml` (SWAP-001)
+- [ ] `examples/mcpjungle/servers/labsyslog.json` (SWAP-001)
+- [x] CLI: serve, validate, canonicalize, healthcheck, version;
+      mcp-stdio remains MCP-001
+- [x] Optional `labsyslog send` is **forbidden** in production packages
       (receive-only). A test-only client lives in `internal/syslogtest`.
 
 ## Explicit non-scope
 
 - Integrator vendor.go change (out of repo)
 - Native 514 in the appliance smoke compose
+- Lab overlay / labinfo / mcpjungle (SWAP-001)
 
 ## Required tests
 
-- [ ] Container test: send UDP+TCP, GET ready, GET messages
-- [ ] BOM files exist and JSON/YAML parse
-- [ ] Image has no shell if scratch; healthcheck is the static binary
+- [x] Container test: send UDP+TCP, GET ready, Bearer wait, reset
+- [x] Smoke YAML parses; `:1514` overlay validates
+- [x] Image has no shell if scratch; healthcheck is the static binary
+- [x] `make security-scan` runs `go vet` and `govulncheck`
 
 ## Acceptance criteria
 

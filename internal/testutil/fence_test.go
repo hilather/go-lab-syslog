@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"bytes"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -162,6 +163,43 @@ func TestImportFence(t *testing.T) {
 	}
 	scanSDK("internal")
 	scanSDK("cmd")
+}
+
+func TestNoSyslogSendClient(t *testing.T) {
+	root := moduleRoot(t)
+	scan := func(base string) {
+		err := filepath.WalkDir(filepath.Join(root, base), func(p string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				if d.Name() == "testdata" {
+					return fs.SkipDir
+				}
+				return nil
+			}
+			if !isProductionGo(d.Name()) {
+				return nil
+			}
+			rel, _ := filepath.Rel(root, p)
+			if d.Name() == "send.go" {
+				t.Errorf("%s: production send client is forbidden", rel)
+			}
+			src, err := os.ReadFile(p)
+			if err != nil {
+				return err
+			}
+			if bytes.Contains(src, []byte("func cmdSend")) {
+				t.Errorf("%s: func cmdSend is forbidden", rel)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	scan("cmd")
+	scan("internal")
 }
 
 func TestNoDialIdentifiers(t *testing.T) {

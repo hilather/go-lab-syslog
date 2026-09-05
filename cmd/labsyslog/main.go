@@ -74,7 +74,7 @@ validate and canonicalize load a fail-closed labsyslog.dev/v1alpha1
 document. serve binds UDP/TCP syslog. Management REST /v1, MCP /mcp,
 and the operator SPA at / bind only when --management-listen is an
 address (or spec.listeners.management.address). --management-listen=off
-is first-class.
+is first-class. There is no send command.
 
 Commands:
   version         print build and protocol metadata

@@ -22,7 +22,8 @@ test that fails before the fix.
 | REST contract | `internal/control/rest` | problem+json codes, wait, pagination, missing bearer 401, CSRF 403, origin_not_allowed |
 | Observability | `internal/observability` | OpenMetrics parse; no prometheus import AST; ready false if UDP bind failed when enabled; `publicPath` false → `/v1/metrics` 404 even with auth |
 | MCP + parity | `make test-parity` | every PARITY_REQUIRED row |
-| Container | `make test-container` | bind `:1514`, cap_drop ALL, healthcheck |
+| Container | `make test-container` | bind `:1514`, cap_drop ALL, no NET_BIND_SERVICE, exec healthcheck, Bearer wait/reset |
+| Security scan | `make security-scan` | `go vet` + `govulncheck` (tool, not a product module) |
 | Docs | `make test-docs` | links; phrases `NAT collision` and `userland-proxy` present in deploy docs |
 | Fuzz-smoke | PRI, 5424 SD, RFC 6587 splitter (`make test-fuzz-smoke`) | |
 | Race | wait + insert + wipe (`internal/store` TestRaceInsertWaitWipe) | |
@@ -31,9 +32,11 @@ test that fails before the fix.
 
 Listed in AGENTS.md. Missing targets `exit 1`. CI jobs: format,
 lint, unit, race, fuzz-smoke, docs, changelog, generated-file,
-parity, container-test, web. `make test-fuzz-smoke` is a 5s
+parity, container-test, security-scan, web. `make test-fuzz-smoke` is a 5s
 `FuzzParse` of `internal/syslogwire` plus a short `FuzzNext` of
-`internal/syslogframing`.
+`internal/syslogframing`. `make test-container` is
+`scripts/test-container.sh`. `make security-scan` is `go vet` plus
+`govulncheck` via `go run` (not a `go.mod` require).
 
 ## Transcripts
 

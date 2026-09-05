@@ -14,6 +14,9 @@ coverage.html
 # go test -fuzz working corpus (seeds live in testdata/packets)
 **/testdata/fuzz/
 
+# Minted bearer for compose smoke; never commit secrets
+testdata/container/token
+
 # Frontend (embedded copy lives in internal/web/dist)
 web/node_modules/
 web/dist/

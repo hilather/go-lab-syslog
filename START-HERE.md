@@ -38,6 +38,9 @@ message arrives with `POST /v1/messages:wait`.
 `healthcheck` probes `GET /v1/health/ready`. `mcp-stdio` is the developer
 stdio adapter (`--token-file` is verified). Session cookie
 `labsyslog_session` + `X-LabSyslog-CSRF` is REST-only.
+`labsyslog send` is forbidden. The scratch image and
+`examples/compose.smoke.yaml` (`:1514`, no `NET_BIND_SERVICE`) are
+DEP-001; `make test-container` mints a bearer token and waits over REST.
 
 ## What to read next
 

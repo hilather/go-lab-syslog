@@ -1,0 +1,56 @@
+# :1514 smoke overlay (DEP-001). Product YAML binds :514 (SWAP-001).
+# Token path is the frozen mount; the file is minted by the test script.
+# CIDRs include RFC1918 so Docker userland-proxy NAT sources are admitted
+# on host-publish UDP (see docs/11 NAT collision).
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: container-smoke
+spec:
+  listeners:
+    udp:
+      enabled: true
+      address: ":1514"
+    tcp:
+      enabled: true
+      address: ":1514"
+      framing: auto
+    tls:
+      enabled: false
+    management:
+      address: ":8088"
+      restPath: /v1
+      mcpPath: /mcp
+  auth:
+    mode: bearer
+    tokens:
+      - id: smoke
+        role: administrator
+        secretFile: /run/secrets/labsyslog-token
+  ui:
+    enabled: false
+  management:
+    allowedOrigins: []
+    mcp:
+      allowLegacyClients: false
+  syslog:
+    hostname: labsyslog.lab
+    parse:
+      rfc3164: true
+      rfc5424: true
+      bestEffort: true
+    behavior:
+      mode: accept
+  admission:
+    allowClientCidrs:
+      - "127.0.0.0/8"
+      - "::1/128"
+      - "10.0.0.0/8"
+      - "172.16.0.0/12"
+      - "192.168.0.0/16"
+      - "fc00::/7"
+      - "fe80::/10"
+  observability:
+    logLevel: info
+    metrics:
+      publicPath: false

@@ -19,6 +19,7 @@ var RequiredRootDocs = []string{
 	"SECURITY.md",
 	"CONTRIBUTING.md",
 	"Makefile",
+	"Dockerfile",
 	"go.mod",
 	"docs/README.md",
 	"docs/00-family-evaluation.md",

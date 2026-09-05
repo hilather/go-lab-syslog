@@ -43,11 +43,13 @@ splits RFC 6587; `internal/syslogserver` admits, classifies, and inserts
 into `internal/store`. Later waves land plan/apply, REST, MCP, UI, and
 the container image.
 **Implementation status.** FND-001 through API-001 and OBS-001 are in
+**Implementation status.** FND-001 through OBS-001 and DEP-001 are in
 tree: `labsyslog version`, `help`, `validate`, `canonicalize`,
 `serve`, and `healthcheck --url=` work. REST `/v1` is mounted on the
-management listener. JSON slog and hand-rolled OpenMetrics land at
-`GET /v1/metrics` when `publicPath` is true. Later waves land auth,
-MCP, UI, and the container image.
+management listener with bearer auth. JSON slog and hand-rolled
+OpenMetrics land at `GET /v1/metrics` when `publicPath` is true. The
+scratch image is UID `65532:65532`; `examples/compose.smoke.yaml`
+binds `:1514`. Later waves land MCP, UI, and the integrator BOM.
 Unimplemented CLI subcommands fail closed. Remaining placeholder Make
 targets exit 1.
 **Implementation status.** Through MCP-001: `labsyslog version`, `help`,

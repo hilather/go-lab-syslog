@@ -25,6 +25,20 @@
   `labsyslog mcp-stdio --config --token-file` is the developer adapter.
   Wait timeout and wipe return `wait_timeout` / `store_wiped`.
   `make test-parity` is real work; `make generate` writes `api/mcp/v1.json`.
+- CLI, scratch image, and compose smoke (DEP-001): UID `65532:65532`
+  scratch image (`Dockerfile`) with exec-form HEALTHCHECK
+  `/labsyslog healthcheck --url=http://127.0.0.1:8088/v1/health/ready`
+  and CMD `serve --config=/etc/labsyslog/config.yaml
+  --management-listen=:8088`. `examples/compose.smoke.yaml` binds
+  `127.0.0.1:1514` UDP+TCP and `127.0.0.1:18088:8088` with
+  `cap_drop: ALL` and no `NET_BIND_SERVICE` (C17). The `:1514`
+  overlay is `testdata/container/config.yaml`.
+  `scripts/test-container.sh` mints a ≥32-byte token and sends
+  `Authorization: Bearer` on `POST /v1/messages:wait` and
+  `POST /v1/state:reset`. `make test-container` and
+  `make security-scan` (`go vet` + `govulncheck`; not a product
+  module) are real work. `labsyslog send` is forbidden in
+  production packages.
 - Auth, CSRF, and audit (SEC-001): `spec.auth.mode` is bearer only.
   Tokens ≥32 bytes are compared as SHA-256 digests in constant time.
   Roles expand to scopes (`administrator` all four, `reader`
@@ -134,8 +148,9 @@
 - Family evaluation of every mcp-integration-lab member.
 - Program board and wave implementation notes FND-001 through TLS-001.
 
-`make generate`, `make verify-generated`, `make test-config-compat`, and
-`make test-fuzz-smoke` are implemented. Remaining placeholder Make
-targets fail closed (`exit 1`). Default CI runs format, lint, unit,
-race, fuzz-smoke, docs, changelog, generated, and config-compat.
-REST, MCP, UI, and the container image land in later waves.
+`make generate`, `make verify-generated`, `make test-config-compat`,
+`make test-fuzz-smoke`, `make test-container`, and `make security-scan`
+are implemented. Remaining placeholder Make targets fail closed
+(`exit 1`). Default CI runs format, lint, unit, race, fuzz-smoke, docs,
+changelog, generated, config-compat, security-scan, and container-test.
+MCP, UI, and the integrator BOM land in later waves.

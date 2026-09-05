@@ -40,7 +40,7 @@ func TestHelp(t *testing.T) {
 		t.Fatalf("exit %d stderr=%q", code, stderr.String())
 	}
 	out := stdout.String()
-	for _, s := range []string{"version", "help", "validate", "canonicalize", "serve", "healthcheck", "mcp-stdio"} {
+	for _, s := range []string{"version", "help", "validate", "canonicalize", "serve", "healthcheck", "mcp-stdio", "receive-only", "no send command"} {
 		if !strings.Contains(out, s) {
 			t.Fatalf("help missing %s: %q", s, out)
 		}

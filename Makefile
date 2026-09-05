@@ -4,6 +4,8 @@ GO ?= go
 export GOTOOLCHAIN ?= local
 export GOPROXY ?= https://proxy.golang.org,direct
 
+GOVULNCHECK_MOD ?= golang.org/x/vuln/cmd/govulncheck@v1.1.4
+
 .PHONY: help format lint generate verify-generated test test-race \
 	test-fuzz-smoke test-parity test-config-compat test-docs test-container \
 	security-scan test-changelog web-test web-build
@@ -22,8 +24,8 @@ help:
 		'  test-parity         REST/MCP capability parity goldens' \
 		'  test-config-compat  valid/invalid YAML fixture suite' \
 		'  test-docs           required documents, markdown links, required phrases' \
-		'  test-container      placeholder (DEP-001)' \
-		'  security-scan       placeholder (DEP-001)' \
+		'  test-container      scratch image, :1514 compose smoke, Bearer wait/reset' \
+		'  security-scan       go vet + govulncheck (tool, not a product module)' \
 		'  test-changelog      observable paths require a CHANGELOG.md entry' \
 		'  web-test            placeholder (UI-001)' \
 		'  web-build           placeholder (UI-001)' \
@@ -69,5 +71,13 @@ test-parity:
 	$(GO) test ./internal/capabilities ./internal/control/rest ./internal/control/mcp -count=1
 
 test-container security-scan web-test web-build:
+test-container:
+	bash scripts/test-container.sh
+
+security-scan:
+	$(GO) vet ./...
+	$(GO) run $(GOVULNCHECK_MOD) ./...
+
+test-parity web-test web-build:
 	@echo '$@: not implemented yet; placeholder fails closed' >&2
 	@exit 1
