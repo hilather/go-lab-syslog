@@ -206,3 +206,4 @@ jobs:
           make web-install
           make web-test
           make web-build
+          make verify-web-dist

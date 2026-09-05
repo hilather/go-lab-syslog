@@ -49,8 +49,10 @@
   Pages: live tail/list, message detail (`textContent` only), status,
   filters view (enable/disable via `replaceFilters` plan/apply), audit,
   gated reset and clear. SSE `/v1/events/stream` with poll fallback.
-  `spec.ui.enabled: false` does not serve the SPA. `make web-test` and
-  `make web-build` are real. Mira review is required before v1.0.0
+  `spec.ui.enabled: false` does not serve the SPA. Facility chips use
+  docs/02 keywords (`console`/`cron2`, not `alert`/`clock`).
+  `make web-test` and `make web-build` are real; `make verify-web-dist`
+  fails if the committed embed is stale. Mira review is required before v1.0.0
   ([docs/reviews/mira-ui-001.md](docs/reviews/mira-ui-001.md)); it is
   not a merge gate for this PR.
 - Auth, CSRF, and audit (SEC-001): `spec.auth.mode` is bearer only.

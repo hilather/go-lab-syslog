@@ -8,7 +8,8 @@ GOVULNCHECK_MOD ?= golang.org/x/vuln/cmd/govulncheck@v1.1.4
 
 .PHONY: help format lint generate verify-generated test test-race \
 	test-fuzz-smoke test-parity test-config-compat test-docs test-container \
-	security-scan test-changelog web-install web-test web-build web-embed
+	security-scan test-changelog web-install web-test web-build web-embed \
+	verify-web-dist
 
 help:
 	@printf '%s\n' \
@@ -29,6 +30,7 @@ help:
 		'  test-changelog      observable paths require a CHANGELOG.md entry' \
 		'  web-test            vitest in web/ (Node 22.14.0)' \
 		'  web-build           vite production build + embed into internal/web/dist' \
+		'  verify-web-dist     fail if committed internal/web/dist is stale' \
 		'Placeholder targets exit 1. Default CI runs only implemented targets.'
 
 format:
@@ -98,3 +100,16 @@ web-embed:
 	@rm -rf internal/web/dist/assets
 	@if [ -d web/dist ]; then cp -a web/dist/. internal/web/dist/; fi
 	@echo "copied web/dist -> internal/web/dist"
+
+# Scratch image embeds git's internal/web/dist (no Node stage). Fail if
+# make web-build would rewrite the committed tree.
+verify-web-dist:
+	@if git diff --exit-code -- internal/web/dist >/dev/null && \
+		[ -z "$$(git ls-files --others --exclude-standard -- internal/web/dist)" ]; then \
+		echo "internal/web/dist matches HEAD"; \
+	else \
+		echo "internal/web/dist is stale versus make web-build; commit the embed" >&2; \
+		git --no-pager diff -- internal/web/dist || true; \
+		git ls-files --others --exclude-standard -- internal/web/dist; \
+		exit 1; \
+	fi

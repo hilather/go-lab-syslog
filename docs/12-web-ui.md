@@ -20,7 +20,8 @@ Production `internal/control/rest` must not import `internal/web`.
 
 ## Auth
 
-Exchange bearer (or Basic if enabled) for cookie `labsyslog_session`.
+Exchange bearer for cookie `labsyslog_session`. LabSyslog does not
+accept HTTP Basic.
 Tokens never in `localStorage`. Mutations send `X-LabSyslog-CSRF`.
 SSE `/v1/events/stream` for live tail.
 
@@ -34,9 +35,12 @@ docs/08.
 
 `make web-test` runs Vitest in `web/`. `make web-build` emits
 `web/dist` and copies it to `internal/web/dist` for `go:embed`.
-Node **22.14.0**. `spec.ui.enabled: false` does not serve the SPA
+`make verify-web-dist` fails if that embed is stale versus the
+just-built tree (the scratch image has no Node stage). Node
+**22.14.0**. `spec.ui.enabled: false` does not serve the SPA
 (`GET /` is `404` problem+json). There is no relay or forward
-control.
+control. Facility chips and the list filter use the docs/02
+keywords (`console` / `cron2` at 14 / 15, not `alert` / `clock`).
 
 ## GA rule
 

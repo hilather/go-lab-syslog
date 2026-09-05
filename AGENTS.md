@@ -201,6 +201,7 @@ make security-scan
 make test-changelog
 make web-test
 make web-build
+make verify-web-dist
 ```
 
 Missing targets must fail closed (`exit 1`), not act as no-ops.

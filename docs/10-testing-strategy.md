@@ -25,7 +25,7 @@ test that fails before the fix.
 | Container | `make test-container` | bind `:1514`, cap_drop ALL, no NET_BIND_SERVICE, exec healthcheck, Bearer wait/reset |
 | Security scan | `make security-scan` | `go vet` + `govulncheck` (tool, not a product module) |
 | Docs | `make test-docs` | links; phrases `NAT collision` and `userland-proxy` present in deploy docs |
-| Operator SPA | `web/` Vitest + `internal/web` | no relay/forward control; no localStorage tokens; `ui.enabled: false` does not serve HTML; `textContent` for message/raw |
+| Operator SPA | `web/` Vitest + `internal/web` | no relay/forward control; no localStorage tokens; `ui.enabled: false` does not serve HTML; `textContent` for message/raw; facility keywords match syslogwire; `make verify-web-dist` locks the committed embed |
 | Fuzz-smoke | PRI, 5424 SD, RFC 6587 splitter (`make test-fuzz-smoke`) | |
 | Race | wait + insert + wipe (`internal/store` TestRaceInsertWaitWipe) | |
 
