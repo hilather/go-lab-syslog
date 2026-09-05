@@ -24,14 +24,15 @@ func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr
 	}
 	remote.ip = remote.ip.Unmap()
 
-	ok, reason := s.cfg.Admission.Allow(remote.ip)
+	live := s.current()
+	ok, reason := live.Admission.Allow(remote.ip)
 	if !ok {
 		s.metrics.drop(normalizeAdmissionReason(reason))
 		return true
 	}
 	s.metrics.Received.Add(1)
 
-	switch s.cfg.Behavior.Mode {
+	switch live.Behavior.Mode {
 	case BehaviorDropSilent:
 		s.metrics.drop(ReasonBehavior)
 		return false
@@ -41,7 +42,7 @@ func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr
 	}
 
 	now := s.now()
-	opts := s.cfg.Parse
+	opts := live.Parse
 	if opts.Now.IsZero() {
 		opts.Now = now
 	}
@@ -62,7 +63,7 @@ func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr
 		Parsed:       parsed,
 	}
 
-	action, tag := s.cfg.Classifier.Classify(&msg)
+	action, tag := live.Classifier.Classify(&msg)
 	switch action {
 	case ActionDropSilent:
 		s.metrics.drop(ReasonFilter)

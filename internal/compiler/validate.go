@@ -235,17 +235,25 @@ func checkFilter(i int, f model.Filter) error {
 }
 
 func checkTokenFile(path, configDir string) error {
-	resolved := path
-	if !filepath.IsAbs(path) && configDir != "" {
-		resolved = filepath.Join(configDir, path)
-	}
-	data, err := os.ReadFile(resolved)
+	data, err := readTokenFile(path, configDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
 		return domainerr.Newf(domainerr.ValidationFailed, "secretFile %q: %v", path, err)
 	}
+	return checkTokenBytes(path, data)
+}
+
+func readTokenFile(path, configDir string) ([]byte, error) {
+	resolved := path
+	if !filepath.IsAbs(path) && configDir != "" {
+		resolved = filepath.Join(configDir, path)
+	}
+	return os.ReadFile(resolved)
+}
+
+func checkTokenBytes(path string, data []byte) error {
 	if len(bytes.TrimSpace(data)) < auth.MinTokenBytes {
 		return domainerr.Newf(domainerr.ValidationFailed, "secretFile %q trimmed contents are shorter than %d bytes", path, auth.MinTokenBytes)
 	}

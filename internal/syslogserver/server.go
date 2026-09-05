@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/netip"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hilather/go-lab-syslog/internal/model"
@@ -33,9 +34,23 @@ type Config struct {
 	Metrics             *Metrics
 }
 
+// Live is the apply-mutable ingest policy. Reset-only fields stay on Config.
+type Live struct {
+	Admission           Admission
+	Classifier          Classifier
+	Behavior            Behavior
+	Parse               syslogwire.Options
+	MaxMessageBytes     int
+	UDPMaxDatagramBytes int
+	MaxTCPConns         int
+	MaxTCPConnsPerIP    int
+	SessionTimeout      time.Duration
+}
+
 // Server is one ingest pipeline with an optional UDP PacketConn and/or TCP Listener.
 type Server struct {
 	cfg       Config
+	live      atomic.Pointer[Live]
 	pc        net.PacketConn
 	ln        net.Listener
 	metrics   *Metrics
@@ -107,9 +122,67 @@ func ListenUDP(ctx context.Context, cfg Config) (*Server, error) {
 		ctx:     ctx,
 		cancel:  cancel,
 	}
+	s.PushLive(liveFromConfig(cfg))
 	s.wg.Add(1)
 	go s.serveUDP()
 	return s, nil
+}
+
+// PushLive swaps apply-mutable evaluators and caps. Handler is not replaced.
+func (s *Server) PushLive(live Live) {
+	if s == nil {
+		return
+	}
+	l := live
+	if l.Admission == nil {
+		l.Admission = s.cfg.Admission
+	}
+	if l.Classifier == nil {
+		l.Classifier = s.cfg.Classifier
+	}
+	if l.Behavior.Mode == "" {
+		l.Behavior = s.cfg.Behavior
+	}
+	if !l.Parse.RFC3164 && !l.Parse.RFC5424 {
+		l.Parse = s.cfg.Parse
+	}
+	if l.MaxMessageBytes <= 0 {
+		l.MaxMessageBytes = s.cfg.MaxMessageBytes
+	}
+	if l.UDPMaxDatagramBytes <= 0 {
+		l.UDPMaxDatagramBytes = s.cfg.UDPMaxDatagramBytes
+	}
+	if l.MaxTCPConns <= 0 {
+		l.MaxTCPConns = s.cfg.MaxTCPConns
+	}
+	if l.MaxTCPConnsPerIP <= 0 {
+		l.MaxTCPConnsPerIP = s.cfg.MaxTCPConnsPerIP
+	}
+	if l.SessionTimeout <= 0 {
+		l.SessionTimeout = s.cfg.SessionTimeout
+	}
+	s.live.Store(&l)
+}
+
+func liveFromConfig(cfg Config) Live {
+	return Live{
+		Admission:           cfg.Admission,
+		Classifier:          cfg.Classifier,
+		Behavior:            cfg.Behavior,
+		Parse:               cfg.Parse,
+		MaxMessageBytes:     cfg.MaxMessageBytes,
+		UDPMaxDatagramBytes: cfg.UDPMaxDatagramBytes,
+		MaxTCPConns:         cfg.MaxTCPConns,
+		MaxTCPConnsPerIP:    cfg.MaxTCPConnsPerIP,
+		SessionTimeout:      cfg.SessionTimeout,
+	}
+}
+
+func (s *Server) current() Live {
+	if p := s.live.Load(); p != nil {
+		return *p
+	}
+	return liveFromConfig(s.cfg)
 }
 
 // LocalAddr is the bound UDP address, or the TCP address when there is no UDP conn.

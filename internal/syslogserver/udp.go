@@ -35,7 +35,8 @@ func (s *Server) handleDatagram(addr net.Addr, payload []byte) {
 		s.metrics.drop(ReasonEmpty)
 		return
 	}
-	if len(payload) > s.cfg.UDPMaxDatagramBytes || len(payload) > s.cfg.MaxMessageBytes {
+	live := s.current()
+	if len(payload) > live.UDPMaxDatagramBytes || len(payload) > live.MaxMessageBytes {
 		s.metrics.drop(ReasonOversize)
 		s.metrics.UDPOversize.Add(1)
 		return

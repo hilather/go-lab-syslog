@@ -160,14 +160,18 @@ revision. Unknown fields exit 2.
 
 | Live via plan/apply | Reset-only |
 |---|---|
-| store caps, fullPolicy, maxWait, rawRetain | listener addresses, enabled flags |
+| store caps, fullPolicy, maxWait, rawRetain | listener addresses, enabled flags, `tcp.framing` |
 | filters replace | auth.mode, token files |
 | admission rate caps and CIDRs | tls block |
-| syslog.parse, maxMessageBytes, behavior.mode | ui.enabled, management.address |
-| observability.logLevel | mcp path / rest path |
+| syslog.parse, maxMessageBytes, behavior.mode | ui.enabled, management.address, restPath, mcpPath |
+| observability.logLevel | `management.bodyLimit`, `requestsPerSecond`, `burst`, `maxConcurrent`, `allowedOrigins`, `mcp.allowLegacyClients` |
+| | `syslog.hostname`, `udpMaxDatagramBytes`, `tcpIdleTimeout` |
+| | `observability.metrics.publicPath`, `observability.audit.ring` |
 
-Reset-only fields in a plan produce operation `replaceListeners` which
-is rejected with `immutable_field` unless the plan is a reset.
+Unspecified fields are reset-only. Reset-only fields in a plan produce
+operation `replaceListeners` which is rejected with `immutable_field`
+unless the plan is a reset. Do not add live operations for HTTP limits
+or hostname (C30).
 
 ## Plan / apply
 

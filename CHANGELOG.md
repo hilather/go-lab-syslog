@@ -4,6 +4,20 @@
 
 ### Added
 
+- Snapshot, plan, apply, and reset (STA-001 / APP-001): `app.Service`
+  compiles an immutable `Snapshot` behind `atomic.Pointer`, with
+  `Validate` / `Plan` / `Apply` / `Export` / `Reset` and no `net/http`.
+  Live operations are exactly the docs/04 closed set
+  (`replaceStoreCaps`, `replaceFilters`, `replaceAdmission`,
+  `replaceSyslogParse` including `maxMessageBytes`, `replaceBehavior`,
+  `replaceObservability` `logLevel` only). Unspecified fields are
+  reset-only (`immutable_field`). Apply uses `expectedRevision` and
+  Idempotency-Key. Reset rereads bootstrap, wipes store and audit, and
+  never writes the file; listen flags overlay on serve and reset.
+  `labsyslog serve` constructs `app.Service`, binds from the snapshot,
+  and pushes live fields into FIL's Admission/Classifier/Behavior and
+  store caps without replacing the insert Handler. Missing token files
+  fail closed only when management is bound. Capability table seeded.
 - Admission, filters, and M1 serve glue (FIL-001): CIDR `allowClientCidrs`
   (IPv4-mapped unmapped) and `maxDatagramsPerSec` / `maxDatagramsPerIP`
   rate caps are the first policy gate after size/framing. Miss is silent
@@ -11,9 +25,10 @@
   `spec.filters[]` (`name` + `action.mode`/`tag`) run in
   `internal/syslogserver`; unmatched = capture (ADR 0009). `tag` writes
   `Message.Tags`. `spec.syslog.behavior.mode` is applied after admission
-  and before parse. `labsyslog serve` loads YAML directly and installs
-  `store.Store` as the ingest Handler so a localhost UDP 3164 and TCP
-  5424 datagram are stored with `--management-listen=off`.
+  and before parse. `labsyslog serve` installs `store.Store` as the
+  ingest Handler so a localhost UDP 3164 and TCP 5424 datagram are
+  stored with `--management-listen=off`. Spec-direct load is replaced
+  by `app.Service` in STA-001.
 - TCP sink (TCP-001): `internal/syslogframing` RFC 6587 splitter and
   `internal/syslogserver` Listen/Accept path. Frozen framing names are
   `auto`, `octet-counting`, and `non-transparent` (not `octet`/`newline`).

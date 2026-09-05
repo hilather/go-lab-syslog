@@ -66,6 +66,7 @@ func ListenTCP(ctx context.Context, cfg Config) (*Server, error) {
 		conns:   make(map[net.Conn]netip.Addr),
 		perIP:   make(map[netip.Addr]int),
 	}
+	s.PushLive(liveFromConfig(cfg))
 	s.wg.Add(1)
 	go s.serveTCP()
 	return s, nil
@@ -102,12 +103,13 @@ func (s *Server) handleConn(conn net.Conn) {
 	if !ok {
 		return
 	}
+	live := s.current()
 	r := &deadlineReader{
 		Conn:    conn,
 		idle:    s.cfg.TCPIdleTimeout,
-		session: time.Now().Add(s.cfg.SessionTimeout),
+		session: time.Now().Add(live.SessionTimeout),
 	}
-	sc := syslogframing.NewScanner(r, s.cfg.Framing, s.cfg.MaxMessageBytes)
+	sc := syslogframing.NewScanner(r, s.cfg.Framing, live.MaxMessageBytes)
 	for {
 		if s.ctx.Err() != nil {
 			return
@@ -147,10 +149,11 @@ func (s *Server) admitConn(conn net.Conn) bool {
 		s.conns = make(map[net.Conn]netip.Addr)
 		s.perIP = make(map[netip.Addr]int)
 	}
-	if len(s.conns) >= s.cfg.MaxTCPConns {
+	live := s.current()
+	if len(s.conns) >= live.MaxTCPConns {
 		return false
 	}
-	if s.perIP[remote.ip] >= s.cfg.MaxTCPConnsPerIP {
+	if s.perIP[remote.ip] >= live.MaxTCPConnsPerIP {
 		return false
 	}
 	s.conns[conn] = remote.ip

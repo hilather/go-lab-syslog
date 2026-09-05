@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -34,6 +35,72 @@ func (b *lockedBuffer) String() string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.Buffer.String()
+}
+
+func TestServeMissingTokenFailClosedWhenManagementBound(t *testing.T) {
+	cfg := filepath.Join(repoRoot(t), "testdata", "config", "valid", "defaults.yaml")
+	var stdout, stderr bytes.Buffer
+	code := cmdServe(context.Background(), []string{
+		"--config", cfg,
+		"--syslog-udp-listen", "127.0.0.1:0",
+		"--syslog-tcp-listen", "127.0.0.1:0",
+		"--management-listen", "127.0.0.1:0",
+	}, &stdout, &stderr)
+	if code == 0 {
+		t.Fatal("missing token must fail closed when management is bound")
+	}
+	if !strings.Contains(stderr.String(), "secretFile") && !strings.Contains(stderr.String(), "token") {
+		t.Fatalf("stderr %q", stderr.String())
+	}
+}
+
+func TestServeManagementBoundWithToken(t *testing.T) {
+	dir := t.TempDir()
+	tok := filepath.Join(dir, "token")
+	if err := os.WriteFile(tok, bytes.Repeat([]byte("t"), 32), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := filepath.Join(dir, "config.yaml")
+	body := []byte(`
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  auth:
+    tokens:
+      - id: operator
+        secretFile: ` + tok + `
+`)
+	if err := os.WriteFile(cfg, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var stdout, stderr lockedBuffer
+	done := make(chan int, 1)
+	go func() {
+		done <- cmdServe(ctx, []string{
+			"--config", cfg,
+			"--syslog-udp-listen", "127.0.0.1:0",
+			"--syslog-tcp-listen", "127.0.0.1:0",
+			"--management-listen", "127.0.0.1:0",
+		}, &stdout, &stderr)
+	}()
+	_ = waitListenAddr(t, &stderr)
+	if !strings.Contains(stderr.String(), "management listen 127.0.0.1:") {
+		t.Fatalf("stderr %q missing management listen", stderr.String())
+	}
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("serve exit %d stderr=%q", code, stderr.String())
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("serve did not exit after cancel")
+	}
 }
 
 func TestServeRequiresConfig(t *testing.T) {

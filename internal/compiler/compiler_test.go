@@ -152,6 +152,71 @@ func TestShortTokenWhenFileExists(t *testing.T) {
 	}
 }
 
+func TestCompileMissingTokenWhenManagementBound(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(path, []byte(`
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  listeners:
+    management:
+      address: "127.0.0.1:0"
+  auth:
+    tokens:
+      - id: op
+        secretFile: missing.token
+`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	doc, err := config.LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = Compile(doc, Options{ConfigDir: dir})
+	if !domainerr.Is(err, domainerr.ValidationFailed) {
+		t.Fatalf("got %v", err)
+	}
+	if !strings.Contains(err.Error(), "secretFile") {
+		t.Fatalf("detail %v", err)
+	}
+
+	doc2, err := config.LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Compile(doc2, Options{ConfigDir: dir, ManagementListen: "off"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCompileListenOverrides(t *testing.T) {
+	doc := &model.Document{
+		APIVersion: model.APIVersion,
+		Kind:       model.Kind,
+		Metadata:   model.Metadata{Name: "lab-sink"},
+	}
+	snap, err := Compile(doc, Options{
+		UDPListen:        "127.0.0.1:0",
+		TCPListen:        "127.0.0.1:0",
+		ManagementListen: "off",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snap.Document.Spec.Listeners.UDP.Address != "127.0.0.1:0" {
+		t.Fatalf("udp %q", snap.Document.Spec.Listeners.UDP.Address)
+	}
+	if snap.Document.Spec.Listeners.Management.Address != "" {
+		t.Fatalf("management %q", snap.Document.Spec.Listeners.Management.Address)
+	}
+	if !strings.HasPrefix(snap.Revision, "sha256:") {
+		t.Fatalf("revision %q", snap.Revision)
+	}
+}
+
 func TestRevisionFormat(t *testing.T) {
 	rev := Revision([]byte("hello"))
 	if !strings.HasPrefix(rev, "sha256:") {

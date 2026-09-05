@@ -58,6 +58,27 @@ func TestImportFence(t *testing.T) {
 		}
 	}
 
+	domainPkgs := []string{
+		"internal/app",
+		"internal/snapshot",
+		"internal/compiler",
+		"internal/audit",
+		"internal/capabilities",
+	}
+	for _, rel := range domainPkgs {
+		for _, imp := range productionImports(t, root, rel) {
+			if imp == "net/http" {
+				t.Errorf("%s imports net/http", rel)
+			}
+			if strings.Contains(imp, "/internal/control") || strings.HasSuffix(imp, "/internal/control") {
+				t.Errorf("%s imports control plane %s", rel, imp)
+			}
+			if strings.Contains(imp, "/internal/web") || strings.HasSuffix(imp, "/internal/web") {
+				t.Errorf("%s imports web %s", rel, imp)
+			}
+		}
+	}
+
 	restImps := productionImports(t, root, "internal/control/rest")
 	mcpImps := productionImports(t, root, "internal/control/mcp")
 	for _, imp := range restImps {

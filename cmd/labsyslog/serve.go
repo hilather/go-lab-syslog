@@ -8,11 +8,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/hilather/go-lab-syslog/internal/app"
 	"github.com/hilather/go-lab-syslog/internal/compiler"
-	"github.com/hilather/go-lab-syslog/internal/config"
 	"github.com/hilather/go-lab-syslog/internal/model"
 	"github.com/hilather/go-lab-syslog/internal/store"
 	"github.com/hilather/go-lab-syslog/internal/syslogserver"
@@ -41,64 +40,35 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		return 2
 	}
 
-	doc, err := config.LoadFile(*configPath)
+	svc, err := app.New(app.Config{
+		BootstrapPath: *configPath,
+		Compiler: compiler.Options{
+			ConfigDir:        filepath.Dir(*configPath),
+			UDPListen:        *udpListen,
+			TCPListen:        *tcpListen,
+			ManagementListen: *mgmtListen,
+		},
+	})
 	if err != nil {
 		return configErr(stderr, err)
 	}
-	if err := compiler.Check(doc, filepath.Dir(*configPath)); err != nil {
-		return configErr(stderr, err)
-	}
-
-	udpOn := doc.Spec.Listeners.UDP.Enabled == nil || *doc.Spec.Listeners.UDP.Enabled
-	udpAddr := doc.Spec.Listeners.UDP.Address
-	if *udpListen != "" {
-		udpAddr = *udpListen
-		udpOn = true
-	}
-	tcpOn := doc.Spec.Listeners.TCP.Enabled == nil || *doc.Spec.Listeners.TCP.Enabled
-	tcpAddr := doc.Spec.Listeners.TCP.Address
-	if *tcpListen != "" {
-		tcpAddr = *tcpListen
-		tcpOn = true
-	}
-	if !udpOn && !tcpOn {
-		_, _ = fmt.Fprintln(stderr, "labsyslog serve: no data-plane listener enabled")
+	if err := svc.Start(ctx); err != nil {
+		_ = svc.Close()
+		_, _ = fmt.Fprintf(stderr, "labsyslog serve: %v\n", err)
 		return 1
 	}
+	defer func() { _ = svc.Close() }()
 
-	mgmt := strings.TrimSpace(*mgmtListen)
-	if mgmt == "" {
-		mgmt = strings.TrimSpace(doc.Spec.Listeners.Management.Address)
+	if addr := svc.UDPAddr(); addr != nil {
+		_, _ = fmt.Fprintln(stderr, "syslog udp listen "+addr.String())
 	}
-	mgmtOff := mgmt == "" || strings.EqualFold(mgmt, "off")
-
-	ingest, _, err := ingestFromDoc(doc)
-	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "labsyslog serve: ingest: %v\n", err)
-		return 1
+	if addr := svc.TCPAddr(); addr != nil {
+		_, _ = fmt.Fprintln(stderr, "syslog tcp listen "+addr.String())
 	}
-
-	if udpOn {
-		cfg := ingest
-		cfg.Addr = udpAddr
-		srv, err := syslogserver.ListenUDP(ctx, cfg)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "labsyslog serve: udp listen: %v\n", err)
-			return 1
-		}
-		defer func() { _ = srv.Close() }()
-		_, _ = fmt.Fprintln(stderr, "syslog udp listen "+srv.LocalAddr().String())
-	}
-	if tcpOn {
-		cfg := ingest
-		cfg.Addr = tcpAddr
-		srv, err := syslogserver.ListenTCP(ctx, cfg)
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "labsyslog serve: tcp listen: %v\n", err)
-			return 1
-		}
-		defer func() { _ = srv.Close() }()
-		_, _ = fmt.Fprintln(stderr, "syslog tcp listen "+srv.LocalAddr().String())
+	if addr := svc.ManagementAddr(); addr != "" {
+		_, _ = fmt.Fprintln(stderr, "management listen "+addr)
+	} else {
+		_, _ = fmt.Fprintln(stderr, "management listen off")
 	}
 
 	if *pidFile != "" {
@@ -107,12 +77,6 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 			return 1
 		}
 		defer func() { _ = os.Remove(*pidFile) }()
-	}
-
-	if mgmtOff {
-		_, _ = fmt.Fprintln(stderr, "management listen off")
-	} else {
-		_, _ = fmt.Fprintln(stderr, "management listen unbound")
 	}
 
 	<-ctx.Done()

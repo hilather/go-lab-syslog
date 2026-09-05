@@ -118,6 +118,31 @@ func NewFromSpec(spec model.Store) *Store {
 	return New(ConfigFromSpec(spec))
 }
 
+// ApplyCaps updates live store caps (replaceStoreCaps). Existing messages
+// are kept unless evict_oldest needs to shrink to the new limits.
+func (s *Store) ApplyCaps(cfg Config) {
+	cfg = cfg.withDefaults()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.maxMessages = cfg.MaxMessages
+	s.maxBytes = cfg.MaxBytes
+	s.fullPolicy = cfg.FullPolicy
+	s.maxWait = cfg.MaxWait
+	s.rawRetain = *cfg.RawRetain
+	if s.fullPolicy != FullPolicyEvictOldest {
+		return
+	}
+	var n int
+	for len(s.items) > s.maxMessages || s.bytes > s.maxBytes {
+		s.removeAt(0)
+		n++
+	}
+	if n > 0 {
+		s.evicted += uint64(n)
+		s.generation++
+	}
+}
+
 // Insert generates the ULID before locking so entropy can block without
 // stalling the ring. Reject is store_full; the store never closes a connection.
 func (s *Store) Insert(msg model.Message) (uint64, error) {
@@ -136,12 +161,12 @@ func (s *Store) Insert(msg model.Message) (uint64, error) {
 	// Bill len(raw) at insert even when rawRetain drops the copy; Parsed.Message can still be large.
 	size := len(msg.Raw) + PerMessageOverhead
 	stored := cloneMessage(msg)
-	if !s.rawRetain {
-		stored.Raw = nil
-	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if !s.rawRetain {
+		stored.Raw = nil
+	}
 
 	if size > s.maxBytes {
 		s.rejected++
