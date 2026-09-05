@@ -35,7 +35,7 @@ valid session cookie.
 | GET | `/v1/stats` | `syslog.read` | counters snapshot |
 | GET | `/v1/audit` | `syslog.audit.read` | ring, newest first |
 | GET | `/v1/audit/{id}` | `syslog.audit.read` | |
-| GET | `/v1/events/stream` | `syslog.read` | SSE: `syslog.received`, `syslog.deleted`, `store.wiped`; heartbeat 15s |
+| GET | `/v1/events/stream` | `syslog.read` | SSE: `syslog.received`, `syslog.deleted`, `store.wiped`; heartbeat 15s. Wait and SSE hold a `maxConcurrent` slot; `GET /v1/health/live` and `GET /v1/health/ready` do not. |
 | POST | `/v1/session` | bearer/basic | sets `labsyslog_session` |
 | GET | `/v1/session` | cookie/bearer | |
 | DELETE | `/v1/session` | cookie/bearer | |

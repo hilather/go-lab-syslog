@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Health probes `GET /v1/health/live` and `GET /v1/health/ready` are
+  exempt from management RPS and maxConcurrent so a parked wait or SSE
+  client cannot 429 the DEP-001 healthcheck. Handler 404s keep their
+  problem `detail` (a missing message is `"message not found"`, not
+  `"no such route"`).
+
 ### Added
 
 - REST `/v1` adapter and OpenAPI (API-001): `internal/control/rest` mounts

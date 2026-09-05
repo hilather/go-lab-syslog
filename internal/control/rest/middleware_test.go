@@ -104,3 +104,50 @@ func TestMaxConcurrentRateLimited(t *testing.T) {
 	waitResp := <-done
 	defer waitResp.Body.Close()
 }
+
+func TestHealthProbesExemptFromRateAndConcurrency(t *testing.T) {
+	svc := newService(t, `
+  management:
+    requestsPerSecond: 1
+    burst: 1
+    maxConcurrent: 1
+`)
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	s := newServer(svc)
+	ts := httptest.NewServer(s)
+	t.Cleanup(ts.Close)
+
+	done := make(chan *http.Response, 1)
+	go func() {
+		done <- postJSON(t, ts, "/v1/messages:wait", map[string]any{"timeout": "1s"})
+	}()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if s.inflight.Load() >= 1 {
+			break
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+	if s.inflight.Load() < 1 {
+		t.Fatal("wait did not take a concurrent slot")
+	}
+	live := get(t, ts, "/v1/health/live")
+	defer live.Body.Close()
+	if live.StatusCode != http.StatusOK {
+		t.Fatalf("live %d want 200 while wait holds the slot", live.StatusCode)
+	}
+	ready := get(t, ts, "/v1/health/ready")
+	defer ready.Body.Close()
+	if ready.StatusCode != http.StatusOK {
+		t.Fatalf("ready %d want 200 while wait holds the slot", ready.StatusCode)
+	}
+	blocked := get(t, ts, "/v1/version")
+	defer blocked.Body.Close()
+	if blocked.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("version %d want 429", blocked.StatusCode)
+	}
+	waitResp := <-done
+	defer waitResp.Body.Close()
+}

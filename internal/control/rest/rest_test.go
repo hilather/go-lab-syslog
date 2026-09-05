@@ -35,8 +35,27 @@ func TestUnknownRouteProblemJSON(t *testing.T) {
 	if p.Type != "https://labsyslog.dev/errors/not_found" {
 		t.Fatalf("type %s", p.Type)
 	}
+	if p.Detail != "no such route" {
+		t.Fatalf("detail %q", p.Detail)
+	}
 	if ct := resp.Header.Get("Content-Type"); ct != problemType {
 		t.Fatalf("content-type %s", ct)
+	}
+}
+
+func TestMissingMessageKeepsDetail(t *testing.T) {
+	ts, _ := newREST(t, "")
+	resp := get(t, ts, "/v1/messages/01ARZ3NDEKTSV4RRFFQ69G5FAV")
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	p := decodeProblem(t, resp)
+	if p.Code != domainerr.NotFound {
+		t.Fatalf("code %s", p.Code)
+	}
+	if p.Detail != "message not found" {
+		t.Fatalf("detail %q", p.Detail)
 	}
 }
 
@@ -276,6 +295,25 @@ func TestMetricsPublicPath(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
+func TestMetricsDisabledNotUnknownRoute(t *testing.T) {
+	ts, _ := newREST(t, "")
+	resp := get(t, ts, "/v1/metrics")
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	p := decodeProblem(t, resp)
+	if p.Code != domainerr.NotFound {
+		t.Fatalf("code %s", p.Code)
+	}
+	if p.Detail == "no such route" {
+		t.Fatal("metrics publicPath false must not look like an unknown route")
+	}
+	if p.Detail != "metrics publicPath is false" {
+		t.Fatalf("detail %q", p.Detail)
 	}
 }
 
