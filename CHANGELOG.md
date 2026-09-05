@@ -33,7 +33,9 @@
   `127.0.0.1:1514` UDP+TCP and `127.0.0.1:18088:8088` with
   `cap_drop: ALL` and no `NET_BIND_SERVICE` (C17). The `:1514`
   overlay is `testdata/container/config.yaml`.
-  `scripts/test-container.sh` mints a ≥32-byte token and sends
+  `scripts/test-container.sh` mints `testdata/container/token`
+  (≥32 bytes) and drives `docker compose -f
+  examples/compose.smoke.yaml up --build`, then sends
   `Authorization: Bearer` on `POST /v1/messages:wait` and
   `POST /v1/state:reset`. `make test-container` and
   `make security-scan` (`go vet` + `govulncheck`; not a product

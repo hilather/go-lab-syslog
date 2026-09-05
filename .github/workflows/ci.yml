@@ -2,16 +2,11 @@
 #
 # Default PR CI must stay green. This workflow runs implemented targets:
 # format, lint, unit, race, fuzz-smoke, documentation, changelog,
-# generated, config-compat, parity.
+# generated, config-compat, parity, security-scan, container-test.
 #
-# Makefile placeholders still fail closed locally (test-container,
-# security-scan, web-test, web-build).
+# Makefile placeholders still fail closed locally (web-test, web-build).
 # generate, verify-generated, and test-config-compat joined in CFG-001.
 # test-fuzz-smoke joined in WIRE-001. test-parity joined in MCP-001.
-# Makefile placeholders still fail closed locally (test-parity,
-# web-test, web-build).
-# generate, verify-generated, and test-config-compat joined in CFG-001.
-# test-fuzz-smoke joined in WIRE-001.
 # test-container and security-scan joined in DEP-001.
 # Do not mark a failing check optional.
 

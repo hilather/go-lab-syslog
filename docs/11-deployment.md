@@ -48,10 +48,13 @@ fail closed only on port occupancy.
   `127.0.0.1:18088:8088`
 - YAML listeners use `:1514` (`testdata/container/config.yaml`)
 - `cap_drop: ALL`; no `NET_BIND_SERVICE`
-- token file minted by `scripts/test-container.sh` (≥32 bytes,
-  `Authorization: Bearer` on wait and reset)
-- `make test-container` sends one 3164 UDP, one 5424 TCP, GET ready,
-  Bearer `POST /v1/messages:wait`, then `POST /v1/state:reset`
+- token file minted by `scripts/test-container.sh` at
+  `testdata/container/token` (≥32 bytes, `Authorization: Bearer` on
+  wait and reset)
+- `make test-container` runs `docker compose -f
+  examples/compose.smoke.yaml up --build`, then sends one 3164 UDP,
+  one 5424 TCP, GET ready, Bearer `POST /v1/messages:wait`, then
+  `POST /v1/state:reset`
 
 Product YAML `:514` is SWAP-001. Integrator compose is
 [13-integration-lab-swap.md](13-integration-lab-swap.md).

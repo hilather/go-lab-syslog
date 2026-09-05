@@ -8,9 +8,10 @@ labinfo, and MCPJungle BOM (`examples/labsyslog.yaml`,
 
 Binds `127.0.0.1:1514` UDP+TCP and `127.0.0.1:18088:8088`.
 YAML listeners use `:1514` (`testdata/container/config.yaml`).
-`cap_drop: ALL`. No `NET_BIND_SERVICE`. Token file is minted by
-`make test-container`; for a manual `docker compose up`, mint ≥32
-bytes at `testdata/container/token` mode `0o644`:
+`cap_drop: ALL`. No `NET_BIND_SERVICE`. `make test-container` mints
+`testdata/container/token` (≥32 bytes, mode `0o644`, gitignored) and
+runs `docker compose -f examples/compose.smoke.yaml up --build`
+(fails closed without the compose plugin). Manual:
 
 ```bash
 python3 -c 'import pathlib,secrets; pathlib.Path("testdata/container/token").write_text(secrets.token_urlsafe(48))'

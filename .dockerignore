@@ -6,3 +6,4 @@
 web/node_modules/
 web/dist/
 **/testdata/fuzz/
+testdata/container/token
