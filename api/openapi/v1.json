@@ -1,0 +1,688 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LabSyslog REST API",
+    "version": "v1",
+    "description": "Native /v1 adapter over app.Service. Errors are application/problem+json with type https://labsyslog.dev/errors/{code}."
+  },
+  "paths": {
+    "/v1/health/live": {
+      "get": {
+        "operationId": "health.live",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/health/ready": {
+      "get": {
+        "operationId": "health.ready",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/session": {
+      "post": {
+        "operationId": "session.create",
+        "responses": {
+          "204": {
+            "description": "no content"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "session.get",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "session.delete",
+        "responses": {
+          "204": {
+            "description": "no content"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/metrics": {
+      "get": {
+        "operationId": "metrics.scrape",
+        "responses": {
+          "200": {
+            "description": "OpenMetrics text when publicPath is true"
+          },
+          "404": {
+            "description": "not_found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "operationId": "ui.static",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/events/stream": {
+      "get": {
+        "operationId": "events.stream",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "text/event-stream; syslog.received, syslog.deleted, store.wiped; heartbeat 15s"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/version": {
+      "get": {
+        "operationId": "version.get",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/capabilities": {
+      "get": {
+        "operationId": "capabilities.get",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/status": {
+      "get": {
+        "operationId": "status.get",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/schema/config": {
+      "get": {
+        "operationId": "schema.config.get",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/features": {
+      "get": {
+        "operationId": "features.list",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/state": {
+      "get": {
+        "operationId": "state.get",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/state:validate": {
+      "post": {
+        "operationId": "state.validate",
+        "description": "scope syslog.admin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/state:export": {
+      "get": {
+        "operationId": "state.export",
+        "description": "scope syslog.admin",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/state:reset": {
+      "post": {
+        "operationId": "state.reset",
+        "description": "scope syslog.admin",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/changes:plan": {
+      "post": {
+        "operationId": "change.plan",
+        "description": "scope syslog.admin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/changes:apply": {
+      "post": {
+        "operationId": "change.apply",
+        "description": "scope syslog.admin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages": {
+      "get": {
+        "operationId": "messages.list",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages/{id}": {
+      "get": {
+        "operationId": "message.get",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "message.delete",
+        "description": "scope syslog.write",
+        "responses": {
+          "204": {
+            "description": "no content"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages/{id}/raw": {
+      "get": {
+        "operationId": "message.raw.get",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "application/octet-stream"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages:clear": {
+      "post": {
+        "operationId": "messages.clear",
+        "description": "scope syslog.write",
+        "responses": {
+          "204": {
+            "description": "no content"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages:wait": {
+      "post": {
+        "operationId": "messages.wait",
+        "description": "scope syslog.read",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "matched existing or inserted"
+          },
+          "504": {
+            "description": "wait_timeout",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "store_wiped",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/stats": {
+      "get": {
+        "operationId": "stats.get",
+        "description": "scope syslog.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/audit": {
+      "get": {
+        "operationId": "audit.query",
+        "description": "scope syslog.audit.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/audit/{id}": {
+      "get": {
+        "operationId": "audit.get",
+        "description": "scope syslog.audit.read",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "default": {
+            "description": "application/problem+json",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "examples": [
+              "https://labsyslog.dev/errors/validation_failed"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

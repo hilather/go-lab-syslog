@@ -1,0 +1,334 @@
+{
+  "items": [
+    {
+      "id": "health.live",
+      "restMethod": "GET",
+      "restPath": "/v1/health/live",
+      "flags": [
+        "REST_ONLY_PROTOCOL"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "health.ready",
+      "restMethod": "GET",
+      "restPath": "/v1/health/ready",
+      "flags": [
+        "REST_ONLY_PROTOCOL"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "session.create",
+      "restMethod": "POST",
+      "restPath": "/v1/session",
+      "flags": [
+        "REST_ONLY_PROTOCOL"
+      ],
+      "mutating": true,
+      "idempotent": false
+    },
+    {
+      "id": "session.get",
+      "restMethod": "GET",
+      "restPath": "/v1/session",
+      "flags": [
+        "REST_ONLY_PROTOCOL"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "session.delete",
+      "restMethod": "DELETE",
+      "restPath": "/v1/session",
+      "flags": [
+        "REST_ONLY_PROTOCOL"
+      ],
+      "mutating": true,
+      "idempotent": true
+    },
+    {
+      "id": "metrics.scrape",
+      "restMethod": "GET",
+      "restPath": "/v1/metrics",
+      "flags": [
+        "REST_ONLY_PROTOCOL"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "ui.static",
+      "restMethod": "GET",
+      "restPath": "/",
+      "flags": [
+        "REST_ONLY_PROTOCOL"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "events.stream",
+      "restMethod": "GET",
+      "restPath": "/v1/events/stream",
+      "scope": "syslog.read",
+      "flags": [
+        "REST_ONLY_PROTOCOL"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "version.get",
+      "restMethod": "GET",
+      "restPath": "/v1/version",
+      "mcpTool": "syslog_version_get",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "capabilities.get",
+      "restMethod": "GET",
+      "restPath": "/v1/capabilities",
+      "mcpTool": "syslog_capabilities_get",
+      "mcpResource": "labsyslog://capabilities",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "status.get",
+      "restMethod": "GET",
+      "restPath": "/v1/status",
+      "mcpTool": "syslog_status_get",
+      "mcpResource": "labsyslog://status",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "schema.config.get",
+      "restMethod": "GET",
+      "restPath": "/v1/schema/config",
+      "mcpTool": "syslog_schema_get",
+      "mcpResource": "labsyslog://schema/config",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "features.list",
+      "restMethod": "GET",
+      "restPath": "/v1/features",
+      "mcpTool": "syslog_features_list",
+      "mcpResource": "labsyslog://features",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "state.get",
+      "restMethod": "GET",
+      "restPath": "/v1/state",
+      "mcpTool": "syslog_state_get",
+      "mcpResource": "labsyslog://state",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "state.validate",
+      "restMethod": "POST",
+      "restPath": "/v1/state:validate",
+      "mcpTool": "syslog_state_validate",
+      "scope": "syslog.admin",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "state.export",
+      "restMethod": "GET",
+      "restPath": "/v1/state:export",
+      "mcpTool": "syslog_state_export",
+      "scope": "syslog.admin",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "state.reset",
+      "restMethod": "POST",
+      "restPath": "/v1/state:reset",
+      "mcpTool": "syslog_state_reset",
+      "scope": "syslog.admin",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": true,
+      "idempotent": false
+    },
+    {
+      "id": "change.plan",
+      "restMethod": "POST",
+      "restPath": "/v1/changes:plan",
+      "mcpTool": "syslog_change_plan",
+      "scope": "syslog.admin",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "change.apply",
+      "restMethod": "POST",
+      "restPath": "/v1/changes:apply",
+      "mcpTool": "syslog_change_apply",
+      "scope": "syslog.admin",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": true,
+      "idempotent": false
+    },
+    {
+      "id": "messages.list",
+      "restMethod": "GET",
+      "restPath": "/v1/messages",
+      "mcpTool": "syslog_messages_list",
+      "mcpResource": "labsyslog://messages",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "message.get",
+      "restMethod": "GET",
+      "restPath": "/v1/messages/{id}",
+      "mcpTool": "syslog_message_get",
+      "mcpResource": "labsyslog://messages/{id}",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "message.raw.get",
+      "restMethod": "GET",
+      "restPath": "/v1/messages/{id}/raw",
+      "mcpTool": "syslog_message_raw_get",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "message.delete",
+      "restMethod": "DELETE",
+      "restPath": "/v1/messages/{id}",
+      "mcpTool": "syslog_message_delete",
+      "scope": "syslog.write",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": true,
+      "idempotent": false
+    },
+    {
+      "id": "messages.clear",
+      "restMethod": "POST",
+      "restPath": "/v1/messages:clear",
+      "mcpTool": "syslog_messages_clear",
+      "scope": "syslog.write",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": true,
+      "idempotent": false
+    },
+    {
+      "id": "messages.wait",
+      "restMethod": "POST",
+      "restPath": "/v1/messages:wait",
+      "mcpTool": "syslog_messages_wait",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "stats.get",
+      "restMethod": "GET",
+      "restPath": "/v1/stats",
+      "mcpTool": "syslog_stats_get",
+      "mcpResource": "labsyslog://stats",
+      "scope": "syslog.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "audit.query",
+      "restMethod": "GET",
+      "restPath": "/v1/audit",
+      "mcpTool": "syslog_audit_query",
+      "mcpResource": "labsyslog://audit",
+      "scope": "syslog.audit.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    },
+    {
+      "id": "audit.get",
+      "restMethod": "GET",
+      "restPath": "/v1/audit/{id}",
+      "mcpTool": "syslog_audit_get",
+      "scope": "syslog.audit.read",
+      "flags": [
+        "PARITY_REQUIRED"
+      ],
+      "mutating": false,
+      "idempotent": true
+    }
+  ]
+}

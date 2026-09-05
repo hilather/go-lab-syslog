@@ -1,0 +1,144 @@
+{
+  "codes": [
+    {
+      "code": "validation_failed",
+      "title": "validation failed",
+      "status": 400,
+      "type": "https://labsyslog.dev/errors/validation_failed",
+      "urn": "urn:labsyslog:error:validation_failed"
+    },
+    {
+      "code": "unknown_field",
+      "title": "unknown field",
+      "status": 400,
+      "type": "https://labsyslog.dev/errors/unknown_field",
+      "urn": "urn:labsyslog:error:unknown_field"
+    },
+    {
+      "code": "reserved_key",
+      "title": "reserved key",
+      "status": 400,
+      "type": "https://labsyslog.dev/errors/reserved_key",
+      "urn": "urn:labsyslog:error:reserved_key"
+    },
+    {
+      "code": "immutable_field",
+      "title": "immutable field",
+      "status": 400,
+      "type": "https://labsyslog.dev/errors/immutable_field",
+      "urn": "urn:labsyslog:error:immutable_field"
+    },
+    {
+      "code": "revision_mismatch",
+      "title": "revision mismatch",
+      "status": 409,
+      "type": "https://labsyslog.dev/errors/revision_mismatch",
+      "urn": "urn:labsyslog:error:revision_mismatch"
+    },
+    {
+      "code": "idempotency_conflict",
+      "title": "idempotency conflict",
+      "status": 409,
+      "type": "https://labsyslog.dev/errors/idempotency_conflict",
+      "urn": "urn:labsyslog:error:idempotency_conflict"
+    },
+    {
+      "code": "not_found",
+      "title": "not found",
+      "status": 404,
+      "type": "https://labsyslog.dev/errors/not_found",
+      "urn": "urn:labsyslog:error:not_found"
+    },
+    {
+      "code": "store_wiped",
+      "title": "store wiped",
+      "status": 409,
+      "type": "https://labsyslog.dev/errors/store_wiped",
+      "urn": "urn:labsyslog:error:store_wiped"
+    },
+    {
+      "code": "store_full",
+      "title": "store full",
+      "status": 503,
+      "type": "https://labsyslog.dev/errors/store_full",
+      "urn": "urn:labsyslog:error:store_full"
+    },
+    {
+      "code": "wait_timeout",
+      "title": "wait timeout",
+      "status": 504,
+      "type": "https://labsyslog.dev/errors/wait_timeout",
+      "urn": "urn:labsyslog:error:wait_timeout"
+    },
+    {
+      "code": "unauthorized",
+      "title": "unauthorized",
+      "status": 401,
+      "type": "https://labsyslog.dev/errors/unauthorized",
+      "urn": "urn:labsyslog:error:unauthorized"
+    },
+    {
+      "code": "forbidden",
+      "title": "forbidden",
+      "status": 403,
+      "type": "https://labsyslog.dev/errors/forbidden",
+      "urn": "urn:labsyslog:error:forbidden"
+    },
+    {
+      "code": "origin_not_allowed",
+      "title": "origin not allowed",
+      "status": 403,
+      "type": "https://labsyslog.dev/errors/origin_not_allowed",
+      "urn": "urn:labsyslog:error:origin_not_allowed"
+    },
+    {
+      "code": "bootstrap_invalid",
+      "title": "bootstrap invalid",
+      "status": 400,
+      "type": "https://labsyslog.dev/errors/bootstrap_invalid",
+      "urn": "urn:labsyslog:error:bootstrap_invalid"
+    },
+    {
+      "code": "payload_too_large",
+      "title": "payload too large",
+      "status": 413,
+      "type": "https://labsyslog.dev/errors/payload_too_large",
+      "urn": "urn:labsyslog:error:payload_too_large"
+    },
+    {
+      "code": "rate_limited",
+      "title": "rate limited",
+      "status": 429,
+      "type": "https://labsyslog.dev/errors/rate_limited",
+      "urn": "urn:labsyslog:error:rate_limited"
+    },
+    {
+      "code": "cursor_stale",
+      "title": "cursor stale",
+      "status": 400,
+      "type": "https://labsyslog.dev/errors/cursor_stale",
+      "urn": "urn:labsyslog:error:cursor_stale"
+    },
+    {
+      "code": "tls_unsupported",
+      "title": "tls unsupported",
+      "status": 400,
+      "type": "https://labsyslog.dev/errors/tls_unsupported",
+      "urn": "urn:labsyslog:error:tls_unsupported"
+    },
+    {
+      "code": "unparseable",
+      "title": "unparseable",
+      "status": 400,
+      "type": "https://labsyslog.dev/errors/unparseable",
+      "urn": "urn:labsyslog:error:unparseable"
+    },
+    {
+      "code": "receive_only",
+      "title": "receive only",
+      "status": 403,
+      "type": "https://labsyslog.dev/errors/receive_only",
+      "urn": "urn:labsyslog:error:receive_only"
+    }
+  ]
+}

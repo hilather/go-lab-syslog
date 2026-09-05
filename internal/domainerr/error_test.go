@@ -26,3 +26,14 @@ func TestErrorString(t *testing.T) {
 		t.Fatalf("%q", err.Error())
 	}
 }
+
+func TestProblemOf(t *testing.T) {
+	p := ProblemOf(New(WaitTimeout, "wait timed out"))
+	if p.Type != "https://labsyslog.dev/errors/wait_timeout" || p.Status != 504 || p.Code != WaitTimeout {
+		t.Fatalf("%+v", p)
+	}
+	p = ProblemOf(New(StoreWiped, "store wiped"))
+	if p.Status != 409 || p.Code != StoreWiped {
+		t.Fatalf("%+v", p)
+	}
+}

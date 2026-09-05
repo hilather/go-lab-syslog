@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/hilather/go-lab-syslog/internal/app"
 	"github.com/hilather/go-lab-syslog/internal/compiler"
+	"github.com/hilather/go-lab-syslog/internal/control/rest"
 )
 
 func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -31,7 +33,8 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		_, _ = fmt.Fprintln(stderr, "labsyslog serve: --config is required")
 		return 2
 	}
-	if _, err := time.ParseDuration(*shutdownTimeout); err != nil {
+	drain, err := time.ParseDuration(*shutdownTimeout)
+	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "labsyslog serve: --shutdown-timeout: %v\n", err)
 		return 2
 	}
@@ -54,6 +57,24 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		return 1
 	}
 	defer func() { _ = svc.Close() }()
+
+	httpSrv := rest.Mount(svc)
+	if httpSrv != nil {
+		go func() {
+			ln := svc.ManagementListener()
+			if ln == nil {
+				return
+			}
+			if err := httpSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
+				_, _ = fmt.Fprintf(stderr, "labsyslog serve: rest: %v\n", err)
+			}
+		}()
+		defer func() {
+			shCtx, cancel := context.WithTimeout(context.Background(), drain)
+			defer cancel()
+			_ = httpSrv.Shutdown(shCtx)
+		}()
+	}
 
 	if addr := svc.UDPAddr(); addr != nil {
 		_, _ = fmt.Fprintln(stderr, "syslog udp listen "+addr.String())

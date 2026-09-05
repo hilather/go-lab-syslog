@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"io"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -91,6 +93,73 @@ spec:
 	_ = waitListenAddr(t, &stderr)
 	if !strings.Contains(stderr.String(), "management listen 127.0.0.1:") {
 		t.Fatalf("stderr %q missing management listen", stderr.String())
+	}
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("serve exit %d stderr=%q", code, stderr.String())
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("serve did not exit after cancel")
+	}
+}
+
+func TestServeRESTHealthLive(t *testing.T) {
+	dir := t.TempDir()
+	tok := filepath.Join(dir, "token")
+	if err := os.WriteFile(tok, bytes.Repeat([]byte("t"), 32), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := filepath.Join(dir, "config.yaml")
+	body := []byte(`
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  auth:
+    tokens:
+      - id: operator
+        secretFile: ` + tok + `
+`)
+	if err := os.WriteFile(cfg, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var stdout, stderr lockedBuffer
+	done := make(chan int, 1)
+	go func() {
+		done <- cmdServe(ctx, []string{
+			"--config", cfg,
+			"--syslog-udp-listen", "127.0.0.1:0",
+			"--syslog-tcp-listen", "127.0.0.1:0",
+			"--management-listen", "127.0.0.1:0",
+		}, &stdout, &stderr)
+	}()
+	addr := waitListenPrefix(t, &stderr, "management listen ")
+	var resp *http.Response
+	var err error
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err = http.Get("http://" + addr + "/v1/health/live")
+		if err == nil && resp.StatusCode == http.StatusOK {
+			break
+		}
+		if resp != nil {
+			_, _ = io.Copy(io.Discard, resp.Body)
+			_ = resp.Body.Close()
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if err != nil {
+		t.Fatalf("health live: %v stderr=%q", err, stderr.String())
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("health live status %d", resp.StatusCode)
 	}
 	cancel()
 	select {

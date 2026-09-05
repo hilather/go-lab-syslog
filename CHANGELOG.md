@@ -4,6 +4,16 @@
 
 ### Added
 
+- REST `/v1` adapter and OpenAPI (API-001): `internal/control/rest` mounts
+  on the serve process management listener. Frozen table routes plus
+  REST_ONLY health, session stubs, metrics placeholder, and SSE
+  `GET /v1/events/stream`. Errors are `application/problem+json` with
+  `type: https://labsyslog.dev/errors/{code}`. Wait timeout is `504
+  wait_timeout`; wipe during wait is `409 store_wiped`. Snapshot-backed
+  `bodyLimit` is `413 payload_too_large`; RPS/burst/maxConcurrent is
+  `429 rate_limited`. List cursors are process-local HMAC.
+  `make generate` writes `api/openapi/v1.json`, `api/errors/v1.json`,
+  and `api/capabilities/v1.json`. No auth middleware yet (SEC-001).
 - Snapshot, plan, apply, and reset (STA-001 / APP-001): `app.Service`
   compiles an immutable `Snapshot` behind `atomic.Pointer`, with
   `Validate` / `Plan` / `Apply` / `Export` / `Reset` and no `net/http`.

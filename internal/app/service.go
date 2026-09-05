@@ -87,7 +87,7 @@ func New(cfg Config) (*Service, error) {
 }
 
 // Start binds enabled UDP/TCP and, when requested, a management TCP listener
-// (no HTTP; API-001 mounts on ManagementListener).
+// (REST is mounted by cmd/labsyslog on ManagementListener).
 func (s *Service) Start(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -171,7 +171,8 @@ func (s *Service) TCPAddr() net.Addr {
 	return s.tcp.LocalAddr()
 }
 
-// ManagementListener is the bound management socket (no HTTP yet), or nil.
+// ManagementListener is the bound management socket, or nil. REST is mounted
+// by cmd/labsyslog; this package must not import net/http.
 func (s *Service) ManagementListener() net.Listener {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -186,6 +187,68 @@ func (s *Service) ManagementAddr() string {
 		return ""
 	}
 	return s.mgmt.Addr().String()
+}
+
+// Ready is true when the snapshot and store exist, every enabled data-plane
+// listener is bound, and management is bound or was not requested.
+func (s *Service) Ready() bool {
+	snap := s.snaps.Load()
+	if snap == nil || s.store == nil {
+		return false
+	}
+	spec := snap.Document.Spec
+	udpOn, _ := listenerOn(spec.Listeners.UDP.Enabled, spec.Listeners.UDP.Address)
+	tcpOn, _ := listenerOn(spec.Listeners.TCP.Enabled, spec.Listeners.TCP.Address)
+	mgmtOn := spec.Listeners.Management.Address != ""
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.started {
+		return false
+	}
+	if udpOn && s.udp == nil {
+		return false
+	}
+	if tcpOn && s.tcp == nil {
+		return false
+	}
+	if mgmtOn && s.mgmt == nil {
+		return false
+	}
+	return true
+}
+
+// DeleteMessage removes one stored message and audits the mutation.
+func (s *Service) DeleteMessage(_ context.Context, id, actor, reason string) error {
+	if err := s.store.Delete(id); err != nil {
+		return err
+	}
+	rev := ""
+	if snap := s.snaps.Load(); snap != nil {
+		rev = snap.Revision
+	}
+	s.audit.Append(audit.Event{
+		Actor:     actor,
+		Operation: audit.OpDelete,
+		Reason:    reason,
+		Revision:  rev,
+	})
+	return nil
+}
+
+// ClearMessages wipes the store (waiters see store_wiped) and audits.
+func (s *Service) ClearMessages(_ context.Context, actor, reason string) {
+	s.store.Clear()
+	rev := ""
+	if snap := s.snaps.Load(); snap != nil {
+		rev = snap.Revision
+	}
+	s.audit.Append(audit.Event{
+		Actor:     actor,
+		Operation: audit.OpClear,
+		Reason:    reason,
+		Revision:  rev,
+	})
 }
 
 // Validate checks a candidate without requiring token files to exist.

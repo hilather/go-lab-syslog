@@ -95,6 +95,7 @@ type Store struct {
 	generation uint64
 	bytes      int
 	waiters    []*waiter
+	watchers   []*watcher
 	evicted    uint64
 	rejected   uint64
 }
@@ -192,6 +193,7 @@ func (s *Store) Insert(msg model.Message) (uint64, error) {
 	s.bytes += size
 	s.generation++
 	s.notifyInserted(stored)
+	s.emitLocked(ChangeEvent{Kind: EventReceived, ID: stored.ID})
 	return s.generation, nil
 }
 
@@ -216,6 +218,7 @@ func (s *Store) Delete(id string) error {
 	}
 	s.removeAt(i)
 	s.generation++
+	s.emitLocked(ChangeEvent{Kind: EventDeleted, ID: id})
 	return nil
 }
 
@@ -240,6 +243,7 @@ func (s *Store) Wipe() {
 		}
 	}
 	s.waiters = nil
+	s.emitLocked(ChangeEvent{Kind: EventWiped})
 }
 
 // Stats is a consistent snapshot of gauges and counters.

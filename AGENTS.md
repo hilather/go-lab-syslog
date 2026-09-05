@@ -149,7 +149,8 @@ license check. No HTTP frameworks, no syslog libraries, no Prometheus.
 ## Capability IDs (frozen)
 
 REST_ONLY_PROTOCOL: `GET /v1/health/live`, `GET /v1/health/ready`,
-session login/logout, metrics scrape, SPA static.
+session login/logout, metrics scrape, SPA static,
+`GET /v1/events/stream`.
 
 PARITY_REQUIRED (REST ↔ MCP):
 

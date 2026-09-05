@@ -1,4 +1,5 @@
-// Command generatejsonschema writes api/jsonschema/labsyslog.dev.v1alpha1.json.
+// Command generatejsonschema writes generated API artifacts (JSON Schema,
+// OpenAPI, error catalog, capability table).
 package main
 
 import (
@@ -10,7 +11,12 @@ import (
 	"path/filepath"
 )
 
-const relPath = "api/jsonschema/labsyslog.dev.v1alpha1.json"
+const (
+	relPath         = "api/jsonschema/labsyslog.dev.v1alpha1.json"
+	relOpenAPI      = "api/openapi/v1.json"
+	relErrors       = "api/errors/v1.json"
+	relCapabilities = "api/capabilities/v1.json"
+)
 
 func main() {
 	check := flag.Bool("check", false, "verify generated file matches")
@@ -33,38 +39,63 @@ func main() {
 	}
 }
 
-// Generate writes the JSON Schema artifact.
+// Generate writes JSON Schema, OpenAPI, error catalog, and capability table.
 func Generate(root string) error {
-	body, err := render()
-	if err != nil {
-		return err
-	}
-	path := filepath.Join(root, filepath.FromSlash(relPath))
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	return os.WriteFile(path, body, 0o644)
-}
-
-// Check fails if the on-disk schema differs from generate output.
-func Check(root string) error {
-	want, err := render()
-	if err != nil {
-		return err
-	}
-	path := filepath.Join(root, filepath.FromSlash(relPath))
-	got, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("%s: %w (run make generate)", relPath, err)
-	}
-	if !bytes.Equal(want, got) {
-		return fmt.Errorf("%s is stale; run make generate", relPath)
+	for _, art := range artifacts() {
+		body, err := renderValue(art.value)
+		if err != nil {
+			return err
+		}
+		path := filepath.Join(root, filepath.FromSlash(art.rel))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, body, 0o644); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
+// Check fails if any generated artifact is stale.
+func Check(root string) error {
+	for _, art := range artifacts() {
+		want, err := renderValue(art.value)
+		if err != nil {
+			return err
+		}
+		path := filepath.Join(root, filepath.FromSlash(art.rel))
+		got, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("%s: %w (run make generate)", art.rel, err)
+		}
+		if !bytes.Equal(want, got) {
+			return fmt.Errorf("%s is stale; run make generate", art.rel)
+		}
+	}
+	return nil
+}
+
+type artifact struct {
+	rel   string
+	value any
+}
+
+func artifacts() []artifact {
+	return []artifact{
+		{relPath, schema()},
+		{relOpenAPI, openAPI()},
+		{relErrors, errorsCatalog()},
+		{relCapabilities, capabilitiesCatalog()},
+	}
+}
+
 func render() ([]byte, error) {
-	raw, err := json.Marshal(schema())
+	return renderValue(schema())
+}
+
+func renderValue(v any) ([]byte, error) {
+	raw, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
