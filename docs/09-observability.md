@@ -30,10 +30,18 @@ Required series:
 | `labsyslog_store_bytes` | | gauge |
 | `labsyslog_store_generation` | | gauge |
 | `labsyslog_store_evicted_total` | | |
+| `labsyslog_store_rejected_total` | | from `docs/03` |
 | `labsyslog_tcp_conns` | | gauge |
 | `labsyslog_waiters` | | gauge |
 
+Optional extras (do not replace the table): `labsyslog_wait_timeouts_total`,
+`labsyslog_apply_total{result}`, `labsyslog_http_requests_total{code,route}`.
+
+Catalog: `api/metrics/v1alpha1.json`. No `metrics.listen` field.
 No client-IP labels (cardinality).
+
+`labsyslog healthcheck --url=` probes `GET /v1/health/ready` (compose
+HEALTHCHECK: `/labsyslog healthcheck --url=http://127.0.0.1:8088/v1/health/ready`).
 
 ## Ready
 

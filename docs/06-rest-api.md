@@ -12,6 +12,10 @@ valid session cookie. Cookie sessions are REST-only. CSRF header
 `X-LabSyslog-CSRF` is required when the caller presents the cookie
 on a mutating request, not when presenting `Authorization`.
 `OPTIONS` is 403. Non-allowed `Origin` is `403 origin_not_allowed`.
+Unauthenticated: `GET /v1/health/live`, `GET /v1/health/ready`, and
+`GET /v1/metrics` only when `spec.observability.metrics.publicPath`
+is true. `publicPath: false` → `/v1/metrics` is 404 even with auth.
+Everything else requires bearer or a valid session cookie.
 
 ## Endpoints
 
@@ -44,6 +48,8 @@ on a mutating request, not when presenting `Authorization`.
 | GET | `/v1/session` | cookie/bearer | |
 | DELETE | `/v1/session` | cookie/bearer | CSRF when cookie |
 | GET | `/v1/metrics` | unauthenticated when publicPath | OpenMetrics text; 404 when publicPath is false |
+| DELETE | `/v1/session` | cookie/bearer | |
+| GET | `/v1/metrics` | publicPath true: unauthenticated scrape; false: 404 even with auth | Hand-rolled OpenMetrics (`api/metrics/v1alpha1.json`). No `metrics.listen`. |
 
 ## List response
 

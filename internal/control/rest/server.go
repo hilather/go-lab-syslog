@@ -2,6 +2,7 @@ package rest
 
 import (
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -51,36 +52,61 @@ func Mount(svc *app.Service) *http.Server {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	hw := &hookWriter{ResponseWriter: w}
 	release, err := s.admit(r)
 	if err != nil {
-		writeProblem(w, err)
+		writeProblem(hw, err)
+		s.observeHTTP(hw, r)
 		return
 	}
 	if release != nil {
 		defer release()
 	}
 	if err := s.checkOrigin(r); err != nil {
-		writeProblem(w, err)
+		writeProblem(hw, err)
+		s.observeHTTP(hw, r)
 		return
 	}
 	if r.Method == http.MethodOptions {
-		writeProblem(w, domainerr.New(domainerr.OriginNotAllowed, "CORS is disabled"))
+		writeProblem(hw, domainerr.New(domainerr.OriginNotAllowed, "CORS is disabled"))
+		s.observeHTTP(hw, r)
 		return
 	}
 	if !publicPath(r) {
 		p, err := s.authenticate(r)
 		if err != nil {
-			writeProblem(w, err)
+			writeProblem(hw, err)
+			s.observeHTTP(hw, r)
 			return
 		}
 		if err := s.authorize(r, p); err != nil {
-			writeProblem(w, err)
+			writeProblem(hw, err)
+			s.observeHTTP(hw, r)
 			return
 		}
 		r = r.WithContext(auth.ContextWithPrincipal(r.Context(), p))
 	}
-	hw := &hookWriter{ResponseWriter: w}
 	s.mux.ServeHTTP(hw, r)
+	s.observeHTTP(hw, r)
+}
+
+func (s *Server) observeHTTP(hw *hookWriter, r *http.Request) {
+	code := hw.status
+	if code == 0 {
+		code = http.StatusOK
+	}
+	s.svc.Registry().IncHTTP(code, routeLabel(r))
+}
+
+func routeLabel(r *http.Request) string {
+	p := r.Pattern
+	if p == "" {
+		return r.URL.Path
+	}
+	if i := strings.IndexByte(p, ' '); i >= 0 {
+		return p[i+1:]
+	}
+	return p
 }
 
 func (s *Server) routes() {

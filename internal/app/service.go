@@ -13,6 +13,7 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/config"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
 	"github.com/hilather/go-lab-syslog/internal/model"
+	"github.com/hilather/go-lab-syslog/internal/observability"
 	"github.com/hilather/go-lab-syslog/internal/snapshot"
 	"github.com/hilather/go-lab-syslog/internal/store"
 	"github.com/hilather/go-lab-syslog/internal/syslogserver"
@@ -36,6 +37,7 @@ type Service struct {
 	sessions *auth.Store
 	handler  syslogserver.Handler
 	metrics  *syslogserver.Metrics
+	obs      *observability.Registry
 
 	mu       sync.Mutex
 	started  bool
@@ -85,6 +87,7 @@ func New(cfg Config) (*Service, error) {
 		verifier: ver,
 		sessions: auth.NewStore(auth.DefaultSessionConfig()),
 		metrics:  &syslogserver.Metrics{},
+		obs:      observability.NewRegistry(),
 		idem:     map[string]idemRecord{},
 	}
 	s.handler = syslogserver.HandlerFunc(func(_ context.Context, msg model.Message) error {
@@ -92,6 +95,7 @@ func New(cfg Config) (*Service, error) {
 		return err
 	})
 	s.snaps.Store(snap)
+	observability.SetLevel(snap.Document.Spec.Observability.LogLevel)
 	return s, nil
 }
 
@@ -169,6 +173,60 @@ func (s *Service) Sessions() *auth.Store { return s.sessions }
 
 // Metrics is the shared ingest counters (UDP and TCP).
 func (s *Service) Metrics() *syslogserver.Metrics { return s.metrics }
+
+// Registry is OBS-001 extra counters (apply, wait timeouts, HTTP).
+func (s *Service) Registry() *observability.Registry { return s.obs }
+
+// MetricsSnapshot is the OpenMetrics scrape view (no client-IP labels).
+func (s *Service) MetricsSnapshot() observability.Snapshot {
+	m := s.metrics
+	if m == nil {
+		m = &syslogserver.Metrics{}
+	}
+	st := store.Stats{}
+	if s.store != nil {
+		st = s.store.Stats()
+	}
+	out := observability.Snapshot{
+		ReceivedByTransport: map[string]uint64{},
+		StoredBy:            map[string]uint64{},
+		DroppedByReason:     map[string]uint64{},
+		AdmissionByReason:   map[string]uint64{},
+		UDPOversize:         m.UDPOversize.Load(),
+		TCPFramingErrors:    m.TCPFramingErrors.Load(),
+		TCPConns:            m.TCPConns.Load(),
+		StoreMessages:       uint64(st.Messages),
+		StoreBytes:          uint64(st.Bytes),
+		StoreGeneration:     st.Generation,
+		StoreEvicted:        st.Evicted,
+		StoreRejected:       st.Rejected,
+		Waiters:             int64(st.Waiters),
+	}
+	if s.obs != nil {
+		out.WaitTimeouts = s.obs.WaitTimeouts()
+		out.ApplyByResult = s.obs.ApplyByResult()
+		out.HTTPRequests = s.obs.HTTPRequests()
+	}
+	if m != nil {
+		for _, t := range observability.Transports {
+			out.ReceivedByTransport[t] = m.ReceivedLabeled(t)
+			for _, p := range observability.Protocols {
+				out.StoredBy[observability.StoredKey(t, p)] = m.StoredLabeled(t, p)
+			}
+		}
+		out.DroppedByReason["admission_cidr"] = m.DroppedAdmission.Load()
+		out.DroppedByReason["admission_rate"] = m.DroppedAdmissionRate.Load()
+		out.DroppedByReason["filter"] = m.DroppedFilter.Load()
+		out.DroppedByReason["oversize"] = m.DroppedOversize.Load()
+		out.DroppedByReason["empty"] = m.DroppedEmpty.Load()
+		out.DroppedByReason["unparseable"] = m.DroppedUnparseable.Load()
+		out.DroppedByReason["store_full"] = m.DroppedStore.Load()
+		out.DroppedByReason["behavior"] = m.DroppedBehavior.Load()
+		out.AdmissionByReason["admission_cidr"] = m.DroppedAdmission.Load()
+		out.AdmissionByReason["admission_rate"] = m.DroppedAdmissionRate.Load()
+	}
+	return out
+}
 
 // UDPAddr is the bound UDP address, or nil.
 func (s *Service) UDPAddr() net.Addr {
@@ -252,6 +310,7 @@ func (s *Service) DeleteMessage(_ context.Context, id, actor, reason string) err
 		Reason:    reason,
 		Revision:  rev,
 	})
+	observability.LogMutation(actor, audit.OpDelete, reason, rev)
 	return nil
 }
 
@@ -268,6 +327,7 @@ func (s *Service) ClearMessages(_ context.Context, actor, reason string) {
 		Reason:    reason,
 		Revision:  rev,
 	})
+	observability.LogMutation(actor, audit.OpClear, reason, rev)
 }
 
 // Validate checks a candidate without requiring token files to exist.
@@ -509,4 +569,5 @@ func (s *Service) pushLiveLocked(snap *snapshot.Snapshot) {
 	}
 	s.store.ApplyCaps(store.ConfigFromSpec(spec.Store))
 	s.audit.Resize(spec.Observability.Audit.Ring)
+	observability.SetLevel(spec.Observability.LogLevel)
 }

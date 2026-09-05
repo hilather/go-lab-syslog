@@ -14,6 +14,7 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/config"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
 	"github.com/hilather/go-lab-syslog/internal/model"
+	"github.com/hilather/go-lab-syslog/internal/observability"
 	"github.com/hilather/go-lab-syslog/internal/store"
 )
 
@@ -346,10 +347,11 @@ func (s *Server) metrics(w http.ResponseWriter, _ *http.Request) {
 		public = snap.Document.Spec.Observability.Metrics.PublicPath
 	}
 	if !public {
+		// 404 even with auth (C11). publicPath true is unauthenticated scrape.
 		writeProblem(w, domainerr.New(domainerr.NotFound, "metrics publicPath is false"))
 		return
 	}
-	w.Header().Set("Content-Type", "application/openmetrics-text; version=1.0.0; charset=utf-8")
+	w.Header().Set("Content-Type", observability.ContentType)
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("# labsyslog metrics placeholder (OBS-001)\n# EOF\n"))
+	_ = observability.WriteOpenMetrics(w, s.svc.MetricsSnapshot())
 }

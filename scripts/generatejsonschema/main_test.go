@@ -49,6 +49,24 @@ func TestGenerateThenCheck(t *testing.T) {
 	}
 }
 
+func TestMetricsCatalog(t *testing.T) {
+	b, err := renderValue(metricsCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"labsyslog_messages_received_total",
+		"labsyslog_store_messages",
+		"labsyslog_admission_drop_total",
+		"application/openmetrics-text",
+		"MetricsCatalog",
+	} {
+		if !bytes.Contains(b, []byte(want)) {
+			t.Fatalf("metrics catalog missing %s", want)
+		}
+	}
+}
+
 func TestOpenAPIWaitTimeout(t *testing.T) {
 	b, err := renderValue(openAPI())
 	if err != nil {

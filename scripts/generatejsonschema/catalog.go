@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/hilather/go-lab-syslog/internal/capabilities"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
+	"github.com/hilather/go-lab-syslog/internal/observability"
 )
 
 func errorsCatalog() obj {
@@ -18,6 +19,27 @@ func errorsCatalog() obj {
 		})
 	}
 	return obj{{"codes", codes}}
+}
+
+func metricsCatalog() obj {
+	series := make([]obj, 0, len(observability.Catalog()))
+	for _, s := range observability.Catalog() {
+		item := obj{
+			{"name", s.Name},
+			{"type", s.Type},
+			{"help", s.Help},
+		}
+		if len(s.Labels) > 0 {
+			item = append(item, kv{"labels", s.Labels})
+		}
+		series = append(series, item)
+	}
+	return obj{
+		{"apiVersion", "labsyslog.dev/v1alpha1"},
+		{"kind", "MetricsCatalog"},
+		{"contentType", observability.ContentType},
+		{"series", series},
+	}
 }
 
 func capabilitiesCatalog() obj {

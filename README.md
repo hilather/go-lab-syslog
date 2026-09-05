@@ -42,6 +42,12 @@ STORE-001, and FIL-001 are in tree: `labsyslog version`, `help`,
 splits RFC 6587; `internal/syslogserver` admits, classifies, and inserts
 into `internal/store`. Later waves land plan/apply, REST, MCP, UI, and
 the container image.
+**Implementation status.** FND-001 through API-001 and OBS-001 are in
+tree: `labsyslog version`, `help`, `validate`, `canonicalize`,
+`serve`, and `healthcheck --url=` work. REST `/v1` is mounted on the
+management listener. JSON slog and hand-rolled OpenMetrics land at
+`GET /v1/metrics` when `publicPath` is true. Later waves land auth,
+MCP, UI, and the container image.
 Unimplemented CLI subcommands fail closed. Remaining placeholder Make
 targets exit 1.
 

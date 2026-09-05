@@ -27,6 +27,12 @@ func TestIngestParseInsidePipeline(t *testing.T) {
 	if m.Truncated {
 		t.Fatal("truncated")
 	}
+	if s.metrics.ReceivedLabeled(TransportUDP) != 1 {
+		t.Fatalf("received udp = %d", s.metrics.ReceivedLabeled(TransportUDP))
+	}
+	if s.metrics.StoredLabeled(TransportUDP, "rfc5424") != 1 {
+		t.Fatalf("stored udp rfc5424 = %d", s.metrics.StoredLabeled(TransportUDP, "rfc5424"))
+	}
 	if m.ParseWarning != "" {
 		t.Fatalf("warning = %q", m.ParseWarning)
 	}

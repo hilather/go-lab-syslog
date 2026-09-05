@@ -1,5 +1,5 @@
 // Command generatejsonschema writes generated API artifacts (JSON Schema,
-// OpenAPI, error catalog, capability table).
+// OpenAPI, error catalog, capability table, metrics catalog).
 package main
 
 import (
@@ -16,6 +16,7 @@ const (
 	relOpenAPI      = "api/openapi/v1.json"
 	relErrors       = "api/errors/v1.json"
 	relCapabilities = "api/capabilities/v1.json"
+	relMetrics      = "api/metrics/v1alpha1.json"
 )
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 	}
 }
 
-// Generate writes JSON Schema, OpenAPI, error catalog, and capability table.
+// Generate writes JSON Schema, OpenAPI, error catalog, capabilities, and metrics.
 func Generate(root string) error {
 	for _, art := range artifacts() {
 		body, err := renderValue(art.value)
@@ -87,6 +88,7 @@ func artifacts() []artifact {
 		{relOpenAPI, openAPI()},
 		{relErrors, errorsCatalog()},
 		{relCapabilities, capabilitiesCatalog()},
+		{relMetrics, metricsCatalog()},
 	}
 }
 

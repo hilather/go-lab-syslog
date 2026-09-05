@@ -166,6 +166,9 @@ func (s *Server) messagesWait(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	res, err := s.svc.Messages().Wait(r.Context(), f, timeout)
+	if domainerr.Is(err, domainerr.WaitTimeout) {
+		s.svc.Registry().IncWaitTimeout()
+	}
 	if s.handle(w, err) {
 		return
 	}

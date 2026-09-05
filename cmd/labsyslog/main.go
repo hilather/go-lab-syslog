@@ -33,7 +33,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	case "canonicalize":
 		return cmdCanonicalize(args[2:], stdout, stderr)
 	case "healthcheck":
-		return notImplemented(args[1], stderr)
+		return cmdHealthcheck(args[2:], stdout, stderr)
 	case "serve":
 		return withShutdown(func(ctx context.Context) int {
 			return cmdServe(ctx, args[2:], stdout, stderr)

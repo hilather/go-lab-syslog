@@ -88,6 +88,7 @@ type hookWriter struct {
 	http.ResponseWriter
 	wrote     bool
 	hijack405 bool
+	status    int
 }
 
 func (h *hookWriter) WriteHeader(code int) {
@@ -98,10 +99,12 @@ func (h *hookWriter) WriteHeader(code int) {
 	if code == http.StatusMethodNotAllowed {
 		h.hijack405 = true
 		h.wrote = true
+		h.status = http.StatusNotFound
 		writeProblem(h.ResponseWriter, domainerr.New(domainerr.NotFound, "no such route"))
 		return
 	}
 	h.wrote = true
+	h.status = code
 	h.ResponseWriter.WriteHeader(code)
 }
 

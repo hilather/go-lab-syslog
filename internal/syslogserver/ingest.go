@@ -30,7 +30,7 @@ func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr
 		s.metrics.drop(normalizeAdmissionReason(reason))
 		return true
 	}
-	s.metrics.Received.Add(1)
+	s.metrics.receive(transport)
 
 	switch live.Behavior.Mode {
 	case BehaviorDropSilent:
@@ -78,7 +78,7 @@ func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr
 		s.metrics.drop(ReasonStoreFull)
 		return false
 	}
-	s.metrics.Stored.Add(1)
+	s.metrics.storeMsg(msg)
 	return false
 }
 

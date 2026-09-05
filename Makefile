@@ -13,7 +13,7 @@ help:
 		'LabSyslog Make targets (Go 1.26; module github.com/hilather/go-lab-syslog)' \
 		'  format              go fmt ./...' \
 		'  lint                gofmt -l + go vet (no extra lint module)' \
-		'  generate            JSON Schema, OpenAPI, error catalog, capabilities' \
+		'  generate            JSON Schema, OpenAPI, error catalog, capabilities, metrics' \
 		'  verify-generated    fail if generated API artifacts are stale' \
 		'  test                go test ./...' \
 		'  test-race           go test -race ./...' \

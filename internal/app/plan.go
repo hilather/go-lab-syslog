@@ -12,6 +12,7 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/compiler"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
 	"github.com/hilather/go-lab-syslog/internal/model"
+	"github.com/hilather/go-lab-syslog/internal/observability"
 	"github.com/hilather/go-lab-syslog/internal/snapshot"
 )
 
@@ -38,12 +39,16 @@ func (s *Service) Plan(_ context.Context, req PlanRequest) (Plan, error) {
 		Reason:    req.Reason,
 		Revision:  cand.plan.NextRevision,
 	})
+	observability.LogMutation(req.Actor, audit.OpPlan, req.Reason, cand.plan.NextRevision)
 	return cand.plan, nil
 }
 
 // Apply commits live operations. Duplicate Idempotency-Key + identical body
 // returns the original result. Reset-only fields are immutable_field.
-func (s *Service) Apply(_ context.Context, req ApplyRequest) (ApplyResult, error) {
+func (s *Service) Apply(_ context.Context, req ApplyRequest) (out ApplyResult, err error) {
+	defer func() {
+		s.obs.IncApply(applyResultLabel(err))
+	}()
 	if strings.TrimSpace(req.IdempotencyKey) == "" {
 		return ApplyResult{}, domainerr.New(domainerr.ValidationFailed, "idempotencyKey is required")
 	}
@@ -56,7 +61,7 @@ func (s *Service) Apply(_ context.Context, req ApplyRequest) (ApplyResult, error
 	defer s.mu.Unlock()
 	if rec, ok := s.idem[req.IdempotencyKey]; ok {
 		if rec.fingerprint == fp {
-			out := rec.result
+			out = rec.result
 			out.IdempotentReplay = true
 			return out, rec.err
 		}
@@ -79,9 +84,20 @@ func (s *Service) Apply(_ context.Context, req ApplyRequest) (ApplyResult, error
 		Reason:    req.Reason,
 		Revision:  cand.next.Revision,
 	})
-	out := ApplyResult{Revision: cand.next.Revision, Plan: cand.plan}
+	observability.LogMutation(req.Actor, audit.OpApply, req.Reason, cand.next.Revision)
+	out = ApplyResult{Revision: cand.next.Revision, Plan: cand.plan}
 	s.idem[req.IdempotencyKey] = idemRecord{fingerprint: fp, result: out}
 	return out, nil
+}
+
+func applyResultLabel(err error) string {
+	if err == nil {
+		return "ok"
+	}
+	if e, ok := domainerr.As(err); ok && e.Code != "" {
+		return string(e.Code)
+	}
+	return "error"
 }
 
 type prepared struct {

@@ -161,6 +161,19 @@ spec:
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("health live status %d", resp.StatusCode)
 	}
+	ready, err := http.Get("http://" + addr + "/v1/health/ready")
+	if err != nil {
+		t.Fatalf("health ready: %v", err)
+	}
+	if ready.StatusCode != http.StatusOK {
+		_ = ready.Body.Close()
+		t.Fatalf("health ready status %d", ready.StatusCode)
+	}
+	_ = ready.Body.Close()
+	var hcOut, hcErr bytes.Buffer
+	if code := cmdHealthcheck([]string{"--url", "http://" + addr + "/v1/health/ready"}, &hcOut, &hcErr); code != 0 {
+		t.Fatalf("healthcheck exit %d stderr=%q", code, hcErr.String())
+	}
 	cancel()
 	select {
 	case code := <-done:

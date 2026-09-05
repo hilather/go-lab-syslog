@@ -18,6 +18,7 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/compiler"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
 	"github.com/hilather/go-lab-syslog/internal/model"
+	"github.com/hilather/go-lab-syslog/internal/observability"
 	"github.com/hilather/go-lab-syslog/internal/testutil"
 )
 
@@ -173,6 +174,23 @@ func TestContractPerCapability(t *testing.T) {
 	}
 }
 
+func TestHealthLiveWithoutReady(t *testing.T) {
+	svc := newService(t, "")
+	s := newServer(svc)
+	ts := httptest.NewServer(s)
+	t.Cleanup(ts.Close)
+	live := get(t, ts, "/v1/health/live")
+	defer live.Body.Close()
+	if live.StatusCode != 200 {
+		t.Fatalf("live %d want 200 while process is running", live.StatusCode)
+	}
+	ready := get(t, ts, "/v1/health/ready")
+	defer ready.Body.Close()
+	if ready.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("ready %d want 503 before bind", ready.StatusCode)
+	}
+}
+
 func TestHealthAndFeatures(t *testing.T) {
 	ts, _ := newREST(t, "")
 	live := get(t, ts, "/v1/health/live")
@@ -303,6 +321,64 @@ func TestMetricsPublicPath(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		t.Fatalf("status %d", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "application/openmetrics-text") {
+		t.Fatalf("content-type %s", ct)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	samples, err := observability.ParseOpenMetrics(string(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	by := observability.ByName(samples)
+	for _, name := range observability.RequiredNames() {
+		if _, ok := by[name]; !ok {
+			t.Errorf("missing series %s", name)
+		}
+	}
+}
+
+func TestMetricsPublicPathTrueUnauthenticated(t *testing.T) {
+	ts, _ := newREST(t, `
+  observability:
+    metrics:
+      publicPath: true
+`)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/v1/metrics", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := ts.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unauthenticated scrape status %d", resp.StatusCode)
+	}
+}
+
+func TestMetricsPublicPathFalseEvenWithAuth(t *testing.T) {
+	ts, _ := newREST(t, "")
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/v1/metrics", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+strings.Repeat("t", 32))
+	resp, err := ts.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("status %d want 404 even with auth", resp.StatusCode)
+	}
+	p := decodeProblem(t, resp)
+	if p.Detail != "metrics publicPath is false" {
+		t.Fatalf("detail %q", p.Detail)
 	}
 }
 

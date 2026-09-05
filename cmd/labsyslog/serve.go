@@ -14,10 +14,11 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/app"
 	"github.com/hilather/go-lab-syslog/internal/compiler"
 	"github.com/hilather/go-lab-syslog/internal/control/rest"
+	"github.com/hilather/go-lab-syslog/internal/observability"
 )
 
 func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	_ = stdout // ready/listen lines are stderr until OBS-001
+	observability.SetDefaultJSON(stdout)
 	fs := flag.NewFlagSet("labsyslog serve", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	configPath := fs.String("config", "", "path to a labsyslog.dev/v1alpha1 document")
@@ -50,6 +51,9 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	})
 	if err != nil {
 		return configErr(stderr, err)
+	}
+	if snap := svc.Snapshot(); snap != nil {
+		observability.SetLevel(snap.Document.Spec.Observability.LogLevel)
 	}
 	if err := svc.Start(ctx); err != nil {
 		_ = svc.Close()

@@ -26,6 +26,106 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/testutil"
 )
 
+func TestReadyFalseUntilUDPBound(t *testing.T) {
+	svc := newTestService(t, "")
+	if svc.Ready() {
+		t.Fatal("ready before Start")
+	}
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	if !svc.Ready() {
+		t.Fatal("ready after successful bind")
+	}
+}
+
+func TestReadyFalseIfUDPBindFailed(t *testing.T) {
+	dir := t.TempDir()
+	tok := filepath.Join(dir, "token")
+	if err := os.WriteFile(tok, bytes.Repeat([]byte("t"), auth.MinTokenBytes), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "config.yaml")
+	body := `apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  listeners:
+    udp:
+      enabled: true
+      address: "127.0.0.1:99999"
+    tcp:
+      enabled: true
+      address: "127.0.0.1:0"
+  auth:
+    tokens:
+      - id: operator
+        secretFile: ` + tok + `
+  admission:
+    allowClientCidrs: ["127.0.0.0/8", "::1/128"]
+`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	svc, err := New(Config{BootstrapPath: path, Compiler: compiler.Options{ConfigDir: dir, ManagementListen: "off"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = svc.Close() })
+	if err := svc.Start(testutil.Context(t)); err == nil {
+		t.Fatal("expected UDP bind failure")
+	}
+	if svc.Ready() {
+		t.Fatal("ready after failed UDP bind when UDP is enabled")
+	}
+}
+
+func TestReadyWhenUDPDisabled(t *testing.T) {
+	dir := t.TempDir()
+	tok := filepath.Join(dir, "token")
+	if err := os.WriteFile(tok, bytes.Repeat([]byte("t"), auth.MinTokenBytes), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "config.yaml")
+	body := `apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  listeners:
+    udp:
+      enabled: false
+      address: "127.0.0.1:0"
+    tcp:
+      enabled: true
+      address: "127.0.0.1:0"
+  auth:
+    tokens:
+      - id: operator
+        secretFile: ` + tok + `
+  admission:
+    allowClientCidrs: ["127.0.0.0/8", "::1/128"]
+`
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	svc, err := New(Config{BootstrapPath: path, Compiler: compiler.Options{ConfigDir: dir, ManagementListen: "off"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = svc.Close() })
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	if !svc.Ready() {
+		t.Fatal("ready should not require UDP when disabled")
+	}
+	if svc.UDPAddr() != nil {
+		t.Fatal("udp bound while disabled")
+	}
+}
+
 func TestApplyStaleRevision(t *testing.T) {
 	svc := newTestService(t, "")
 	_, err := svc.Apply(testutil.Context(t), ApplyRequest{

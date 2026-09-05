@@ -25,6 +25,15 @@
   `operation`, `reason`, `revision`) and wipes with the store on
   reset. MCP is not present; `internal/auth.Verifier` is shared for
   MCP-001.
+- Observability (OBS-001): JSON slog (`spec.observability.logLevel`),
+  hand-rolled OpenMetrics at `GET /v1/metrics` when `publicPath` is true
+  (404 even with auth when false; no `metrics.listen`, no
+  `github.com/prometheus/*`). Every `docs/09` series is emitted, plus
+  `labsyslog_store_rejected_total`, `labsyslog_wait_timeouts_total`,
+  `labsyslog_apply_total{result}`, and `labsyslog_http_requests_total{code,route}`.
+  Ready is D27 (false if UDP bind failed when UDP is enabled); live is 200
+  as soon as the process is running. `labsyslog healthcheck --url=` probes
+  `GET /v1/health/ready`. `make generate` writes `api/metrics/v1alpha1.json`.
 - REST `/v1` adapter and OpenAPI (API-001): `internal/control/rest` mounts
   on the serve process management listener. Frozen table routes plus
   REST_ONLY health, session exchange, metrics placeholder, and SSE

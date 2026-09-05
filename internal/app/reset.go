@@ -8,6 +8,7 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/compiler"
 	"github.com/hilather/go-lab-syslog/internal/config"
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
+	"github.com/hilather/go-lab-syslog/internal/observability"
 )
 
 // Reset rereads bootstrap, compiles, swaps the snapshot, wipes store and
@@ -58,5 +59,6 @@ func (s *Service) Reset(ctx context.Context, actor, reason string) error {
 		Reason:    reason,
 		Revision:  snap.Revision,
 	})
+	observability.LogMutation("", audit.OpReset, "", snap.Revision)
 	return nil
 }

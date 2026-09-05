@@ -1,0 +1,107 @@
+{
+  "apiVersion": "labsyslog.dev/v1alpha1",
+  "kind": "MetricsCatalog",
+  "contentType": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+  "series": [
+    {
+      "name": "labsyslog_messages_received_total",
+      "type": "counter",
+      "help": "Messages that passed admission (CIDR and rate).",
+      "labels": [
+        "transport"
+      ]
+    },
+    {
+      "name": "labsyslog_messages_stored_total",
+      "type": "counter",
+      "help": "Messages inserted into the ephemeral store.",
+      "labels": [
+        "transport",
+        "protocol"
+      ]
+    },
+    {
+      "name": "labsyslog_messages_dropped_total",
+      "type": "counter",
+      "help": "Messages discarded before store.",
+      "labels": [
+        "reason"
+      ]
+    },
+    {
+      "name": "labsyslog_udp_oversize_total",
+      "type": "counter",
+      "help": "UDP datagrams dropped for exceeding udpMaxDatagramBytes or maxMessageBytes."
+    },
+    {
+      "name": "labsyslog_tcp_framing_errors_total",
+      "type": "counter",
+      "help": "RFC 6587 framing errors that closed a TCP session."
+    },
+    {
+      "name": "labsyslog_admission_drop_total",
+      "type": "counter",
+      "help": "Admission CIDR or rate drops.",
+      "labels": [
+        "reason"
+      ]
+    },
+    {
+      "name": "labsyslog_store_messages",
+      "type": "gauge",
+      "help": "Messages currently in the store."
+    },
+    {
+      "name": "labsyslog_store_bytes",
+      "type": "gauge",
+      "help": "Billed store bytes including per-message overhead."
+    },
+    {
+      "name": "labsyslog_store_generation",
+      "type": "gauge",
+      "help": "Store generation (insert, delete, clear, wipe)."
+    },
+    {
+      "name": "labsyslog_store_evicted_total",
+      "type": "counter",
+      "help": "Messages evicted under fullPolicy evict_oldest."
+    },
+    {
+      "name": "labsyslog_store_rejected_total",
+      "type": "counter",
+      "help": "Inserts rejected under fullPolicy reject or oversized candidates."
+    },
+    {
+      "name": "labsyslog_tcp_conns",
+      "type": "gauge",
+      "help": "Active RFC 6587 TCP sessions."
+    },
+    {
+      "name": "labsyslog_waiters",
+      "type": "gauge",
+      "help": "Parked messages:wait callers."
+    },
+    {
+      "name": "labsyslog_wait_timeouts_total",
+      "type": "counter",
+      "help": "messages:wait calls that returned wait_timeout."
+    },
+    {
+      "name": "labsyslog_apply_total",
+      "type": "counter",
+      "help": "changes:apply outcomes.",
+      "labels": [
+        "result"
+      ]
+    },
+    {
+      "name": "labsyslog_http_requests_total",
+      "type": "counter",
+      "help": "Management HTTP responses. No client-IP labels.",
+      "labels": [
+        "code",
+        "route"
+      ]
+    }
+  ]
+}
