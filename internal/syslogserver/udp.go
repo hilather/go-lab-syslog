@@ -41,7 +41,7 @@ func (s *Server) handleDatagram(addr net.Addr, payload []byte) {
 	}
 	remote, ok := udpRemote(addr)
 	if !ok {
-		s.metrics.drop(ReasonAdmission)
+		// ListenPacket yields *UDPAddr; any other net.Addr is not a CIDR miss.
 		return
 	}
 	s.ingest(s.ctx, TransportUDP, remote, bytes.Clone(payload))

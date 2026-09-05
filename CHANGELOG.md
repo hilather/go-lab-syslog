@@ -8,8 +8,10 @@
   path and ingest pipeline (size/framing → admission → behavior → parse →
   classify → `Handler.Insert`) with stub allow-all admission, `accept`
   behavior, and capture-all classifier. Parse runs inside the pipeline via
-  `syslogwire`. Oversize and empty datagrams are dropped with a metric and
-  are not stored; `truncated` stays false. `labsyslog serve --config FILE
+  `syslogwire`. Oversize, empty, and (when `bestEffort` is false) unparseable
+  datagrams are dropped with a metric and are not stored; `truncated` stays
+  false. Drop reasons on `labsyslog_messages_dropped_total` include
+  `empty` and `unparseable`. `labsyslog serve --config FILE
   --syslog-udp-listen ADDR --management-listen=off` binds UDP without a
   management plane. TCP listen and store-as-Handler wiring are later waves.
 - First-party RFC 3164 and RFC 5424 codec (WIRE-001): `internal/syslogwire`

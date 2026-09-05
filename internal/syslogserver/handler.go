@@ -26,13 +26,14 @@ const (
 
 // Drop reasons match docs/09 label values where those exist.
 const (
-	ReasonOversize    = "oversize"
-	ReasonEmpty       = "empty"
-	ReasonAdmission   = "admission_cidr"
-	ReasonBehavior    = "behavior"
-	ReasonFilter      = "filter"
-	ReasonUnparseable = "unparseable"
-	ReasonStoreFull   = "store_full"
+	ReasonOversize      = "oversize"
+	ReasonEmpty         = "empty"
+	ReasonAdmission     = "admission_cidr"
+	ReasonAdmissionRate = "admission_rate"
+	ReasonBehavior      = "behavior"
+	ReasonFilter        = "filter"
+	ReasonUnparseable   = "unparseable"
+	ReasonStoreFull     = "store_full"
 )
 
 // Handler receives a parsed, classified message. STORE-001 implements Insert;
@@ -59,13 +60,11 @@ type Behavior struct {
 // NopHandler discards Insert. Serve uses it until FIL-001 wires the store.
 type NopHandler struct{}
 
-// Insert implements Handler.
 func (NopHandler) Insert(context.Context, model.Message) error { return nil }
 
 // HandlerFunc adapts a function to Handler.
 type HandlerFunc func(context.Context, model.Message) error
 
-// Insert implements Handler.
 func (f HandlerFunc) Insert(ctx context.Context, msg model.Message) error {
 	return f(ctx, msg)
 }
@@ -73,11 +72,9 @@ func (f HandlerFunc) Insert(ctx context.Context, msg model.Message) error {
 // AllowAll is the UDP-001 admission stub.
 type AllowAll struct{}
 
-// Allow implements Admission.
 func (AllowAll) Allow(netip.Addr) (bool, string) { return true, "" }
 
 // CaptureAll is the UDP-001 classifier stub.
 type CaptureAll struct{}
 
-// Classify implements Classifier.
 func (CaptureAll) Classify(*model.Message) (string, string) { return ActionCapture, "" }

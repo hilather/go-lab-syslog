@@ -57,22 +57,50 @@ func TestBehaviorDropSilentSkipsParse(t *testing.T) {
 	}
 }
 
-type denyAll struct{}
+type denyReason struct{ reason string }
 
-func (denyAll) Allow(netip.Addr) (bool, string) { return false, "cidr" }
+func (d denyReason) Allow(netip.Addr) (bool, string) { return false, d.reason }
 
 func TestAdmissionDenySkipsHandler(t *testing.T) {
 	h := newFakeHandler()
-	s := testPipeline(h, Config{Admission: denyAll{}})
+	s := testPipeline(h, Config{Admission: denyReason{}})
 	s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("10.0.0.1"), port: 1}, []byte(helloPayload))
 	if s.metrics.DroppedAdmission.Load() != 1 {
 		t.Fatalf("admission drops = %d", s.metrics.DroppedAdmission.Load())
+	}
+	if s.metrics.DroppedAdmissionRate.Load() != 0 {
+		t.Fatal("empty Allow reason must not count as admission_rate")
 	}
 	if s.metrics.Received.Load() != 0 {
 		t.Fatal("received counts pre-admission")
 	}
 	if len(h.snapshot()) != 0 {
 		t.Fatal("denied message stored")
+	}
+}
+
+func TestAdmissionRateReasonIsNotCIDR(t *testing.T) {
+	h := newFakeHandler()
+	s := testPipeline(h, Config{Admission: denyReason{reason: ReasonAdmissionRate}})
+	s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("10.0.0.1"), port: 1}, []byte(helloPayload))
+	if s.metrics.DroppedAdmissionRate.Load() != 1 {
+		t.Fatalf("rate drops = %d", s.metrics.DroppedAdmissionRate.Load())
+	}
+	if s.metrics.DroppedAdmission.Load() != 0 {
+		t.Fatal("admission_rate counted as admission_cidr")
+	}
+	if len(h.snapshot()) != 0 {
+		t.Fatal("rate-denied message stored")
+	}
+}
+
+func TestUnknownAdmissionReasonMapsToCIDR(t *testing.T) {
+	h := newFakeHandler()
+	s := testPipeline(h, Config{Admission: denyReason{reason: "nope"}})
+	s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("10.0.0.1"), port: 1}, []byte(helloPayload))
+	if s.metrics.DroppedAdmission.Load() != 1 {
+		t.Fatalf("unknown Allow reason should map to admission_cidr, got cidr=%d rate=%d",
+			s.metrics.DroppedAdmission.Load(), s.metrics.DroppedAdmissionRate.Load())
 	}
 }
 

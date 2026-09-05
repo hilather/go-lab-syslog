@@ -239,6 +239,25 @@ func sendPrintfHello(t *testing.T, host, port string) {
 	sendUDP(t, "udp4", net.JoinHostPort(host, port), []byte(helloPayload))
 }
 
+type notUDPAddr struct{}
+
+func (notUDPAddr) Network() string { return "udp" }
+func (notUDPAddr) String() string  { return "not-a-udp-addr" }
+
+func TestNonUDPAddrDoesNotCountAsCIDR(t *testing.T) {
+	srv, h := startUDP(t, Config{Addr: "127.0.0.1:0"})
+	srv.handleDatagram(notUDPAddr{}, []byte(helloPayload))
+	if srv.Metrics().DroppedAdmission.Load() != 0 {
+		t.Fatal("non-UDPAddr remote counted as admission_cidr")
+	}
+	if srv.Metrics().DroppedAdmissionRate.Load() != 0 {
+		t.Fatal("non-UDPAddr remote counted as admission_rate")
+	}
+	if len(h.snapshot()) != 0 {
+		t.Fatal("non-UDPAddr datagram stored")
+	}
+}
+
 func TestUDPCallSiteDoesNotImportSyslogwire(t *testing.T) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, "udp.go", nil, parser.ImportsOnly)

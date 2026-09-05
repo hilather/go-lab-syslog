@@ -22,7 +22,7 @@ Required series:
 |---|---|---|
 | `labsyslog_messages_received_total` | `transport` | after admission |
 | `labsyslog_messages_stored_total` | `transport`, `protocol` | protocol=`rfc3164`\|`rfc5424`\|`raw` |
-| `labsyslog_messages_dropped_total` | `reason` | `admission_cidr`, `admission_rate`, `filter`, `oversize`, `empty`, `store_full`, `behavior` |
+| `labsyslog_messages_dropped_total` | `reason` | `admission_cidr`, `admission_rate`, `filter`, `oversize`, `empty`, `unparseable`, `store_full`, `behavior` |
 | `labsyslog_udp_oversize_total` | | |
 | `labsyslog_tcp_framing_errors_total` | | |
 | `labsyslog_admission_drop_total` | `reason` | |

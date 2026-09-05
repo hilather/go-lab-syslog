@@ -16,7 +16,8 @@ flowchart LR
     HTTP[":8088 UI / REST / MCP"]
     WIRE[syslogwire]
     FRAME[syslogframing]
-    FIL[filters + admission]
+    ADMIT[admission + behavior]
+    CLASS[classify]
     STORE[message store]
     REG[capability registry]
     APP[internal/app.Service]
@@ -24,8 +25,8 @@ flowchart LR
     AUDIT[audit ring]
   end
   YAML[(read-only bootstrap YAML)] --> SNAP
-  SUT_UDP -->|RFC 3164 / 5424 datagram| UDP --> WIRE --> FIL --> STORE
-  SUT_TCP -->|octet-counting or NL| TCP --> FRAME --> WIRE --> FIL --> STORE
+  SUT_UDP -->|RFC 3164 / 5424 datagram| UDP --> ADMIT --> WIRE --> CLASS --> STORE
+  SUT_TCP -->|octet-counting or NL| TCP --> FRAME --> ADMIT --> WIRE --> CLASS --> STORE
   UI --> HTTP
   REST --> HTTP
   MCP --> HTTP

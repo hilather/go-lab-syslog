@@ -23,9 +23,9 @@ func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr
 	}
 	remote.ip = remote.ip.Unmap()
 
-	ok, _ := s.cfg.Admission.Allow(remote.ip)
+	ok, reason := s.cfg.Admission.Allow(remote.ip)
 	if !ok {
-		s.metrics.drop(ReasonAdmission)
+		s.metrics.drop(normalizeAdmissionReason(reason))
 		return
 	}
 	s.metrics.Received.Add(1)
@@ -81,4 +81,13 @@ func (s *Server) now() time.Time {
 		return s.cfg.Now()
 	}
 	return time.Now()
+}
+
+func normalizeAdmissionReason(reason string) string {
+	switch reason {
+	case ReasonAdmission, ReasonAdmissionRate:
+		return reason
+	default:
+		return ReasonAdmission
+	}
 }
