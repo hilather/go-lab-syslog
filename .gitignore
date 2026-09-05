@@ -11,7 +11,8 @@ coverage.html
 .gocache/
 .gomodcache/
 
-# go test -fuzz working corpus (seeds live in testdata/packets)
+# go test -fuzz crashers written next to tests. Committed seeds live in
+# testdata/corpus/{syslogwire,syslogframing} (GA-001).
 **/testdata/fuzz/
 
 # Minted bearer for compose smoke; never commit secrets

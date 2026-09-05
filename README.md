@@ -21,19 +21,20 @@ log collector.
 | License | Apache-2.0 |
 | User | `65532:65532` |
 
-**Implementation status.** Through MCP-001, DEP-001, SWAP-001, and
-UI-001: `labsyslog version`, `help`, `validate`, `canonicalize`,
-`serve`, `healthcheck --url=`, and `mcp-stdio --config --token-file`
-work. Management REST `/v1` and Streamable HTTP `POST /mcp` share
-`app.Service`. The operator SPA is at `/`. JSON slog and hand-rolled
-OpenMetrics land at `GET /v1/metrics` when `publicPath` is true. The
-scratch image is UID `65532:65532`; `examples/compose.smoke.yaml`
-binds `:1514`. The lab overlay BOM is `examples/labsyslog.yaml`,
-`examples/labinfo/`, and `examples/mcpjungle/` (integrator pin is a
-follow-on after the first `v*` tag). `make web-test` and
-`make web-build` are implemented. Later waves land GA.
-Unimplemented CLI subcommands fail closed. Remaining
-placeholder Make targets exit 1.
+**Implementation status.** Through GA-001 the 1.0 surface is in tree:
+`labsyslog version`, `help`, `validate`, `canonicalize`, `serve`,
+`healthcheck --url=`, and `mcp-stdio --config --token-file` work.
+Management REST `/v1`, Streamable HTTP `POST /mcp`, and the operator SPA
+at `/` share `app.Service`. JSON slog and hand-rolled OpenMetrics land at
+`GET /v1/metrics` when `publicPath` is true. The scratch image is UID
+`65532:65532`; `examples/compose.smoke.yaml` binds `:1514`. The lab
+overlay BOM is `examples/labsyslog.yaml`, `examples/labinfo/`, and
+`examples/mcpjungle/` (integrator pin is a follow-on after the first
+`v*` tag). `make web-test` and `make web-build` are implemented. Do not
+tag `v1.0.0` until Mira review of UI-001 is recorded in
+`docs/reviews/mira-ui-001.md` (placeholder, not an approval).
+TLS-001 is v1.1. Unimplemented CLI subcommands fail closed.
+Remaining placeholder Make targets exit 1.
 
 Documentation
 · [Start here](START-HERE.md)

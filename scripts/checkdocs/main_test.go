@@ -71,3 +71,30 @@ func TestCheckReportsMissingPhrases(t *testing.T) {
 		t.Fatalf("error = %v", err)
 	}
 }
+
+func TestKnownLimitationsMatchShippedBehavior(t *testing.T) {
+	root, err := repoRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(filepath.Join(root, "docs", "known-limitations.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, p := range []string{
+		"not a production collector",
+		"does not claim production-collector completeness",
+		"TLS",
+		"RELP",
+		"persistence",
+		"HA",
+		"OAuth",
+		"NAT collision",
+		"always false",
+	} {
+		if !strings.Contains(text, p) {
+			t.Errorf("docs/known-limitations.md missing %q", p)
+		}
+	}
+}

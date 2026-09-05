@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"testing"
+
+	"github.com/hilather/go-lab-syslog/internal/testutil"
 )
 
 func FuzzNext(f *testing.F) {
@@ -17,6 +19,11 @@ func FuzzNext(f *testing.F) {
 	f.Add([]byte{}, Auto)
 	f.Add([]byte("0 "), OctetCounting)
 	f.Add([]byte("99999 x"), OctetCounting)
+	for _, raw := range testutil.LoadCorpus(f, "syslogframing") {
+		f.Add(raw, Auto)
+		f.Add(raw, OctetCounting)
+		f.Add(raw, NonTransparent)
+	}
 
 	f.Fuzz(func(t *testing.T, data []byte, mode string) {
 		switch mode {

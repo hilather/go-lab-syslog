@@ -21,7 +21,7 @@ help:
 		'  verify-generated    fail if generated API artifacts are stale' \
 		'  test                go test ./...' \
 		'  test-race           go test -race ./...' \
-		'  test-fuzz-smoke     short go-fuzz of syslogwire.Parse + syslogframing.Next' \
+		'  test-fuzz-smoke     short go-fuzz of syslogwire.Parse + syslogframing.Next (testdata/corpus)' \
 		'  test-parity         REST/MCP capability parity goldens' \
 		'  test-config-compat  valid/invalid YAML fixture suite' \
 		'  test-docs           required documents, markdown links, NAT/userland-proxy/cap_add phrases' \
@@ -31,7 +31,7 @@ help:
 		'  web-test            vitest in web/ (Node 22.14.0)' \
 		'  web-build           vite production build + embed into internal/web/dist' \
 		'  verify-web-dist     fail if committed internal/web/dist is stale' \
-		'Placeholder targets exit 1. Default CI runs only implemented targets.'
+		'All required 1.0 targets are implemented. Default CI includes import-fence.'
 
 format:
 	$(GO) fmt ./...

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hilather/go-lab-syslog/internal/testutil"
 )
 
 func FuzzParse(f *testing.F) {
@@ -52,6 +54,9 @@ func FuzzParse(f *testing.F) {
 		}
 		return nil
 	})
+	for _, raw := range testutil.LoadCorpus(f, "syslogwire") {
+		f.Add(raw)
+	}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		opts := []Options{

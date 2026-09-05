@@ -22,6 +22,7 @@ or capability IDs. If an invariant must change, write an ADR first.
 | [13-integration-lab-swap.md](13-integration-lab-swap.md) | mcp-integration-lab BOM |
 | [implementation-design.md](implementation-design.md) | Decisions, schema, PR plan |
 | [known-limitations.md](known-limitations.md) | 1.0 residual limits |
+| [releases/v1.0.0-rc.1.md](releases/v1.0.0-rc.1.md) | RC notes; do not tag v1.0.0 without Mira |
 | [adr/](adr/) | Frozen decisions |
 
 Waves and the program board live under [`../tasks/`](../tasks/).

@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- CI workflow merge of DEP-001 / MCP-001 / UI-001 jobs: required
+  checks are format, lint, unit, race, fuzz-smoke, documentation,
+  changelog, generated, config-compat, import-fence, security-scan,
+  container-test, parity, and web (no conflict markers).
 - MCP `syslog_state_validate` / `syslog_change_plan` / `syslog_change_apply`
   input schemas treat `document`/`candidate` as objects and
   `Duration`/`ByteSize` as strings (`"60s"`, `"256MiB"`), matching REST.
@@ -16,6 +20,19 @@
 
 ### Added
 
+- GA hardening (GA-001): committed fuzz corpora under
+  `testdata/corpus/{syslogwire,syslogframing}` seed `FuzzParse` and
+  `FuzzNext`; soak test drives 10k UDP/s for 60s on a test bind and
+  asserts store caps hold, `truncated` stays false, and the UDP loop
+  does not leak goroutines. Release notes live at
+  [docs/releases/v1.0.0-rc.1.md](docs/releases/v1.0.0-rc.1.md).
+  Known limitations list TLS/RELP/persistence/HA/OAuth/NAT and that
+  `truncated` is always false. Import-fence Dial AST and
+  forbidden-module AST stay required CI (`import-fence` job plus
+  `internal/testutil/fence_test.go`). Mira review of UI-001 is still
+  required before tagging v1.0.0
+  ([docs/reviews/mira-ui-001.md](docs/reviews/mira-ui-001.md) is a
+  placeholder, not an approval). TLS-001 is not in this release.
 - Integration-lab BOM (SWAP-001): in-repo examples the integrator copies
   after the first `v*` tag. `examples/labsyslog.yaml` is the lab overlay
   (container `:514`, `allowLegacyClients: true`, lab CIDRs).
@@ -180,8 +197,9 @@
 `make generate`, `make verify-generated`, `make test-config-compat`,
 `make test-fuzz-smoke`, `make test-container`, `make test-parity`,
 `make security-scan`, `make web-test`, and `make web-build` are
-implemented. Remaining placeholder Make targets fail closed
-(`exit 1`). Default CI runs format, lint, unit, race, fuzz-smoke, docs,
-changelog, generated, config-compat, parity, security-scan,
-container-test, and web. GA lands in a later wave.
+implemented. Remaining placeholder Make targets fail closed (`exit 1`).
+Default CI runs format, lint, unit, race, fuzz-smoke, docs, changelog,
+generated, config-compat, import-fence, parity, security-scan,
+container-test, and web.
+Do not tag `v1.0.0` until Mira review of UI-001 is recorded.
 The integrator vendor pin is a follow-on after the first `v*` tag.

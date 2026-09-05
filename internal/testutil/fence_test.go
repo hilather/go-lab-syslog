@@ -526,20 +526,36 @@ func forbiddenImport(imp string) bool {
 	return false
 }
 
-func moduleRoot(t *testing.T) string {
-	t.Helper()
-	dir, err := os.Getwd()
+func TestCIRequiresImportFence(t *testing.T) {
+	root := moduleRoot(t)
+	body, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "ci.yml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir
+	if bytes.Contains(body, []byte("<<<<<<<")) || bytes.Contains(body, []byte(">>>>>>>")) {
+		t.Fatal("ci.yml contains merge conflict markers")
+	}
+	text := string(body)
+	for _, need := range []string{
+		"import-fence",
+		"TestImportFence",
+		"TestNoDialIdentifiers",
+		"name: format",
+		"name: lint",
+		"name: unit",
+		"name: race",
+		"name: fuzz-smoke",
+		"name: documentation",
+		"name: changelog",
+		"name: generated",
+		"name: config-compat",
+		"name: security-scan",
+		"name: container-test",
+		"name: parity",
+		"name: web",
+	} {
+		if !strings.Contains(text, need) {
+			t.Errorf("ci.yml must keep required check %q", need)
 		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			t.Fatal("go.mod not found")
-		}
-		dir = parent
 	}
 }

@@ -1,7 +1,7 @@
 # Program board — LabSyslog 1.0
 
-Status: UI-001 and SWAP-001 done; next is GA-001
-Last reviewed: 2026-09-04  
+Status: GA-001 done (1.0 RC notes; do not tag v1.0.0 until Mira UI review). TLS-001 is v1.1.  
+Last reviewed: 2026-09-05
 Source of truth: the numbered `docs/` pack and accepted ADRs (0001–0012).
 
 Agents implement one work package per change. Do not start a package
@@ -27,7 +27,7 @@ CFG → STA → API → SEC → MCP. Data plane proceeds after WIRE.
 | 13 | CLI + scratch image | DEP-001 | UDP-001, TCP-001, API-001, OBS-001 | Hardened image, compose.smoke, healthcheck | M3 | done |
 | 14 | Operator SPA | UI-001 | API-001, SEC-001 | Embedded inbox, no localStorage tokens | M4 | done |
 | 15 | Integration-lab BOM | SWAP-001 | MCP-001, SEC-001, DEP-001 | examples for vendor/compose/labinfo/jungle | M4 | done |
-| 16 | GA hardening | GA-001 | 1–15 | Fuzz, soak, release notes, known limitations | M5 | not-started |
+| 16 | GA hardening | GA-001 | 1–15 | Fuzz, soak, release notes, known limitations | M5 | done |
 | — | RFC 5425 TLS listener | TLS-001 | DEP-001 | v1.1 only; 1.0 rejects `tls.enabled: true` | v1.1 | not-started |
 
 ## Parallelization
