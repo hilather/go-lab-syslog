@@ -83,9 +83,9 @@ func (s *Scanner) Next() ([]byte, error) {
 	} else {
 		frame, err = s.nextNonTransparent()
 	}
-	if err == nil {
-		s.seen = true
-	}
+	// Sticky auto is decided on the first bytes, including an oversize
+	// first frame, so later DIGIT+ SP can disagree (D11).
+	s.seen = true
 	return frame, err
 }
 
@@ -217,12 +217,18 @@ func (s *Scanner) nextNonTransparent() ([]byte, error) {
 			if b == '\n' && len(buf) > 0 && buf[len(buf)-1] == '\r' {
 				buf = buf[:len(buf)-1]
 			}
-			if oversize {
+			// Size is SYSLOG-MSG after trailer strip (CRLF CR is not content).
+			if oversize || len(buf) > s.max {
 				return nil, ErrOversize
 			}
 			return buf, nil
 		}
 		if oversize {
+			continue
+		}
+		if len(buf) == s.max && b == '\r' {
+			// Pending CR may still be a CRLF trailer, not a max+1 byte.
+			buf = append(buf, b)
 			continue
 		}
 		if len(buf) >= s.max {

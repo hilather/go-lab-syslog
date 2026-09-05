@@ -127,6 +127,47 @@ func TestNonTransparentOversizeContinues(t *testing.T) {
 	}
 }
 
+func TestNonTransparentExactMaxCRLF(t *testing.T) {
+	payload := bytes.Repeat([]byte("a"), 8)
+	input := append(append(payload, '\r', '\n'), []byte("<14>ok\n")...)
+	s := NewScanner(bytes.NewReader(input), NonTransparent, 8)
+	frame, err := s.Next()
+	if err != nil || !bytes.Equal(frame, payload) {
+		t.Fatalf("exact max + CRLF: frame = %q err=%v", frame, err)
+	}
+	frame, err = s.Next()
+	if err != nil || string(frame) != "<14>ok" {
+		t.Fatalf("follow-on = %q err=%v", frame, err)
+	}
+}
+
+func TestNonTransparentMaxPlusOneCRLF(t *testing.T) {
+	payload := bytes.Repeat([]byte("a"), 9)
+	input := append(append(payload, '\r', '\n'), []byte("<14>ok\n")...)
+	s := NewScanner(bytes.NewReader(input), NonTransparent, 8)
+	if _, err := s.Next(); !errors.Is(err, ErrOversize) {
+		t.Fatalf("err = %v, want ErrOversize", err)
+	}
+	frame, err := s.Next()
+	if err != nil || string(frame) != "<14>ok" {
+		t.Fatalf("session must continue: frame = %q err=%v", frame, err)
+	}
+}
+
+func TestAutoOversizeThenDigitSPDisagrees(t *testing.T) {
+	s := NewScanner(strings.NewReader("AAAAAAAAA\n9 <14>hello\n"), Auto, 8)
+	if _, err := s.Next(); !errors.Is(err, ErrOversize) {
+		t.Fatalf("first = %v, want ErrOversize", err)
+	}
+	if s.Mode() != NonTransparent {
+		t.Fatalf("mode = %q after oversize", s.Mode())
+	}
+	frame, err := s.Next()
+	if !errors.Is(err, ErrFraming) {
+		t.Fatalf("disagree after oversize: frame=%q err=%v", frame, err)
+	}
+}
+
 func TestEmptyNonTransparentFrame(t *testing.T) {
 	s := NewScanner(strings.NewReader("\n<14>ok\n"), NonTransparent, 0)
 	frame, err := s.Next()
@@ -144,6 +185,14 @@ func TestCRNotStrippedBeforeNUL(t *testing.T) {
 	frame, err := s.Next()
 	if err != nil || string(frame) != "hello\r" {
 		t.Fatalf("frame = %q err=%v", frame, err)
+	}
+}
+
+func TestCRBeforeNULAtExactMaxIsContent(t *testing.T) {
+	s := NewScanner(bytes.NewReader([]byte("hello\r\x00")), NonTransparent, 6)
+	frame, err := s.Next()
+	if err != nil || string(frame) != "hello\r" {
+		t.Fatalf("CR-before-NUL at max: frame = %q err=%v", frame, err)
 	}
 }
 

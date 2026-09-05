@@ -1,0 +1,8 @@
+{
+  "comment": "max+1 + CRLF is still oversize; trailer strip does not save it; session continues",
+  "mode": "non-transparent",
+  "maxMessageBytes": 8,
+  "input": "123456789\r\n<14>ok\n",
+  "frames": ["<14>ok"],
+  "oversizes": 1
+}

@@ -1,0 +1,7 @@
+{
+  "comment": "maxMessageBytes applies after CRLF strip; exactly max + CRLF is a valid SYSLOG-MSG",
+  "mode": "non-transparent",
+  "maxMessageBytes": 8,
+  "input": "12345678\r\n",
+  "frames": ["12345678"]
+}

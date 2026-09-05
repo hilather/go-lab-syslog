@@ -1,0 +1,10 @@
+{
+  "comment": "auto sticky after NT oversize: later DIGIT+ SP is disagreement (D11); no second frame",
+  "mode": "auto",
+  "maxMessageBytes": 8,
+  "input": "AAAAAAAAA\n9 <14>hello\n",
+  "frames": [],
+  "oversizes": 1,
+  "error": "framing",
+  "sticky": "non-transparent"
+}

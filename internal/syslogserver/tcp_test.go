@@ -254,6 +254,39 @@ func TestTCPMaxConnsRejects(t *testing.T) {
 	}
 }
 
+func TestTCPMaxConnsPerIPRejects(t *testing.T) {
+	srv, h := startTCP(t, Config{
+		Addr:             "127.0.0.1:0",
+		MaxTCPConns:      256,
+		MaxTCPConnsPerIP: 1,
+	})
+	c1, err := net.Dial("tcp", srv.LocalAddr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c1.Close()
+	waitMetric(t, func() uint64 { return uint64(srv.Metrics().TCPConns.Load()) }, 1)
+	c2, err := net.Dial("tcp", srv.LocalAddr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c2.Close()
+	_ = c2.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if _, err := c2.Read(make([]byte, 1)); err == nil {
+		t.Fatal("second connection from the same IP should be closed")
+	}
+	if _, err := c1.Write([]byte("<14>held\n")); err != nil {
+		t.Fatal(err)
+	}
+	m := waitMsg(t, h)
+	if !bytes.Equal(m.Raw, []byte("<14>held")) {
+		t.Fatalf("raw = %q", m.Raw)
+	}
+	if n := len(h.snapshot()); n != 1 {
+		t.Fatalf("stored %d from rejected second conn", n)
+	}
+}
+
 func TestTCPCallSiteDoesNotImportSyslogwire(t *testing.T) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, "tcp.go", nil, parser.ImportsOnly)

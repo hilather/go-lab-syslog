@@ -19,6 +19,7 @@ type goldenFile struct {
 	Input           string   `json:"input"`
 	InputBase64     string   `json:"inputBase64"`
 	Frames          []string `json:"frames"`
+	Oversizes       int      `json:"oversizes"`
 	Error           string   `json:"error"`
 	Sticky          string   `json:"sticky"`
 }
@@ -70,16 +71,24 @@ func runGolden(t *testing.T, path string) {
 	s := NewScanner(bytes.NewReader(raw), g.Mode, g.MaxMessageBytes)
 	var got []string
 	var gotErr error
+	oversizes := 0
 	for {
 		frame, err := s.Next()
 		if errors.Is(err, io.EOF) {
 			break
+		}
+		if errors.Is(err, ErrOversize) {
+			oversizes++
+			continue
 		}
 		if err != nil {
 			gotErr = err
 			break
 		}
 		got = append(got, string(frame))
+	}
+	if oversizes != g.Oversizes {
+		t.Fatalf("oversizes = %d, want %d (err=%v)", oversizes, g.Oversizes, gotErr)
 	}
 	if len(got) != len(g.Frames) {
 		t.Fatalf("frames = %#v, want %#v (err=%v)", got, g.Frames, gotErr)
