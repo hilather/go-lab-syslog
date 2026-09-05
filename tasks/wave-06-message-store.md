@@ -1,6 +1,6 @@
 # STORE-001: Bounded message store
 
-Status: not-started
+Status: done
 Recommended owner: store agent
 Dependencies: WIRE-001
 Exclusive ownership: `internal/store`, `internal/syslogtest` wait helpers
@@ -12,20 +12,21 @@ Restart/reset wipes. No database.
 
 ## Design references
 
-- [ ] `docs/03-message-store.md`
-- [ ] LabMail store caps / wait / epoch
+- [x] `docs/03-message-store.md`
+- [x] LabMail store caps / wait / epoch
 
 ## Scope
 
-- [ ] Record fields: id ULID, receivedAt, transport `udp|tcp`,
+- [x] Record fields: id ULID, receivedAt, transport `udp|tcp`,
       remoteAddr, raw, parsed, parseWarning, truncated
-- [ ] `maxMessages`, `maxBytes`, `fullPolicy` `evict_oldest|reject`
-- [ ] UDP reject-equivalent is drop (no NACK). TCP reject closes
-      after the current frame policy (document).
-- [ ] `Wait(ctx, filter, timeout)` unblocks on match or `maxWait`
-- [ ] `Wipe()` increments `storeGeneration`
-- [ ] Indexes optional: host, app, facility, severity
-- [ ] `rawRetain` default true; if false, raw is dropped after parse
+- [x] `maxMessages`, `maxBytes`, `fullPolicy` `evict_oldest|reject`
+- [x] UDP reject-equivalent is drop (no NACK). TCP reject discards the
+      frame and leaves the connection up (C18); the store only returns
+      `store_full`.
+- [x] `Wait(ctx, filter, timeout)` unblocks on match or `maxWait`
+- [x] `Wipe()` increments `storeGeneration`
+- [x] Indexes optional: host, app, facility, severity (1.0 is a linear scan)
+- [x] `rawRetain` default true; if false, raw is dropped after parse
       (still keep parseWarning)
 
 ## Explicit non-scope
@@ -33,13 +34,14 @@ Restart/reset wipes. No database.
 - Persistence
 - Disk spool
 - Full-text search engine
+- Wiring `store.Store` as syslogserver Handler (FIL-001)
 
 ## Required tests
 
-- [ ] Cap eviction order
-- [ ] Wait wakes on insert and does not leak goroutines
-- [ ] Wipe empties and bumps generation
-- [ ] Concurrent insert + wait + wipe race test
+- [x] Cap eviction order
+- [x] Wait wakes on insert and does not leak goroutines
+- [x] Wipe empties and bumps generation
+- [x] Concurrent insert + wait + wipe race test
 
 ## Acceptance criteria
 

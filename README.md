@@ -21,12 +21,13 @@ log collector.
 | License | Apache-2.0 |
 | User | `65532:65532` |
 
-**Implementation status.** FND-001, CFG-001, WIRE-001, and UDP-001 are in
-tree: `labsyslog version`, `help`, `validate`, `canonicalize`, and
-`serve --syslog-udp-listen ADDR --management-listen=off` work.
-`internal/syslogwire` parses RFC 3164 / RFC 5424; `internal/syslogserver`
-binds RFC 5426 UDP through a stub Handler (store wiring is FIL-001).
-Later waves land TCP, the store, REST, MCP, UI, and the container image.
+**Implementation status.** FND-001, CFG-001, WIRE-001, UDP-001, and
+STORE-001 are in tree: `labsyslog version`, `help`, `validate`,
+`canonicalize`, and `serve --syslog-udp-listen ADDR --management-listen=off`
+work. `internal/syslogwire` parses RFC 3164 / RFC 5424; `internal/syslogserver`
+binds RFC 5426 UDP through a stub Handler (store wiring is FIL-001);
+`internal/store` is the bounded ULID inbox (wait, wipe, generation).
+Later waves land TCP, REST, MCP, UI, and the container image.
 Unimplemented CLI subcommands fail closed. Remaining placeholder Make
 targets exit 1.
 

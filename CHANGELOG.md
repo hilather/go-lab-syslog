@@ -14,6 +14,13 @@
   `empty` and `unparseable`. `labsyslog serve --config FILE
   --syslog-udp-listen ADDR --management-listen=off` binds UDP without a
   management plane. TCP listen and store-as-Handler wiring are later waves.
+- Bounded ephemeral message store (STORE-001): `internal/store` ULID
+  inbox with caps (`evict_oldest` / `reject`), list/wait AND filters,
+  wait (existing/inserted/timeout/wipe), wipe, generation, and
+  `rawRetain`. `github.com/oklog/ulid/v2` is the frozen ID generator
+  (time-sortable; the Go standard library has no ULID). Insert reject
+  does not close TCP (C18); the store returns `store_full` and the
+  caller discards the frame. Wait helpers live in `internal/syslogtest`.
 - First-party RFC 3164 and RFC 5424 codec (WIRE-001): `internal/syslogwire`
   parse/serialize into `model.Parsed` with `parseWarning` tokens
   (`missing_pri`, `utf8_bom`, `no_parser`, `rfc5424_disabled`,

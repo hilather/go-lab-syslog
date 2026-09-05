@@ -15,7 +15,7 @@ test that fails before the fix.
 | Revision | `internal/compiler` | canonicalize stable, secret bytes absent |
 | Wire | `testdata/packets/` | 3164, 5424, SD escapes, NILVALUE, missing PRI, BOM |
 | Framing | `testdata/framing/` | octet-counting, NL, NUL trailer, auto heuristic, oversize, idle |
-| Store | `internal/store` | evict, reject, wait existing/inserted/timeout/wipe, generation |
+| Store | `internal/store` | evict order, oversized reject under evict_oldest, wait existing/inserted/timeout/wipe, generation, 10k inserts under maxBytes, insert+wait+wipe race |
 | Admission / filters | `internal/syslogserver` | CIDR miss silent, first-match, unmatched capture |
 | UDP sink | `internal/syslogserver` | dual-stack 127.0.0.1 and ::1; oversize/empty drop; `truncated` false; serve `--management-listen=off` |
 | Import fence | `internal/testutil/fence_test.go` | no Dial in server/store/app/wire; no syslog libs; no control import from data plane |
@@ -24,7 +24,7 @@ test that fails before the fix.
 | Container | `make test-container` | bind `:1514`, cap_drop ALL, healthcheck |
 | Docs | `make test-docs` | links; phrases `NAT collision` and `userland-proxy` present in deploy docs |
 | Fuzz-smoke | PRI, 5424 SD (`make test-fuzz-smoke`; 6587 splitter in TCP-001) | |
-| Race | wait + insert + reset | |
+| Race | wait + insert + wipe (`internal/store` TestRaceInsertWaitWipe) | |
 
 ## Make targets
 

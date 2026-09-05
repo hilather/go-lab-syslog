@@ -23,9 +23,31 @@ Store
   rawRetain     bool
 ```
 
-`id` is a ULID (`oklog/ulid/v2`) generated at insert. Sortable by time.
+`id` is a ULID (`oklog/ulid/v2`) generated at insert **before** the
+mutex is acquired (entropy can block). Sortable by time.
 `generation` is monotonic in-process and is returned on every list,
 wait, and state payload so agents can detect races.
+
+Go API (`internal/store`). Stores `model.Message`; there is no second
+message type.
+
+```
+New(Config) *Store
+Insert(msg model.Message) (generation uint64, err error)
+List(f ListFilter, cursor string, limit int) (ListResult, error)
+Get(id string) (model.Message, error)
+Delete(id string) error
+Clear()
+Wipe()
+Wait(ctx, f ListFilter, timeout) (WaitResult, error)
+Stats() Stats
+```
+
+List is newest-first. `cursor` is the last-returned id; a missing id is
+`cursor_stale` (REST wraps this as opaque HMAC). `Insert` returns
+`store_full` when the candidate is rejected. The store does not close
+sockets: UDP callers drop silently and TCP callers discard the frame
+and keep the connection (C18).
 
 ## Caps
 
@@ -40,10 +62,13 @@ wait, and state payload so agents can detect races.
 `fullPolicy`:
 
 - `evict_oldest` — drop the oldest messages until the candidate fits.
-  Each eviction increments `labsyslog_store_evicted_total` and bumps
-  generation once per batch (not per message).
-- `reject` — do not insert. UDP: silent. TCP: the framed message is
-  discarded, connection stays up. Metric `labsyslog_store_rejected_total`.
+  Each eviction increments `labsyslog_store_evicted_total`. A successful
+  insert (including any eviction batch) bumps generation once, not once
+  per evicted message.
+- `reject` — do not insert; return `store_full`. UDP: silent. TCP: the
+  framed message is discarded, connection stays up. Metric
+  `labsyslog_store_rejected_total`. The store itself never closes a
+  connection.
 
 A single message larger than `maxBytes` is rejected even under
 `evict_oldest`. It cannot fit.
