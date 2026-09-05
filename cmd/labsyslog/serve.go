@@ -13,6 +13,7 @@ import (
 
 	"github.com/hilather/go-lab-syslog/internal/app"
 	"github.com/hilather/go-lab-syslog/internal/compiler"
+	"github.com/hilather/go-lab-syslog/internal/control/mcp"
 	"github.com/hilather/go-lab-syslog/internal/control/rest"
 	"github.com/hilather/go-lab-syslog/internal/observability"
 )
@@ -62,7 +63,15 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	}
 	defer func() { _ = svc.Close() }()
 
-	httpSrv := rest.Mount(svc)
+	httpSrv, mcpSrv, err := mountManagement(svc)
+	if err != nil {
+		_ = svc.Close()
+		_, _ = fmt.Fprintf(stderr, "labsyslog serve: mcp: %v\n", err)
+		return 1
+	}
+	if mcpSrv != nil {
+		defer mcpSrv.Close()
+	}
 	if httpSrv != nil {
 		go func() {
 			ln := svc.ManagementListener()
@@ -102,4 +111,25 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 
 	<-ctx.Done()
 	return 0
+}
+
+func mountManagement(svc *app.Service) (*http.Server, *mcp.Server, error) {
+	if svc == nil || svc.ManagementListener() == nil {
+		return nil, nil, nil
+	}
+	mcpSrv, err := mcp.New(mcp.Config{Service: svc})
+	if err != nil {
+		return nil, nil, err
+	}
+	path := mcp.DefaultPath
+	if snap := svc.Snapshot(); snap != nil && snap.Document.Spec.Listeners.Management.MCPPath != "" {
+		path = snap.Document.Spec.Listeners.Management.MCPPath
+	}
+	mux := http.NewServeMux()
+	mux.Handle(path, mcpSrv.Handler())
+	mux.Handle("/", rest.New(svc))
+	return &http.Server{
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}, mcpSrv, nil
 }

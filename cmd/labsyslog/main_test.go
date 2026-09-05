@@ -47,17 +47,6 @@ func TestHelp(t *testing.T) {
 	}
 }
 
-func TestUnimplementedFailClosed(t *testing.T) {
-	var stdout, stderr bytes.Buffer
-	code := run([]string{"labsyslog", "mcp-stdio"}, &stdout, &stderr)
-	if code == 0 {
-		t.Fatal("mcp-stdio succeeded; unimplemented commands must fail closed")
-	}
-	if !strings.Contains(stderr.String(), "not implemented") {
-		t.Fatalf("mcp-stdio stderr %q missing not implemented", stderr.String())
-	}
-}
-
 func TestHealthcheckRequiresURL(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"labsyslog", "healthcheck"}, &stdout, &stderr)
@@ -66,6 +55,26 @@ func TestHealthcheckRequiresURL(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "--url") {
 		t.Fatalf("stderr %q missing --url", stderr.String())
+	}
+}
+
+func TestMCPStdioRequiresFlags(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"labsyslog", "mcp-stdio"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("exit %d want 2 stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "--config") {
+		t.Fatalf("stderr %q missing --config", stderr.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	code = run([]string{"labsyslog", "mcp-stdio", "--config", "x.yaml"}, &stdout, &stderr)
+	if code != 2 {
+		t.Fatalf("exit %d want 2 stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "--token-file") {
+		t.Fatalf("stderr %q missing --token-file", stderr.String())
 	}
 }
 

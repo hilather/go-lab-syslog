@@ -1,0 +1,10 @@
+# MCPJungle 0.4.6 registration hatch (ADR 0006). Product default is false.
+# Lab overlay testdata/config/valid/lab-overlay.yaml sets the same flag.
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  management:
+    mcp:
+      allowLegacyClients: true

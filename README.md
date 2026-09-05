@@ -50,6 +50,12 @@ management listener. JSON slog and hand-rolled OpenMetrics land at
 MCP, UI, and the container image.
 Unimplemented CLI subcommands fail closed. Remaining placeholder Make
 targets exit 1.
+**Implementation status.** Through MCP-001: `labsyslog version`, `help`,
+`validate`, `canonicalize`, `serve`, and `mcp-stdio --config --token-file`
+work. Management REST `/v1` and Streamable HTTP `POST /mcp` share
+`app.Service`. Remaining waves land observability, the container image,
+and the operator UI. Unimplemented CLI subcommands fail closed. Remaining
+placeholder Make targets exit 1.
 
 Documentation
 · [Start here](START-HERE.md)

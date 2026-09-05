@@ -1,5 +1,5 @@
 // Command generatejsonschema writes generated API artifacts (JSON Schema,
-// OpenAPI, error catalog, capability table, metrics catalog).
+// OpenAPI, error catalog, capability table, metrics catalog, MCP manifest).
 package main
 
 import (
@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/hilather/go-lab-syslog/internal/control/mcp"
 )
 
 const (
@@ -17,6 +19,7 @@ const (
 	relErrors       = "api/errors/v1.json"
 	relCapabilities = "api/capabilities/v1.json"
 	relMetrics      = "api/metrics/v1alpha1.json"
+	relMCP          = mcp.ManifestRelPath
 )
 
 func main() {
@@ -40,10 +43,10 @@ func main() {
 	}
 }
 
-// Generate writes JSON Schema, OpenAPI, error catalog, capabilities, and metrics.
+// Generate writes JSON Schema, OpenAPI, error catalog, capabilities, metrics, and MCP manifest.
 func Generate(root string) error {
 	for _, art := range artifacts() {
-		body, err := renderValue(art.value)
+		body, err := artBytes(art)
 		if err != nil {
 			return err
 		}
@@ -61,7 +64,7 @@ func Generate(root string) error {
 // Check fails if any generated artifact is stale.
 func Check(root string) error {
 	for _, art := range artifacts() {
-		want, err := renderValue(art.value)
+		want, err := artBytes(art)
 		if err != nil {
 			return err
 		}
@@ -77,18 +80,31 @@ func Check(root string) error {
 	return nil
 }
 
+func artBytes(art artifact) ([]byte, error) {
+	if art.raw != nil {
+		return art.raw, nil
+	}
+	return renderValue(art.value)
+}
+
 type artifact struct {
 	rel   string
 	value any
+	raw   []byte
 }
 
 func artifacts() []artifact {
+	mcpRaw, err := mcp.RenderManifest()
+	if err != nil {
+		panic(err)
+	}
 	return []artifact{
-		{relPath, schema()},
-		{relOpenAPI, openAPI()},
-		{relErrors, errorsCatalog()},
-		{relCapabilities, capabilitiesCatalog()},
-		{relMetrics, metricsCatalog()},
+		{rel: relPath, value: schema()},
+		{rel: relOpenAPI, value: openAPI()},
+		{rel: relErrors, value: errorsCatalog()},
+		{rel: relCapabilities, value: capabilitiesCatalog()},
+		{rel: relMetrics, value: metricsCatalog()},
+		{rel: relMCP, raw: mcpRaw},
 	}
 }
 

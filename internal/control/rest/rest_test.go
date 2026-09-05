@@ -191,6 +191,24 @@ func TestHealthLiveWithoutReady(t *testing.T) {
 	}
 }
 
+func TestVersionRecordsMCPProtocol(t *testing.T) {
+	ts, _ := newREST(t, "")
+	resp := get(t, ts, "/v1/version")
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	var body struct {
+		Protocols map[string]string `json:"protocols"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Protocols["mcp"] != "2026-07-28" {
+		t.Fatalf("protocols.mcp %q", body.Protocols["mcp"])
+	}
+}
+
 func TestHealthAndFeatures(t *testing.T) {
 	ts, _ := newREST(t, "")
 	live := get(t, ts, "/v1/health/live")

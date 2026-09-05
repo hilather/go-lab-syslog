@@ -14,11 +14,12 @@ help:
 		'  format              go fmt ./...' \
 		'  lint                gofmt -l + go vet (no extra lint module)' \
 		'  generate            JSON Schema, OpenAPI, error catalog, capabilities, metrics' \
+		'  generate            JSON Schema, OpenAPI, error catalog, capabilities, MCP' \
 		'  verify-generated    fail if generated API artifacts are stale' \
 		'  test                go test ./...' \
 		'  test-race           go test -race ./...' \
 		'  test-fuzz-smoke     short go-fuzz of syslogwire.Parse + syslogframing.Next' \
-		'  test-parity         placeholder (MCP-001)' \
+		'  test-parity         REST/MCP capability parity goldens' \
 		'  test-config-compat  valid/invalid YAML fixture suite' \
 		'  test-docs           required documents, markdown links, required phrases' \
 		'  test-container      placeholder (DEP-001)' \
@@ -64,6 +65,9 @@ test-fuzz-smoke:
 	$(GO) test ./internal/syslogwire -count=1 -fuzz=FuzzParse -fuzztime=5s
 	$(GO) test ./internal/syslogframing -count=1 -fuzz=FuzzNext -fuzztime=3s
 
-test-parity test-container security-scan web-test web-build:
+test-parity:
+	$(GO) test ./internal/capabilities ./internal/control/rest ./internal/control/mcp -count=1
+
+test-container security-scan web-test web-build:
 	@echo '$@: not implemented yet; placeholder fails closed' >&2
 	@exit 1

@@ -39,8 +39,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 			return cmdServe(ctx, args[2:], stdout, stderr)
 		})
 	case "mcp-stdio":
-		return withShutdown(func(context.Context) int {
-			return notImplemented(args[1], stderr)
+		return withShutdown(func(ctx context.Context) int {
+			return cmdMCPStdio(ctx, args[2:], stdout, stderr)
 		})
 	case "send":
 		_, _ = fmt.Fprintln(stderr, "labsyslog send is forbidden")

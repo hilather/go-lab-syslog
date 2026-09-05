@@ -1,0 +1,56 @@
+{
+  "apiVersion": "labsyslog.dev/mcp/v1",
+  "generatedBy": "internal/control/mcp.RenderManifest; DO NOT EDIT.",
+  "protocol": "2026-07-28",
+  "sdk": "github.com/modelcontextprotocol/go-sdk",
+  "sdkVersion": "v1.7.0",
+  "tools": [
+    "syslog_version_get",
+    "syslog_capabilities_get",
+    "syslog_status_get",
+    "syslog_schema_get",
+    "syslog_features_list",
+    "syslog_state_get",
+    "syslog_state_validate",
+    "syslog_state_export",
+    "syslog_state_reset",
+    "syslog_change_plan",
+    "syslog_change_apply",
+    "syslog_messages_list",
+    "syslog_message_get",
+    "syslog_message_raw_get",
+    "syslog_message_delete",
+    "syslog_messages_clear",
+    "syslog_messages_wait",
+    "syslog_stats_get",
+    "syslog_audit_query",
+    "syslog_audit_get"
+  ],
+  "resources": [
+    "labsyslog://capabilities",
+    "labsyslog://status",
+    "labsyslog://schema/config",
+    "labsyslog://features",
+    "labsyslog://state",
+    "labsyslog://messages",
+    "labsyslog://messages/{id}",
+    "labsyslog://stats",
+    "labsyslog://audit"
+  ],
+  "mutatingTools": [
+    "syslog_state_reset",
+    "syslog_change_apply",
+    "syslog_message_delete",
+    "syslog_messages_clear"
+  ],
+  "healthNotTools": [
+    "health.live",
+    "health.ready",
+    "session.create",
+    "session.get",
+    "session.delete",
+    "metrics.scrape",
+    "ui.static",
+    "events.stream"
+  ]
+}

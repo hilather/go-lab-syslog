@@ -1,0 +1,4 @@
+syslog_state_reset
+syslog_change_apply
+syslog_message_delete
+syslog_messages_clear

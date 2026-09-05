@@ -185,6 +185,75 @@ spec:
 	}
 }
 
+func TestServeMCPUnauthorized(t *testing.T) {
+	dir := t.TempDir()
+	tok := filepath.Join(dir, "token")
+	if err := os.WriteFile(tok, bytes.Repeat([]byte("t"), 32), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := filepath.Join(dir, "config.yaml")
+	body := []byte(`
+apiVersion: labsyslog.dev/v1alpha1
+kind: LabSyslog
+metadata:
+  name: lab-sink
+spec:
+  auth:
+    tokens:
+      - id: operator
+        secretFile: ` + tok + `
+`)
+	if err := os.WriteFile(cfg, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var stdout, stderr lockedBuffer
+	done := make(chan int, 1)
+	go func() {
+		done <- cmdServe(ctx, []string{
+			"--config", cfg,
+			"--syslog-udp-listen", "127.0.0.1:0",
+			"--syslog-tcp-listen", "127.0.0.1:0",
+			"--management-listen", "127.0.0.1:0",
+		}, &stdout, &stderr)
+	}()
+	addr := waitListenPrefix(t, &stderr, "management listen ")
+	var resp *http.Response
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		req, reqErr := http.NewRequest(http.MethodPost, "http://"+addr+"/mcp", strings.NewReader(`{}`))
+		if reqErr != nil {
+			t.Fatal(reqErr)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		var err error
+		resp, err = http.DefaultClient.Do(req)
+		if err == nil {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if resp == nil {
+		t.Fatalf("mcp: no response stderr=%q", stderr.String())
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("mcp status %d want 401 body=%s stderr=%q", resp.StatusCode, body, stderr.String())
+	}
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("serve exit %d stderr=%q", code, stderr.String())
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("serve did not exit after cancel")
+	}
+}
+
 func TestServeRequiresConfig(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"labsyslog", "serve"}, &stdout, &stderr)

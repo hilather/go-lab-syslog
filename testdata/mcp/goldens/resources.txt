@@ -1,0 +1,9 @@
+labsyslog://capabilities
+labsyslog://status
+labsyslog://schema/config
+labsyslog://features
+labsyslog://state
+labsyslog://messages
+labsyslog://messages/{id}
+labsyslog://stats
+labsyslog://audit

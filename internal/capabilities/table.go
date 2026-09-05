@@ -1,5 +1,7 @@
 package capabilities
 
+import "strings"
+
 // Flag is a capability row class from docs/05.
 type Flag string
 
@@ -59,4 +61,102 @@ var table = []Row{
 	{ID: "stats.get", RESTMethod: "GET", RESTPath: "/v1/stats", MCPTool: "syslog_stats_get", MCPResource: "labsyslog://stats", Scope: "syslog.read", Flags: []Flag{ParityRequired}, Idempotent: true},
 	{ID: "audit.query", RESTMethod: "GET", RESTPath: "/v1/audit", MCPTool: "syslog_audit_query", MCPResource: "labsyslog://audit", Scope: "syslog.audit.read", Flags: []Flag{ParityRequired}, Idempotent: true},
 	{ID: "audit.get", RESTMethod: "GET", RESTPath: "/v1/audit/{id}", MCPTool: "syslog_audit_get", Scope: "syslog.audit.read", Flags: []Flag{ParityRequired}, Idempotent: true},
+}
+
+// Tools returns PARITY_REQUIRED MCP tool names in table order.
+func Tools() []string {
+	var out []string
+	for _, row := range table {
+		if row.MCPTool != "" {
+			out = append(out, row.MCPTool)
+		}
+	}
+	return out
+}
+
+// Resources returns unique MCP resource URIs in table order.
+func Resources() []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, row := range table {
+		if row.MCPResource == "" || seen[row.MCPResource] {
+			continue
+		}
+		seen[row.MCPResource] = true
+		out = append(out, row.MCPResource)
+	}
+	return out
+}
+
+// MutatingTools returns PARITY_REQUIRED mutating MCP tool names in table order.
+func MutatingTools() []string {
+	var out []string
+	for _, row := range table {
+		if row.Mutating && row.MCPTool != "" {
+			out = append(out, row.MCPTool)
+		}
+	}
+	return out
+}
+
+// HealthNotTools returns REST_ONLY_PROTOCOL capability IDs (not MCP tools).
+func HealthNotTools() []string {
+	var out []string
+	for _, row := range table {
+		for _, f := range row.Flags {
+			if f == RESTOnlyProtocol {
+				out = append(out, row.ID)
+				break
+			}
+		}
+	}
+	return out
+}
+
+// LookupTool returns the frozen row for an MCP tool name.
+func LookupTool(name string) (Row, bool) {
+	for _, row := range table {
+		if row.MCPTool == name {
+			return row, true
+		}
+	}
+	return Row{}, false
+}
+
+// LookupResource returns the frozen row whose MCP resource matches uri
+// (including {id} templates).
+func LookupResource(uri string) (Row, bool) {
+	for _, row := range table {
+		if row.MCPResource == "" {
+			continue
+		}
+		if resourceMatch(row.MCPResource, uri) {
+			return row, true
+		}
+	}
+	return Row{}, false
+}
+
+func resourceMatch(pattern, uri string) bool {
+	if pattern == uri {
+		return true
+	}
+	pParts := strings.Split(pattern, "/")
+	uParts := strings.Split(uri, "/")
+	if len(pParts) != len(uParts) {
+		return false
+	}
+	for i := range pParts {
+		seg := pParts[i]
+		if strings.HasPrefix(seg, "{") && strings.HasSuffix(seg, "}") {
+			if uParts[i] == "" {
+				return false
+			}
+			continue
+		}
+		if seg != uParts[i] {
+			return false
+		}
+	}
+	return true
 }

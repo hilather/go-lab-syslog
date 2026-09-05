@@ -47,6 +47,12 @@ func TestTableFrozenParity(t *testing.T) {
 	if restOnly < 6 {
 		t.Fatalf("rest-only rows = %d", restOnly)
 	}
+	if len(Tools()) != parity {
+		t.Fatalf("Tools() = %d parity rows = %d", len(Tools()), parity)
+	}
+	if len(Resources()) == 0 {
+		t.Fatal("Resources() empty")
+	}
 	for _, id := range []string{
 		"state.get", "state.reset", "change.plan", "change.apply",
 		"messages.wait", "health.ready", "events.stream",

@@ -51,6 +51,15 @@ func TestGenerateThenCheck(t *testing.T) {
 
 func TestMetricsCatalog(t *testing.T) {
 	b, err := renderValue(metricsCatalog())
+func TestMCPManifestProtocol(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Generate(dir); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(filepath.Join(dir, "api", "mcp", "v1.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,6 +72,13 @@ func TestMetricsCatalog(t *testing.T) {
 	} {
 		if !bytes.Contains(b, []byte(want)) {
 			t.Fatalf("metrics catalog missing %s", want)
+		`"protocol": "2026-07-28"`,
+		"syslog_messages_wait",
+		"labsyslog://messages",
+		"github.com/modelcontextprotocol/go-sdk",
+	} {
+		if !bytes.Contains(b, []byte(want)) {
+			t.Fatalf("mcp manifest missing %s", want)
 		}
 	}
 }

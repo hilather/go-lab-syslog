@@ -12,6 +12,15 @@
 
 ### Added
 
+- Streamable HTTP MCP adapter and REST parity (MCP-001): `POST /mcp` on the
+  management listener, protocol `2026-07-28`, official SDK v1.7.0 only on
+  `internal/control/mcp`. Tools are the frozen `syslog_*` table; resources
+  are `labsyslog://` GET twins. Bearer only (cookies rejected).
+  `allowLegacyClients` defaults false; lab overlay and
+  `testdata/mcp/jungle-overlay.yaml` set true for MCPJungle 0.4.6.
+  `labsyslog mcp-stdio --config --token-file` is the developer adapter.
+  Wait timeout and wipe return `wait_timeout` / `store_wiped`.
+  `make test-parity` is real work; `make generate` writes `api/mcp/v1.json`.
 - Auth, CSRF, and audit (SEC-001): `spec.auth.mode` is bearer only.
   Tokens ≥32 bytes are compared as SHA-256 digests in constant time.
   Roles expand to scopes (`administrator` all four, `reader`
@@ -34,6 +43,7 @@
   Ready is D27 (false if UDP bind failed when UDP is enabled); live is 200
   as soon as the process is running. `labsyslog healthcheck --url=` probes
   `GET /v1/health/ready`. `make generate` writes `api/metrics/v1alpha1.json`.
+  reset. MCP is bearer-only on the same `internal/auth.Verifier`.
 - REST `/v1` adapter and OpenAPI (API-001): `internal/control/rest` mounts
   on the serve process management listener. Frozen table routes plus
   REST_ONLY health, session exchange, metrics placeholder, and SSE

@@ -129,6 +129,39 @@ func TestImportFence(t *testing.T) {
 	scanForbidden("cmd")
 
 	assertNoUnlistedNested(t, root, fencePkgList())
+
+	sdkMod := "github.com/modelcontextprotocol/go-sdk"
+	scanSDK := func(base string) {
+		err := filepath.WalkDir(filepath.Join(root, base), func(p string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				if d.Name() == "testdata" {
+					return fs.SkipDir
+				}
+				return nil
+			}
+			if !isProductionGo(d.Name()) {
+				return nil
+			}
+			rel, _ := filepath.Rel(root, p)
+			pkg := path.Dir(filepath.ToSlash(rel))
+			for _, imp := range fileImports(t, p) {
+				if imp == sdkMod || strings.HasPrefix(imp, sdkMod+"/") {
+					if pkg != "internal/control/mcp" {
+						t.Errorf("%s imports MCP SDK %s (allowed only on internal/control/mcp)", rel, imp)
+					}
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	scanSDK("internal")
+	scanSDK("cmd")
 }
 
 func TestNoDialIdentifiers(t *testing.T) {
