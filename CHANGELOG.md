@@ -18,8 +18,9 @@
   `syslog.read`). REST requires bearer or `labsyslog_session` plus
   `X-LabSyslog-CSRF` on cookie mutations. Health live/ready stay
   unauthenticated; `GET /v1/metrics` is 404 when `publicPath` is
-  false. `allowedOrigins` is exact (default loopback); `OPTIONS` and
-  a non-allowed Origin are `403 origin_not_allowed`. Audit ring
+  false. `allowedOrigins` is exact: empty is loopback only, a
+  non-empty list is exactly those origins (loopback is not unioned);
+  `OPTIONS` and a non-allowed Origin are `403 origin_not_allowed`. Audit ring
   records plan/apply/reset/delete/clear (`id`, `at`, `actor`,
   `operation`, `reason`, `revision`) and wipes with the store on
   reset. MCP is not present; `internal/auth.Verifier` is shared for

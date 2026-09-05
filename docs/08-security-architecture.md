@@ -36,7 +36,8 @@ in AGENTS.md are rejected at decode.
 ## Origin
 
 `spec.management.allowedOrigins` is an exact list. Default `[]` =
-loopback only. `originAllowlist` is an unknown field and rejects.
+loopback only. A non-empty list is exactly those origins; loopback
+is not unioned. `originAllowlist` is an unknown field and rejects.
 1.0 has no `"*"` / `"private"` sentinels. Non-allowed Origin on SPA
 JS or mutating REST → `403 origin_not_allowed`. No CORS `*`
 reflection. `OPTIONS` is 403. Audit ring (plan/apply/reset/delete/clear)

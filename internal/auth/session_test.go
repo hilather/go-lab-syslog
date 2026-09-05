@@ -47,6 +47,12 @@ func TestOriginAllowlist(t *testing.T) {
 	if err := CheckOrigin("https://lab.example", []string{"https://lab.example"}); err != nil {
 		t.Fatal(err)
 	}
+	if err := CheckOrigin("http://127.0.0.1:8088", []string{"https://lab.example"}); err == nil {
+		t.Fatal("non-empty allowlist must not union loopback")
+	}
+	if err := CheckOrigin("http://localhost:18514", []string{"https://lab.example"}); err == nil {
+		t.Fatal("localhost not listed")
+	}
 	if err := CheckOrigin("file://tmp", nil); err == nil {
 		t.Fatal("file://")
 	}

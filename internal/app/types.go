@@ -35,7 +35,7 @@ type PlanRequest struct {
 	Operations       []Operation     `json:"operations,omitempty"`
 	Candidate        *model.Document `json:"candidate,omitempty"`
 	Reason           string          `json:"reason,omitempty"`
-	Actor            string          `json:"actor,omitempty"`
+	Actor            string          `json:"-"`
 }
 
 // ApplyRequest is changes:apply. IdempotencyKey is required.
@@ -44,7 +44,7 @@ type ApplyRequest struct {
 	Operations       []Operation     `json:"operations,omitempty"`
 	Candidate        *model.Document `json:"candidate,omitempty"`
 	Reason           string          `json:"reason,omitempty"`
-	Actor            string          `json:"actor,omitempty"`
+	Actor            string          `json:"-"`
 	IdempotencyKey   string          `json:"idempotencyKey"`
 }
 

@@ -187,7 +187,7 @@ func schema() obj {
 		{"allowLegacyClients", obj{{"type", "boolean"}, {"default", false}}},
 	})
 	management := closedObj([]string{}, obj{
-		{"allowedOrigins", obj{{"type", "array"}, {"items", stringT}, {"description", "exact origins; default empty is loopback only; originAllowlist rejects"}}},
+		{"allowedOrigins", obj{{"type", "array"}, {"items", stringT}, {"description", "exact origins; empty is loopback only; non-empty is exactly the list (loopback not unioned); originAllowlist rejects"}}},
 		{"mcp", mcp},
 		{"bodyLimit", obj{{"type", "string"}, {"default", "1MiB"}}},
 		{"requestsPerSecond", obj{{"type", "integer"}, {"default", 32}}},

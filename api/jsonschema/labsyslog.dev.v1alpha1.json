@@ -184,7 +184,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "exact origins; default empty is loopback only; originAllowlist rejects"
+              "description": "exact origins; empty is loopback only; non-empty is exactly the list (loopback not unioned); originAllowlist rejects"
             },
             "mcp": {
               "type": "object",

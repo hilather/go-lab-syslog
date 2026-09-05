@@ -134,7 +134,11 @@ Mirror LabNTP / LabMail:
 
 - `ui.enabled` default true
 - `management.allowedOrigins` default `[]` (loopback only)
-- `management.allowedOrigins` only in 1.0. No `"*"` / `"private"` sentinels (those are a later SEC-002 if copied from LabMail). `originAllowlist` is an unknown field and rejects.
+- `management.allowedOrigins` only in 1.0. Empty list is loopback
+  http(s) only; a non-empty list is exactly the listed origins
+  (loopback is not unioned). No `"*"` / `"private"` sentinels
+  (those are a later SEC-002 if copied from LabMail).
+  `originAllowlist` is an unknown field and rejects.
 - `management.mcp.allowLegacyClients` default false; lab overlay sets true
 - `management.bodyLimit` default `1MiB`
 - `management.requestsPerSecond` 32, `burst` 64, `maxConcurrent` 256

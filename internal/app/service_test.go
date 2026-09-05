@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"encoding/json"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -388,6 +389,23 @@ func TestStateDriftedAfterApply(t *testing.T) {
 	}
 	if !svc.State(ctx).Drifted {
 		t.Fatal("live apply should set drifted")
+	}
+}
+
+func TestPlanApplyActorNotFromJSON(t *testing.T) {
+	var plan PlanRequest
+	if err := json.Unmarshal([]byte(`{"expectedRevision":"x","actor":"spoof"}`), &plan); err != nil {
+		t.Fatal(err)
+	}
+	if plan.Actor != "" {
+		t.Fatalf("plan actor from JSON %q", plan.Actor)
+	}
+	var apply ApplyRequest
+	if err := json.Unmarshal([]byte(`{"expectedRevision":"x","idempotencyKey":"k","actor":"spoof"}`), &apply); err != nil {
+		t.Fatal(err)
+	}
+	if apply.Actor != "" {
+		t.Fatalf("apply actor from JSON %q", apply.Actor)
 	}
 }
 

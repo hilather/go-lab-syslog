@@ -8,9 +8,10 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/domainerr"
 )
 
-// CheckOrigin implements allowedOrigins exact match. Missing Origin is
-// allowed (SDK/curl). Default empty list is loopback http(s) only. No
-// "*" / "private" sentinels; file:// is denied.
+// CheckOrigin implements allowedOrigins exact match (docs/04). Missing
+// Origin is allowed (SDK/curl). Empty list is loopback http(s) only;
+// a non-empty list is exactly those origins (loopback is not unioned).
+// No "*" / "private" sentinels; file:// is denied.
 func CheckOrigin(origin string, allowlist []string) error {
 	origin = strings.TrimSpace(origin)
 	if origin == "" {
@@ -24,8 +25,11 @@ func CheckOrigin(origin string, allowlist []string) error {
 	if scheme != "http" && scheme != "https" {
 		return domainerr.New(domainerr.OriginNotAllowed, "origin is not allowed")
 	}
-	if isLoopbackHost(u.Hostname()) {
-		return nil
+	if len(allowlist) == 0 {
+		if isLoopbackHost(u.Hostname()) {
+			return nil
+		}
+		return domainerr.New(domainerr.OriginNotAllowed, "origin is not allowed")
 	}
 	for _, allowed := range allowlist {
 		if originMatches(origin, allowed) {

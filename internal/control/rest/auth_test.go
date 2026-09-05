@@ -166,6 +166,47 @@ func TestOriginExactAllowlist(t *testing.T) {
 		body, _ := io.ReadAll(resp.Body)
 		t.Fatalf("status %d body=%s", resp.StatusCode, body)
 	}
+
+	loop, err := http.NewRequest(http.MethodGet, ts.URL+"/v1/state", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setAuth(loop)
+	loop.Header.Set("Origin", "http://127.0.0.1:8088")
+	loopResp, err := ts.Client().Do(loop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loopResp.Body.Close()
+	if loopResp.StatusCode != http.StatusForbidden {
+		body, _ := io.ReadAll(loopResp.Body)
+		t.Fatalf("loopback status %d want 403 body=%s", loopResp.StatusCode, body)
+	}
+	p := decodeProblem(t, loopResp)
+	if p.Code != domainerr.OriginNotAllowed {
+		t.Fatalf("code %s", p.Code)
+	}
+}
+
+func TestMetricsPublicPathUnauthenticated(t *testing.T) {
+	ts, _ := newREST(t, `
+  observability:
+    metrics:
+      publicPath: true
+`)
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/v1/metrics", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := ts.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("status %d body=%s", resp.StatusCode, body)
+	}
 }
 
 func TestAuditApplyThenResetWipesRing(t *testing.T) {
