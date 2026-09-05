@@ -96,14 +96,6 @@ func applyDefaults(cfg Config) Config {
 	return cfg
 }
 
-func (c Config) effectiveCap() int {
-	a, b := c.UDPMaxDatagramBytes, c.MaxMessageBytes
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // ListenUDP binds net.ListenPacket("udp", cfg.Addr) and starts the read loop.
 func ListenUDP(ctx context.Context, cfg Config) (*Server, error) {
 	cfg = applyDefaults(cfg)
