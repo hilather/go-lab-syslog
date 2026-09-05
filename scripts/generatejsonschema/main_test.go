@@ -51,6 +51,22 @@ func TestGenerateThenCheck(t *testing.T) {
 
 func TestMetricsCatalog(t *testing.T) {
 	b, err := renderValue(metricsCatalog())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"labsyslog_messages_received_total",
+		"labsyslog_store_messages",
+		"labsyslog_admission_drop_total",
+		"application/openmetrics-text",
+		"MetricsCatalog",
+	} {
+		if !bytes.Contains(b, []byte(want)) {
+			t.Fatalf("metrics catalog missing %s", want)
+		}
+	}
+}
+
 func TestMCPManifestProtocol(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module x\n"), 0o644); err != nil {
@@ -64,14 +80,6 @@ func TestMCPManifestProtocol(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"labsyslog_messages_received_total",
-		"labsyslog_store_messages",
-		"labsyslog_admission_drop_total",
-		"application/openmetrics-text",
-		"MetricsCatalog",
-	} {
-		if !bytes.Contains(b, []byte(want)) {
-			t.Fatalf("metrics catalog missing %s", want)
 		`"protocol": "2026-07-28"`,
 		"syslog_messages_wait",
 		"labsyslog://messages",

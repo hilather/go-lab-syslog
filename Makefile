@@ -16,8 +16,7 @@ help:
 		'LabSyslog Make targets (Go 1.26; module github.com/hilather/go-lab-syslog)' \
 		'  format              go fmt ./...' \
 		'  lint                gofmt -l + go vet (no extra lint module)' \
-		'  generate            JSON Schema, OpenAPI, error catalog, capabilities, metrics' \
-		'  generate            JSON Schema, OpenAPI, error catalog, capabilities, MCP' \
+		'  generate            JSON Schema, OpenAPI, error catalog, capabilities, metrics, MCP' \
 		'  verify-generated    fail if generated API artifacts are stale' \
 		'  test                go test ./...' \
 		'  test-race           go test -race ./...' \
@@ -69,10 +68,6 @@ test-fuzz-smoke:
 	$(GO) test ./internal/syslogwire -count=1 -fuzz=FuzzParse -fuzztime=5s
 	$(GO) test ./internal/syslogframing -count=1 -fuzz=FuzzNext -fuzztime=3s
 
-test-parity:
-	$(GO) test ./internal/capabilities ./internal/control/rest ./internal/control/mcp -count=1
-
-test-container security-scan web-test web-build:
 test-container:
 	bash scripts/test-container.sh
 
@@ -80,10 +75,8 @@ security-scan:
 	$(GO) vet ./...
 	$(GO) run $(GOVULNCHECK_MOD) ./...
 
-test-parity web-test web-build:
-test-parity test-container security-scan:
-	@echo '$@: not implemented yet; placeholder fails closed' >&2
-	@exit 1
+test-parity:
+	$(GO) test ./internal/capabilities ./internal/control/rest ./internal/control/mcp -count=1
 
 web-install:
 	npm --prefix web ci

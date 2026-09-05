@@ -2,8 +2,18 @@
 
 ## [Unreleased]
 
+## [1.0.0-rc.1] - 2026-09-05
+
+First tagged release. Mira review of UI-001 can follow; it still
+gates `v1.0.0`, not this RC.
+
 ### Fixed
 
+- Stack-assembly keep-both left duplicate Makefile recipes so
+  `test-parity`, `test-container`, and `security-scan` still hit the
+  fail-closed placeholder, and collapsed
+  `scripts/generatejsonschema/main_test.go` so `go fmt` / `go vet`
+  could not parse it.
 - CI workflow merge of DEP-001 / MCP-001 / UI-001 jobs: required
   checks are format, lint, unit, race, fuzz-smoke, documentation,
   changelog, generated, config-compat, import-fence, security-scan,
@@ -201,5 +211,5 @@ implemented. Remaining placeholder Make targets fail closed (`exit 1`).
 Default CI runs format, lint, unit, race, fuzz-smoke, docs, changelog,
 generated, config-compat, import-fence, parity, security-scan,
 container-test, and web.
-Do not tag `v1.0.0` until Mira review of UI-001 is recorded.
-The integrator vendor pin is a follow-on after the first `v*` tag.
+Tagged `v1.0.0-rc.1`. Do not tag `v1.0.0` until Mira review of UI-001
+is recorded. The integrator vendor pin is a follow-on after this tag.
