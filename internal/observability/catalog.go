@@ -82,6 +82,7 @@ func RequiredNames() []string {
 		"labsyslog_store_bytes",
 		"labsyslog_store_generation",
 		"labsyslog_store_evicted_total",
+		"labsyslog_store_rejected_total",
 		"labsyslog_tcp_conns",
 		"labsyslog_waiters",
 	}

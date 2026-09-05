@@ -44,9 +44,6 @@ func TestWriteOpenMetricsParsesAndHasRequiredSeries(t *testing.T) {
 			t.Errorf("missing required series %s", name)
 		}
 	}
-	if _, ok := by["labsyslog_store_rejected_total"]; !ok {
-		t.Error("missing labsyslog_store_rejected_total")
-	}
 	if got := sampleValue(by["labsyslog_messages_received_total"], map[string]string{"transport": "udp"}); got != 3 {
 		t.Fatalf("received udp = %v", got)
 	}

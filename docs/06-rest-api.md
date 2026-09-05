@@ -47,8 +47,6 @@ Everything else requires bearer or a valid session cookie.
 | POST | `/v1/session` | bearer | sets `labsyslog_session`; returns `csrf` |
 | GET | `/v1/session` | cookie/bearer | |
 | DELETE | `/v1/session` | cookie/bearer | CSRF when cookie |
-| GET | `/v1/metrics` | unauthenticated when publicPath | OpenMetrics text; 404 when publicPath is false |
-| DELETE | `/v1/session` | cookie/bearer | |
 | GET | `/v1/metrics` | publicPath true: unauthenticated scrape; false: 404 even with auth | Hand-rolled OpenMetrics (`api/metrics/v1alpha1.json`). No `metrics.listen`. |
 
 ## List response
