@@ -17,7 +17,8 @@ type remoteAddr struct {
 
 // ingest runs admission → behavior.mode → parse → classify → Handler.Insert.
 // Callers apply size/framing first and must not parse.
-func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr, raw []byte) {
+// closeConn is true for TCP when admission misses or behavior.mode is close.
+func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr, raw []byte) (closeConn bool) {
 	if ctx == nil {
 		ctx = s.ctx
 	}
@@ -26,14 +27,17 @@ func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr
 	ok, reason := s.cfg.Admission.Allow(remote.ip)
 	if !ok {
 		s.metrics.drop(normalizeAdmissionReason(reason))
-		return
+		return true
 	}
 	s.metrics.Received.Add(1)
 
 	switch s.cfg.Behavior.Mode {
-	case BehaviorDropSilent, BehaviorClose:
+	case BehaviorDropSilent:
 		s.metrics.drop(ReasonBehavior)
-		return
+		return false
+	case BehaviorClose:
+		s.metrics.drop(ReasonBehavior)
+		return true
 	}
 
 	now := s.now()
@@ -44,7 +48,7 @@ func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr
 	parsed, warn, err := syslogwire.Parse(raw, opts)
 	if err != nil {
 		s.metrics.drop(ReasonUnparseable)
-		return
+		return false
 	}
 
 	msg := model.Message{
@@ -62,7 +66,7 @@ func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr
 	switch action {
 	case ActionDropSilent:
 		s.metrics.drop(ReasonFilter)
-		return
+		return false
 	case ActionTag:
 		if tag != "" {
 			msg.Tags = append(msg.Tags, tag)
@@ -71,9 +75,10 @@ func (s *Server) ingest(ctx context.Context, transport string, remote remoteAddr
 
 	if err := s.cfg.Handler.Insert(ctx, msg); err != nil {
 		s.metrics.drop(ReasonStoreFull)
-		return
+		return false
 	}
 	s.metrics.Stored.Add(1)
+	return false
 }
 
 func (s *Server) now() time.Time {

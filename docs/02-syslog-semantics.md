@@ -24,13 +24,13 @@ and nothing is stored (`truncated` is not set). An empty datagram is
 dropped the same way (metric `reason="empty"`). LabSyslog does **not**
 split UDP datagrams.
 
-TCP is a byte stream. Framing is configured by
-`spec.listeners.tcp.framing`:
+TCP is a byte stream. `net.Listen` / `Accept` only (no Dial). Framing is
+configured by `spec.listeners.tcp.framing`:
 
 | Value | Behavior |
 |---|---|
 | `octet-counting` | `MSG-LEN SP SYSLOG-MSG` as RFC 6587 §3.4.1. MSG-LEN is ASCII digits. |
-| `non-transparent` | trailer is `LF` (`\n`). `NUL` is accepted as an alternate trailer and stripped. Trailer is not part of `raw`. |
+| `non-transparent` | trailer is `LF` (`\n`). `NUL` is accepted as an alternate trailer and stripped. Optional CR before LF is stripped (CRLF). Trailer is not part of `raw`. |
 | `auto` | **default.** If the first non-empty bytes of a new message are `DIGIT+ SP`, parse as octet-counting. Otherwise parse as non-transparent. |
 
 Do not invent a third 1.0 mode. `auto` is sticky per TCP session: the

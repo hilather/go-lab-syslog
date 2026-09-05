@@ -48,12 +48,25 @@ func TestUnknownFacilityNotDropped(t *testing.T) {
 func TestBehaviorDropSilentSkipsParse(t *testing.T) {
 	h := newFakeHandler()
 	s := testPipeline(h, Config{Behavior: Behavior{Mode: BehaviorDropSilent}})
-	s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("127.0.0.1"), port: 1}, []byte(helloPayload))
+	if s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("127.0.0.1"), port: 1}, []byte(helloPayload)) {
+		t.Fatal("drop-silent must not close TCP")
+	}
 	if s.metrics.DroppedBehavior.Load() != 1 {
 		t.Fatalf("behavior drops = %d", s.metrics.DroppedBehavior.Load())
 	}
 	if len(h.snapshot()) != 0 {
 		t.Fatal("behavior drop stored a message")
+	}
+}
+
+func TestBehaviorCloseSignalsTCPClose(t *testing.T) {
+	h := newFakeHandler()
+	s := testPipeline(h, Config{Behavior: Behavior{Mode: BehaviorClose}})
+	if !s.ingest(context.Background(), TransportTCP, remoteAddr{ip: netip.MustParseAddr("127.0.0.1"), port: 1}, []byte(helloPayload)) {
+		t.Fatal("behavior close must close TCP")
+	}
+	if len(h.snapshot()) != 0 {
+		t.Fatal("behavior close stored a message")
 	}
 }
 
@@ -64,7 +77,9 @@ func (d denyReason) Allow(netip.Addr) (bool, string) { return false, d.reason }
 func TestAdmissionDenySkipsHandler(t *testing.T) {
 	h := newFakeHandler()
 	s := testPipeline(h, Config{Admission: denyReason{}})
-	s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("10.0.0.1"), port: 1}, []byte(helloPayload))
+	if !s.ingest(context.Background(), TransportUDP, remoteAddr{ip: netip.MustParseAddr("10.0.0.1"), port: 1}, []byte(helloPayload)) {
+		t.Fatal("admission deny must close TCP")
+	}
 	if s.metrics.DroppedAdmission.Load() != 1 {
 		t.Fatalf("admission drops = %d", s.metrics.DroppedAdmission.Load())
 	}

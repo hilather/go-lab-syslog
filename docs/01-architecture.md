@@ -82,7 +82,11 @@ UDP and TCP keep running if management is off or wedged.
 `internal/syslogserver` owns ingest. Binding order (do not reorder):
 
 1. **Size/framing** — UDP oversize or empty datagram: drop, metric, store
-   nothing. TCP framing lands in TCP-001.
+   nothing. TCP RFC 6587 split (`auto` \| `octet-counting` \|
+   `non-transparent`): octet-counting MSG-LEN > `maxMessageBytes` closes
+   the session with no partial store; non-transparent oversize drops the
+   frame and the session continues. LF and NUL trailers (optional CR
+   before LF) are stripped and are not part of `raw`.
 2. **Admission** — first policy gate after size/framing. UDP-001 stubs
    allow-all; FIL-001 fills CIDR and rate.
 3. **`behavior.mode`** — UDP-001 stubs `accept`; FIL-001 applies

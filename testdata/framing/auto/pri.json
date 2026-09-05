@@ -1,0 +1,10 @@
+{
+  "comment": "auto: leading PRI < is non-transparent; a leading < must not select octet-counting",
+  "mode": "auto",
+  "input": "<14>hello\n<15>world\n",
+  "frames": [
+    "<14>hello",
+    "<15>world"
+  ],
+  "sticky": "non-transparent"
+}

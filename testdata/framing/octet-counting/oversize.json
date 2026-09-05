@@ -1,0 +1,8 @@
+{
+  "comment": "MSG-LEN greater than maxMessageBytes is a framing error; no partial SYSLOG-MSG is returned",
+  "mode": "octet-counting",
+  "maxMessageBytes": 8,
+  "input": "20 <14>this-is-too-long",
+  "frames": [],
+  "error": "framing"
+}

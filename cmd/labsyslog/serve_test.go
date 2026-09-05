@@ -50,6 +50,7 @@ func TestServeManagementOffAcceptsUDP(t *testing.T) {
 		done <- cmdServe(ctx, []string{
 			"--config", cfg,
 			"--syslog-udp-listen", "127.0.0.1:0",
+			"--syslog-tcp-listen", "127.0.0.1:0",
 			"--management-listen", "off",
 		}, &stdout, &stderr)
 	}()
@@ -84,19 +85,70 @@ func TestServeManagementOffAcceptsUDP(t *testing.T) {
 	}
 }
 
+func TestServeManagementOffAcceptsTCP(t *testing.T) {
+	cfg := filepath.Join(repoRoot(t), "testdata", "config", "valid", "defaults.yaml")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var stdout, stderr lockedBuffer
+	done := make(chan int, 1)
+	go func() {
+		done <- cmdServe(ctx, []string{
+			"--config", cfg,
+			"--syslog-udp-listen", "127.0.0.1:0",
+			"--syslog-tcp-listen", "127.0.0.1:0",
+			"--management-listen", "off",
+		}, &stdout, &stderr)
+	}()
+
+	addr := waitListenPrefix(t, &stderr, "syslog tcp listen ")
+	if !strings.Contains(stderr.String(), "management listen off") {
+		t.Fatalf("stderr %q missing management listen off", stderr.String())
+	}
+
+	c, err := net.Dial("tcp", addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Write([]byte("9 <14>hello")); err != nil {
+		t.Fatal(err)
+	}
+	_ = c.Close()
+
+	select {
+	case code := <-done:
+		t.Fatalf("serve exited %d before cancel; stderr=%q", code, stderr.String())
+	case <-time.After(50 * time.Millisecond):
+	}
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("serve exit %d stderr=%q", code, stderr.String())
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("serve did not exit after cancel")
+	}
+}
+
 func waitListenAddr(t *testing.T, stderr *lockedBuffer) string {
+	t.Helper()
+	return waitListenPrefix(t, stderr, "syslog udp listen ")
+}
+
+func waitListenPrefix(t *testing.T, stderr *lockedBuffer, prefix string) string {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		s := stderr.String()
 		for _, line := range strings.Split(s, "\n") {
 			line = strings.TrimSpace(line)
-			if strings.HasPrefix(line, "syslog udp listen ") {
-				return strings.TrimPrefix(line, "syslog udp listen ")
+			if strings.HasPrefix(line, prefix) {
+				return strings.TrimPrefix(line, prefix)
 			}
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
-	t.Fatalf("timed out waiting for udp listen; stderr=%q", stderr.String())
+	t.Fatalf("timed out waiting for %q; stderr=%q", prefix, stderr.String())
 	return ""
 }

@@ -15,6 +15,8 @@ type Metrics struct {
 	DroppedUnparseable   atomic.Uint64
 	DroppedStore         atomic.Uint64
 	UDPOversize          atomic.Uint64
+	TCPFramingErrors     atomic.Uint64
+	TCPConns             atomic.Int64
 }
 
 func (m *Metrics) drop(reason string) {
@@ -24,7 +26,6 @@ func (m *Metrics) drop(reason string) {
 	switch reason {
 	case ReasonOversize:
 		m.DroppedOversize.Add(1)
-		m.UDPOversize.Add(1)
 	case ReasonEmpty:
 		m.DroppedEmpty.Add(1)
 	case ReasonAdmission:

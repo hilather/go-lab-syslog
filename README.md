@@ -28,6 +28,12 @@ work. `internal/syslogwire` parses RFC 3164 / RFC 5424; `internal/syslogserver`
 binds RFC 5426 UDP through a stub Handler (store wiring is FIL-001);
 `internal/store` is the bounded ULID inbox (wait, wipe, generation).
 Later waves land TCP, REST, MCP, UI, and the container image.
+TCP-001 are in tree: `labsyslog version`, `help`, `validate`,
+`canonicalize`, and `serve --syslog-udp-listen ADDR --syslog-tcp-listen
+ADDR --management-listen=off` work. `internal/syslogwire` parses RFC 3164
+/ RFC 5424; `internal/syslogframing` splits RFC 6587; `internal/syslogserver`
+binds UDP and TCP through a stub Handler (store wiring is FIL-001).
+Later waves land the store, REST, MCP, UI, and the container image.
 Unimplemented CLI subcommands fail closed. Remaining placeholder Make
 targets exit 1.
 

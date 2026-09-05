@@ -10,6 +10,9 @@ import (
 // TransportUDP is Message.Transport for RFC 5426 datagrams.
 const TransportUDP = "udp"
 
+// TransportTCP is Message.Transport for RFC 6587 streams.
+const TransportTCP = "tcp"
+
 // Classifier actions (docs/04). FIL-001 fills real first-match.
 const (
 	ActionCapture    = "capture"

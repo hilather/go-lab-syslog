@@ -1,0 +1,9 @@
+{
+  "comment": "NUL is an accepted alternate trailer (C19) and is stripped",
+  "mode": "non-transparent",
+  "input": "<14>hello\u0000<15>world\u0000",
+  "frames": [
+    "<14>hello",
+    "<15>world"
+  ]
+}

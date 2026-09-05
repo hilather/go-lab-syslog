@@ -1,0 +1,10 @@
+{
+  "comment": "auto sticky non-transparent: a later DIGIT+ SP message is a framing error; first frame is kept",
+  "mode": "auto",
+  "input": "<14>hello\n9 <14>hello",
+  "frames": [
+    "<14>hello"
+  ],
+  "error": "framing",
+  "sticky": "non-transparent"
+}

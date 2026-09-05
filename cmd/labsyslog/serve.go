@@ -23,7 +23,7 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	fs.SetOutput(stderr)
 	configPath := fs.String("config", "", "path to a labsyslog.dev/v1alpha1 document")
 	udpListen := fs.String("syslog-udp-listen", "", "UDP listen address (overrides spec.listeners.udp.address)")
-	_ = fs.String("syslog-tcp-listen", "", "TCP listen address (TCP-001)")
+	tcpListen := fs.String("syslog-tcp-listen", "", "TCP listen address (overrides spec.listeners.tcp.address)")
 	mgmtListen := fs.String("management-listen", "", "management listen address or off")
 	shutdownTimeout := fs.String("shutdown-timeout", "5s", "drain timeout on SIGTERM")
 	pidFile := fs.String("pid-file", "", "write process id then remove on exit")
@@ -53,8 +53,14 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		udpAddr = *udpListen
 		udpOn = true
 	}
-	if !udpOn {
-		_, _ = fmt.Fprintln(stderr, "labsyslog serve: UDP listener is disabled")
+	tcpOn := doc.Spec.Listeners.TCP.Enabled == nil || *doc.Spec.Listeners.TCP.Enabled
+	tcpAddr := doc.Spec.Listeners.TCP.Address
+	if *tcpListen != "" {
+		tcpAddr = *tcpListen
+		tcpOn = true
+	}
+	if !udpOn && !tcpOn {
+		_, _ = fmt.Fprintln(stderr, "labsyslog serve: no data-plane listener enabled")
 		return 1
 	}
 
@@ -64,19 +70,41 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	}
 	mgmtOff := mgmt == "" || strings.EqualFold(mgmt, "off")
 
-	srv, err := syslogserver.ListenUDP(ctx, syslogserver.Config{
-		Addr:                udpAddr,
+	ingest := syslogserver.Config{
 		UDPMaxDatagramBytes: int(doc.Spec.Syslog.UDPMaxDatagramBytes),
 		MaxMessageBytes:     int(doc.Spec.Syslog.MaxMessageBytes),
+		Framing:             doc.Spec.Listeners.TCP.Framing,
+		TCPIdleTimeout:      doc.Spec.Syslog.TCPIdleTimeout.Duration(),
+		SessionTimeout:      doc.Spec.Admission.SessionTimeout.Duration(),
+		MaxTCPConns:         doc.Spec.Admission.MaxTCPConns,
+		MaxTCPConnsPerIP:    doc.Spec.Admission.MaxTCPConnsPerIP,
 		Parse:               syslogwire.OptionsFromParse(doc.Spec.Syslog.Parse),
 		Behavior:            syslogserver.Behavior{Mode: syslogserver.BehaviorAccept},
 		Handler:             syslogserver.NopHandler{},
-	})
-	if err != nil {
-		_, _ = fmt.Fprintf(stderr, "labsyslog serve: udp listen: %v\n", err)
-		return 1
 	}
-	defer func() { _ = srv.Close() }()
+
+	if udpOn {
+		cfg := ingest
+		cfg.Addr = udpAddr
+		srv, err := syslogserver.ListenUDP(ctx, cfg)
+		if err != nil {
+			_, _ = fmt.Fprintf(stderr, "labsyslog serve: udp listen: %v\n", err)
+			return 1
+		}
+		defer func() { _ = srv.Close() }()
+		_, _ = fmt.Fprintln(stderr, "syslog udp listen "+srv.LocalAddr().String())
+	}
+	if tcpOn {
+		cfg := ingest
+		cfg.Addr = tcpAddr
+		srv, err := syslogserver.ListenTCP(ctx, cfg)
+		if err != nil {
+			_, _ = fmt.Fprintf(stderr, "labsyslog serve: tcp listen: %v\n", err)
+			return 1
+		}
+		defer func() { _ = srv.Close() }()
+		_, _ = fmt.Fprintln(stderr, "syslog tcp listen "+srv.LocalAddr().String())
+	}
 
 	if *pidFile != "" {
 		if err := os.WriteFile(*pidFile, []byte(strconv.Itoa(os.Getpid())+"\n"), 0o644); err != nil {
@@ -86,7 +114,6 @@ func cmdServe(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		defer func() { _ = os.Remove(*pidFile) }()
 	}
 
-	_, _ = fmt.Fprintln(stderr, "syslog udp listen "+srv.LocalAddr().String())
 	if mgmtOff {
 		_, _ = fmt.Fprintln(stderr, "management listen off")
 	} else {

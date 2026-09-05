@@ -23,7 +23,7 @@ test that fails before the fix.
 | MCP + parity | `make test-parity` | every PARITY_REQUIRED row |
 | Container | `make test-container` | bind `:1514`, cap_drop ALL, healthcheck |
 | Docs | `make test-docs` | links; phrases `NAT collision` and `userland-proxy` present in deploy docs |
-| Fuzz-smoke | PRI, 5424 SD (`make test-fuzz-smoke`; 6587 splitter in TCP-001) | |
+| Fuzz-smoke | PRI, 5424 SD, RFC 6587 splitter (`make test-fuzz-smoke`) | |
 | Race | wait + insert + wipe (`internal/store` TestRaceInsertWaitWipe) | |
 
 ## Make targets
@@ -31,7 +31,8 @@ test that fails before the fix.
 Listed in AGENTS.md. Missing targets `exit 1`. CI jobs: format,
 lint, unit, race, fuzz-smoke, docs, changelog, generated-file,
 parity, container-test, web. `make test-fuzz-smoke` is a 5s
-`FuzzParse` of `internal/syslogwire` (WIRE-001).
+`FuzzParse` of `internal/syslogwire` plus a short `FuzzNext` of
+`internal/syslogframing`.
 
 ## Transcripts
 

@@ -16,7 +16,7 @@ Use on every LabSyslog PR.
 ## Data plane
 
 - [ ] UDP still one datagram = one message
-- [ ] TCP framing is only `auto|octet|newline`
+- [ ] TCP framing is only `auto|octet-counting|non-transparent`
 - [ ] Oversize UDP stores nothing
 - [ ] Unmatched filter still captures
 - [ ] Allow-list miss still stores nothing

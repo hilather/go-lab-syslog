@@ -1,0 +1,9 @@
+{
+  "comment": "non-transparent LF trailer; two messages; trailer is not part of the frame",
+  "mode": "non-transparent",
+  "input": "<14>hello\n<15>world\n",
+  "frames": [
+    "<14>hello",
+    "<15>world"
+  ]
+}

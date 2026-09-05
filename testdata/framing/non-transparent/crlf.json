@@ -1,0 +1,9 @@
+{
+  "comment": "optional CR before LF is stripped (CRLF); CR is not part of raw",
+  "mode": "non-transparent",
+  "input": "<14>hello\r\n<15>world\r\n",
+  "frames": [
+    "<14>hello",
+    "<15>world"
+  ]
+}

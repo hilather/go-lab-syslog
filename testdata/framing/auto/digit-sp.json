@@ -1,0 +1,10 @@
+{
+  "comment": "auto: first non-empty bytes DIGIT+ SP stick the session to octet-counting (D11)",
+  "mode": "auto",
+  "input": "9 <14>hello9 <15>world",
+  "frames": [
+    "<14>hello",
+    "<15>world"
+  ],
+  "sticky": "octet-counting"
+}

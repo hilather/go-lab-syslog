@@ -1,0 +1,9 @@
+{
+  "comment": "RFC 6587 octet-counting two SYSLOG-MSG frames back-to-back (docs/02 example, MSG-LEN is SYSLOG-MSG only)",
+  "mode": "octet-counting",
+  "input": "57 <165>1 2026-09-04T20:52:35.000Z sut-1 sshd 1234 - - hello57 <165>1 2026-09-04T20:52:35.000Z sut-1 sshd 1234 - - hello",
+  "frames": [
+    "<165>1 2026-09-04T20:52:35.000Z sut-1 sshd 1234 - - hello",
+    "<165>1 2026-09-04T20:52:35.000Z sut-1 sshd 1234 - - hello"
+  ]
+}

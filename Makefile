@@ -17,7 +17,7 @@ help:
 		'  verify-generated    fail if JSON Schema is stale' \
 		'  test                go test ./...' \
 		'  test-race           go test -race ./...' \
-		'  test-fuzz-smoke     short go-fuzz of internal/syslogwire.Parse' \
+		'  test-fuzz-smoke     short go-fuzz of syslogwire.Parse + syslogframing.Next' \
 		'  test-parity         placeholder (MCP-001)' \
 		'  test-config-compat  valid/invalid YAML fixture suite' \
 		'  test-docs           required documents, markdown links, required phrases' \
@@ -62,6 +62,7 @@ test-config-compat:
 
 test-fuzz-smoke:
 	$(GO) test ./internal/syslogwire -count=1 -fuzz=FuzzParse -fuzztime=5s
+	$(GO) test ./internal/syslogframing -count=1 -fuzz=FuzzNext -fuzztime=3s
 
 test-parity test-container security-scan web-test web-build:
 	@echo '$@: not implemented yet; placeholder fails closed' >&2

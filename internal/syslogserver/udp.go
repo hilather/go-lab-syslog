@@ -37,6 +37,7 @@ func (s *Server) handleDatagram(addr net.Addr, payload []byte) {
 	}
 	if len(payload) > s.cfg.UDPMaxDatagramBytes || len(payload) > s.cfg.MaxMessageBytes {
 		s.metrics.drop(ReasonOversize)
+		s.metrics.UDPOversize.Add(1)
 		return
 	}
 	remote, ok := udpRemote(addr)

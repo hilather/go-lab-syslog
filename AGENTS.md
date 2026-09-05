@@ -51,9 +51,10 @@ invariants requires an ADR first.
    MUST NOT import `internal/control`, `internal/web`, or `net/http`.
 2. **Receive-only is structural.** Production packages
    `internal/syslogserver`, `internal/store`, `internal/app`,
-   `internal/syslogwire` MUST NOT call `net.Dial`, `net.DialTimeout`, or
-   `net.Dialer.Dial`. Listen/Accept only. No config type for a remote
-   destination. Import-boundary tests fail the build on a Dial identifier.
+   `internal/syslogwire`, `internal/syslogframing` MUST NOT call
+   `net.Dial`, `net.DialTimeout`, or `net.Dialer.Dial`. Listen/Accept
+   only. No config type for a remote destination. Import-boundary tests
+   fail the build on a Dial identifier.
 3. **Never rewrite bootstrap YAML.** Desired state is the mounted file.
    Reset rereads bootstrap and wipes the store. The process does not
    write the config file.
