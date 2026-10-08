@@ -49,13 +49,17 @@ type Service struct {
 	tcpAddr  string
 	mgmtAddr string
 
-	idem map[string]idemRecord
+	idem    map[string]idemRecord
+	idemSeq uint64
 }
+
+const maxIdempotencyEntries = 128
 
 type idemRecord struct {
 	fingerprint string
 	result      ApplyResult
 	err         error
+	seq         uint64
 }
 
 // New loads bootstrap, compiles a snapshot, and constructs store + audit.

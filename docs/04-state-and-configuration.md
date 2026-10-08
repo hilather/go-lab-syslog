@@ -207,7 +207,10 @@ Request:
 
 Apply requires the same `expectedRevision` and an `Idempotency-Key`
 header (REST) or `idempotencyKey` argument (MCP). Duplicate key +
-identical body returns the original result.
+identical body returns the original result. The fingerprint is that
+body only. Successful apply keeps at most 128 idempotency records and
+drops the oldest completed record. Reset clears the map. A dropped key
+is not a replay.
 
 ## Reset
 

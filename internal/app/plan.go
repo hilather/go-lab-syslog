@@ -86,7 +86,21 @@ func (s *Service) Apply(_ context.Context, req ApplyRequest) (out ApplyResult, e
 	})
 	observability.LogMutation(req.Actor, audit.OpApply, req.Reason, cand.next.Revision)
 	out = ApplyResult{Revision: cand.next.Revision, Plan: cand.plan}
-	s.idem[req.IdempotencyKey] = idemRecord{fingerprint: fp, result: out}
+	s.idemSeq++
+	if len(s.idem) >= maxIdempotencyEntries {
+		oldestKey := ""
+		var oldestSeq uint64
+		first := true
+		for k, rec := range s.idem {
+			if first || rec.seq < oldestSeq {
+				oldestKey = k
+				oldestSeq = rec.seq
+				first = false
+			}
+		}
+		delete(s.idem, oldestKey)
+	}
+	s.idem[req.IdempotencyKey] = idemRecord{fingerprint: fp, result: out, seq: s.idemSeq}
 	return out, nil
 }
 

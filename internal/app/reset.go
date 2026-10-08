@@ -53,6 +53,7 @@ func (s *Service) Reset(ctx context.Context, actor, reason string) error {
 		s.sessions.Clear()
 	}
 	s.idem = map[string]idemRecord{}
+	s.idemSeq = 0
 	s.audit.Append(audit.Event{
 		Actor:     actor,
 		Operation: audit.OpReset,

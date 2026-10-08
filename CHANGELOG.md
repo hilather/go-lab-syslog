@@ -23,6 +23,9 @@
   still wins over the YAML address.
 - `POST /v1/session` and `GET /v1/session` send `Cache-Control: no-store`,
   the same as logout.
+- Successful apply keeps at most 128 idempotency records and drops the
+  oldest completed record. Reset still clears the map. A dropped key is
+  not a replay.
 
 ## [1.0.0-rc.1] - 2026-09-05
 
