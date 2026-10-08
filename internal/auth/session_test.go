@@ -48,9 +48,12 @@ func TestViewDoesNotSlideAndDropsExpired(t *testing.T) {
 	if !ok || !got.LastSeen.Equal(now) {
 		t.Fatalf("view %+v ok=%v", got, ok)
 	}
+	// One second later is still inside the idle window. LastSeen must
+	// stay at creation time, so a View that assigns LastSeen = now() fails.
+	s.now = func() time.Time { return now.Add(time.Second) }
 	again, ok := s.View(cookie)
-	if !ok || !again.LastSeen.Equal(got.LastSeen) {
-		t.Fatalf("view slid LastSeen %s -> %s", got.LastSeen, again.LastSeen)
+	if !ok || !again.LastSeen.Equal(now) {
+		t.Fatalf("view slid LastSeen %s -> %s", now, again.LastSeen)
 	}
 	s.now = func() time.Time { return now.Add(2 * time.Hour) }
 	if _, ok := s.View(cookie); ok {

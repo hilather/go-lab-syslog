@@ -47,15 +47,16 @@ binary units (`64KiB`, `256MiB`) parsed by `internal/config`.
 | `tls.keyFile` | empty | v1.1 placeholder; ignored while `enabled` is false |
 | `tls.caFile` | empty | v1.1 placeholder; ignored while `enabled` is false |
 | `tls.clientAuth` | false | v1.1 placeholder; ignored while `enabled` is false |
-| `management.address` | empty | empty means management off unless CLI flag set. Once `Start` has bound it, the effective address is fixed for the process lifetime (ADR 0013) |
+| `management.address` | empty | empty means management off unless CLI flag set. After `Start`, the effective address is fixed for the process lifetime (ADR 0013) |
 | `management.restPath` | `/v1` | |
 | `management.mcpPath` | `/mcp` | |
 
 UDP and TCP addresses are **reset-only**. `changes:apply` that tries to
-change them returns `immutable_field`, and reset rebinds them. The
-effective `listeners.management.address` is fixed for the process
-lifetime once `Start` has bound it. Reset refuses a change with
-`validation_failed`, does not swap or wipe, and the previous socket
+change them returns `immutable_field`, and reset rebinds them. After
+`Start`, the effective `listeners.management.address` is fixed for the
+process lifetime. Reset refuses any change of that address with
+`validation_failed`, including turning management on (empty to an
+address) and off. It does not swap or wipe, and the previous socket
 keeps serving. A stable `--management-listen`, including `off`, still
 wins over the YAML address.
 
@@ -179,10 +180,11 @@ revision. Unknown fields exit 2.
 
 Unspecified fields are reset-only. Reset-only fields in a plan produce
 operation `replaceListeners` which is rejected with `immutable_field`
-unless the plan is a reset. UDP and TCP stay reset-rebind. Once `Start`
-has bound management, a reset that changes the effective management
-address is refused with `validation_failed` and does not swap, wipe, or
-rebind. Do not add live operations for HTTP limits or hostname (C30).
+unless the plan is a reset. UDP and TCP stay reset-rebind. After
+`Start`, any change of the effective management address, including
+turning management on (empty to an address) or off, is refused with
+`validation_failed` and does not swap, wipe, or rebind. Do not add
+live operations for HTTP limits or hostname (C30).
 
 ## Plan / apply
 
@@ -219,13 +221,15 @@ is not a replay.
 1. Re-read bootstrap path.
 2. Compile. On failure, keep the live snapshot and return
    `bootstrap_invalid` (do not bind-break a running server).
-3. If `Start` has already bound management, refuse an effective
-   `listeners.management.address` change with `validation_failed`.
-   Do not swap, wipe, or rebind. The previous socket keeps serving.
-   Moving management requires a process restart. A stable
+3. After `Start`, refuse any change of the effective
+   `listeners.management.address` with `validation_failed`, including
+   turning management on (empty to an address) and off. Do not swap,
+   wipe, or rebind. The previous socket keeps serving. Moving
+   management requires a process restart. A stable
    `--management-listen`, including `off`, still wins over the YAML
-   address. UDP and TCP still rebind when that management address
-   string is unchanged.
+   address. Steps 4–6 do not run after `Start` when that address
+   changed. UDP and TCP still rebind on reset when their effective
+   address changes and the management address is unchanged.
 4. Swap snapshot.
 5. Wipe store.
 6. Audit `state.reset`.

@@ -11,8 +11,10 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/observability"
 )
 
-// Reset rereads bootstrap, compiles, swaps the snapshot, wipes store and
-// audit, and rebinds listeners only when the effective address changed.
+// Reset rereads bootstrap, compiles, swaps the snapshot, and wipes store
+// and audit. After Start, a management-address change is refused with
+// validation_failed and does not swap, wipe, or rebind. UDP and TCP
+// listeners still rebind on reset when their effective address changes.
 // The bootstrap file is never written. Compile failure keeps the live
 // snapshot and returns bootstrap_invalid. Sessions are dropped with the
 // audit ring.

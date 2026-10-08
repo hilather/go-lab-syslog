@@ -26,7 +26,9 @@ type Spec struct {
 	Observability Observability `json:"observability" yaml:"observability"`
 }
 
-// Listeners is the bind surface. Addresses are reset-only.
+// Listeners is the bind surface. UDP and TCP rebind on reset when their
+// effective address changes. A management-address change after Start is
+// refused with validation_failed.
 type Listeners struct {
 	UDP        UDPListener        `json:"udp" yaml:"udp"`
 	TCP        TCPListener        `json:"tcp" yaml:"tcp"`
