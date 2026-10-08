@@ -35,6 +35,9 @@ in AGENTS.md are rejected at decode.
 - `labsyslog mcp-stdio` re-resolves its startup token id through the
   live verifier on every tool and resource call. Scopes copied at
   process start are not reused.
+- `GET /v1/events/stream` rechecks the cookie session or bearer on
+  each event and heartbeat and closes when `syslog.read` is gone.
+  The stream does not slide the session idle timer.
 
 ## Origin
 

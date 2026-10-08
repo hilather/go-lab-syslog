@@ -12,6 +12,9 @@
   and `messages:wait` reject a second JSON value before the operation.
   Reset and clear still accept an empty body or one JSON value and
   ignore that value. `state:validate` already rejected trailing JSON.
+- `GET /v1/events/stream` closes when the cookie session is gone or the
+  bearer no longer grants `syslog.read`. Heartbeats and store events are
+  both checks. The stream does not slide the session idle timer.
 
 ## [1.0.0-rc.1] - 2026-09-05
 

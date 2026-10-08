@@ -140,6 +140,25 @@ func (s *Store) Lookup(cookieValue string) (Session, string, bool) {
 	return rec.public, rec.csrf, true
 }
 
+// View returns the session for cookieValue without sliding LastSeen.
+// An expired session is deleted, the same as Lookup.
+func (s *Store) View(cookieValue string) (Session, bool) {
+	if s == nil || cookieValue == "" {
+		return Session{}, false
+	}
+	now := s.now()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	rec, ok := s.sessions[cookieValue]
+	if !ok || s.expiredLocked(rec, now) {
+		if ok {
+			delete(s.sessions, cookieValue)
+		}
+		return Session{}, false
+	}
+	return rec.public, true
+}
+
 // Delete removes one cookie session.
 func (s *Store) Delete(cookieValue string) {
 	if s == nil || cookieValue == "" {

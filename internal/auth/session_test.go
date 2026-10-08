@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestSessionCookieAndCSRF(t *testing.T) {
@@ -31,6 +32,35 @@ func TestSessionCookieAndCSRF(t *testing.T) {
 	}
 	if CookieName != "labsyslog_session" || CSRFHeader != "X-LabSyslog-CSRF" {
 		t.Fatal(CookieName, CSRFHeader)
+	}
+}
+
+func TestViewDoesNotSlideAndDropsExpired(t *testing.T) {
+	s := NewStore(SessionConfig{Idle: time.Hour, Absolute: 2 * time.Hour, Max: 4})
+	now := time.Now().UTC()
+	s.now = func() time.Time { return now }
+	p := Principal{ID: "operator", Class: ClassToken, Role: RoleAdministrator, Scopes: DefaultScopes(RoleAdministrator)}
+	cookie, _, _, err := s.Create(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, ok := s.View(cookie)
+	if !ok || !got.LastSeen.Equal(now) {
+		t.Fatalf("view %+v ok=%v", got, ok)
+	}
+	again, ok := s.View(cookie)
+	if !ok || !again.LastSeen.Equal(got.LastSeen) {
+		t.Fatalf("view slid LastSeen %s -> %s", got.LastSeen, again.LastSeen)
+	}
+	s.now = func() time.Time { return now.Add(2 * time.Hour) }
+	if _, ok := s.View(cookie); ok {
+		t.Fatal("expired session still visible")
+	}
+	s.mu.Lock()
+	left := len(s.sessions)
+	s.mu.Unlock()
+	if left != 0 {
+		t.Fatalf("View left %d expired session", left)
 	}
 }
 
