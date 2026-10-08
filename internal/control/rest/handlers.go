@@ -175,6 +175,9 @@ func (s *Server) stateExport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) stateReset(w http.ResponseWriter, r *http.Request) {
+	if err := readIgnoredJSON(r); s.handle(w, err) {
+		return
+	}
 	if err := s.svc.Reset(r.Context(), actorOf(r), r.URL.Query().Get("reason")); s.handle(w, err) {
 		return
 	}

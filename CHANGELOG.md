@@ -8,6 +8,10 @@
   verifier on every tool and resource call. Removing that id on reset
   makes later calls `unauthorized`. Demoting the role uses the live
   scopes.
+- REST `changes:plan`, `changes:apply`, `state:reset`, `messages:clear`,
+  and `messages:wait` reject a second JSON value before the operation.
+  Reset and clear still accept an empty body or one JSON value and
+  ignore that value. `state:validate` already rejected trailing JSON.
 
 ## [1.0.0-rc.1] - 2026-09-05
 

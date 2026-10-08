@@ -131,6 +131,9 @@ func (s *Server) messageDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) messagesClear(w http.ResponseWriter, r *http.Request) {
+	if err := readIgnoredJSON(r); s.handle(w, err) {
+		return
+	}
 	s.svc.ClearMessages(r.Context(), actorOf(r), r.URL.Query().Get("reason"))
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -150,6 +153,9 @@ func (s *Server) messagesWait(w http.ResponseWriter, r *http.Request) {
 		dec := json.NewDecoder(bytes.NewReader(body))
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&req); s.handle(w, err) {
+			return
+		}
+		if err := rejectTrailingJSON(dec); s.handle(w, err) {
 			return
 		}
 	}

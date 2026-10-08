@@ -50,6 +50,15 @@ Everything else requires bearer or a valid session cookie.
 | GET | `/v1/metrics` | publicPath true: unauthenticated scrape; false: 404 even with auth | Hand-rolled OpenMetrics (`api/metrics/v1alpha1.json`). No `metrics.listen`. |
 | GET | `/` | — | Operator SPA when `spec.ui.enabled`; 404 problem+json when disabled. Wired from `cmd/labsyslog`, not from rest. |
 
+`POST /v1/changes:plan` and `POST /v1/changes:apply` require one JSON
+value. A second value is `validation_failed` and does not run the
+operation. `POST /v1/state:reset` and `POST /v1/messages:clear` accept
+an empty body or one JSON value and ignore that value; a second value
+or non-JSON is `validation_failed` and does not reset or clear.
+`POST /v1/messages:wait` keeps an empty body as no filter and no
+timeout, and rejects a second JSON value before waiting.
+`POST /v1/state:validate` already rejected trailing JSON.
+
 ## List response
 
 ```json
