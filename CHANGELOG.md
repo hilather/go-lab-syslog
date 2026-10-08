@@ -26,6 +26,9 @@
 - Successful apply keeps at most 128 idempotency records and drops the
   oldest completed record. Reset still clears the map. A dropped key is
   not a replay.
+- Raise `golang.org/x/sys` from v0.41.0 to v0.47.0, past advisory
+  GO-2026-5024 (fixed in v0.44.0). govulncheck found it in a required
+  module only; no LabSyslog code path called it.
 
 ## [1.0.0-rc.1] - 2026-09-05
 
