@@ -54,6 +54,7 @@ var RequiredRootDocs = []string{
 	"docs/adr/0010-container-514-net-bind-service.md",
 	"docs/adr/0011-no-outbound-forward.md",
 	"docs/adr/0012-tls-is-1-1.md",
+	"docs/adr/0013-management-listener-process-lifetime.md",
 	"tasks/00-program-board.md",
 	"tasks/README.md",
 	"tasks/wave-01-repository-foundation.md",

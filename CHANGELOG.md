@@ -7,6 +7,49 @@
 - Go toolchain pinned to go1.26.8 (go.mod `toolchain`, CI `GO_VERSION`, Dockerfile); 1.26.0–1.26.7 lack current stdlib security fixes.
 - Web development dependency `source-map-js` updates from 1.2.1 to 1.2.2 (GHSA-68fv-2mgg-jv7q, high: event-loop denial of service through indexed source-map section offsets). Lockfile only; the built web assets are byte-identical.
 
+### Fixed
+
+- `labsyslog mcp-stdio` re-authenticates the bearer read from
+  `--token-file` at process start on every tool and resource call.
+  Rotating that secret under the same token id revokes the process.
+  Removing the id is `unauthorized`. Demoting the role uses the live
+  scopes.
+- REST `changes:plan`, `changes:apply`, `state:reset`, `messages:clear`,
+  and `messages:wait` reject a second JSON value before the operation.
+  Reset and clear still accept an empty body or one JSON value and
+  ignore that value. `state:validate` already rejected trailing JSON.
+- `GET /v1/events/stream` closes when the cookie session is gone or the
+  bearer no longer grants `syslog.read`. Heartbeats and store events are
+  both checks. Deleting a cookie session, evicting one when the session
+  table is full, or replacing the verifier wakes an idle stream to
+  recheck right away, instead of waiting for the next heartbeat. Idle
+  and absolute session timeouts are noticed lazily: the stream wakes
+  when another session request finds the expired session, and
+  otherwise closes at its next heartbeat, up to 15 seconds later. The
+  stream does not slide the session idle timer.
+- Reset that changes the effective management address, including
+  turning management on or off, returns `validation_failed` before it
+  listens. The snapshot, store, sessions, and idempotency map stay,
+  and the HTTP listener from process start keeps serving. UDP and TCP
+  are not closed or listened again on that refusal. Moving management
+  requires a process restart. A stable `--management-listen`, including
+  `off`, still wins over the YAML address. When that management address
+  is unchanged, reset still swaps and wipes. A UDP or TCP socket whose
+  effective address is unchanged stays bound. That plane listens again
+  when its effective address changes or it is turned on, and it is
+  closed when it is turned off.
+- `POST /v1/session` and `GET /v1/session` send `Cache-Control: no-store`,
+  the same as logout.
+- Successful apply keeps at most 128 idempotency records and drops the
+  oldest completed record. Reset still clears the map. A dropped key
+  whose request carries the original expectedRevision fails with
+  `revision_mismatch` and is not applied. A request whose
+  expectedRevision equals the live revision is applied as a new apply.
+  Retaining every key would be unbounded.
+- Raise `golang.org/x/sys` from v0.41.0 to v0.47.0, past advisory
+  GO-2026-5024 (fixed in v0.44.0). govulncheck found it in a required
+  module only; no LabSyslog code path called it.
+
 ## [1.0.0-rc.1] - 2026-09-05
 
 First tagged release. Mira review of UI-001 can follow; it still

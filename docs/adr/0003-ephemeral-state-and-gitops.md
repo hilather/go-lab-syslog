@@ -19,8 +19,12 @@ previous scenario into the next.
 - Revision is SHA-256 of the canonical spec (secret paths, not bytes).
 - Live mutations go through `changes:plan` / `changes:apply` with
   `expectedRevision`. Listener binds and auth files are reset-only.
+  The management listener is the exception in ADR 0013: once bound,
+  its effective address is process-lifetime. Data-plane listeners and
+  auth files stay reset-only.
 
 ## Consequences
 
 No database, no `/var/log`, no hidden volume without a new ADR.
-Tests must prove wipe-on-reset and revision stability.
+Tests must prove wipe-on-reset and revision stability. The management
+socket is not rebound on reset (ADR 0013).

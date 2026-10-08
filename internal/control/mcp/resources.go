@@ -63,7 +63,10 @@ func (s *Server) readResource(ctx context.Context, req *sdk.ReadResourceRequest)
 	if err := ctx.Err(); err != nil {
 		return nil, rpcError(domainerr.New(domainerr.ValidationFailed, "request canceled"))
 	}
-	p := s.principalFrom(ctx)
+	p, err := s.principalFrom(ctx)
+	if err != nil {
+		return nil, rpcError(err)
+	}
 	uri := ""
 	if req != nil && req.Params != nil {
 		uri = req.Params.URI

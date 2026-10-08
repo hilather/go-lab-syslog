@@ -11,8 +11,12 @@ import (
 	"github.com/hilather/go-lab-syslog/internal/observability"
 )
 
-// Reset rereads bootstrap, compiles, swaps the snapshot, wipes store and
-// audit, and rebinds listeners only when the effective address changed.
+// Reset rereads bootstrap, compiles, swaps the snapshot, and wipes store
+// and audit. After Start, a management-address change is refused with
+// validation_failed and does not swap, wipe, or rebind. When the
+// management address is unchanged, a UDP or TCP socket whose address
+// is unchanged stays bound; a changed address or a plane turned on
+// listens again, and a plane turned off is closed.
 // The bootstrap file is never written. Compile failure keeps the live
 // snapshot and returns bootstrap_invalid. Sessions are dropped with the
 // audit ring.
@@ -44,6 +48,9 @@ func (s *Service) Reset(ctx context.Context, actor, reason string) error {
 
 	s.snaps.Store(snap)
 	s.verifier = ver
+	// Apply cannot replace auth. Wake before the store wipe so an idle
+	// bearer stream does not depend on that event being queued.
+	s.authWake.signal()
 	if !s.started {
 		s.pushLiveLocked(snap)
 	}
@@ -53,6 +60,7 @@ func (s *Service) Reset(ctx context.Context, actor, reason string) error {
 		s.sessions.Clear()
 	}
 	s.idem = map[string]idemRecord{}
+	s.idemSeq = 0
 	s.audit.Append(audit.Event{
 		Actor:     actor,
 		Operation: audit.OpReset,

@@ -54,7 +54,8 @@ func cmdMCPStdio(ctx context.Context, args []string, stdout, stderr io.Writer) i
 		_, _ = fmt.Fprintf(stderr, "labsyslog mcp-stdio: token-file: %v\n", err)
 		return 1
 	}
-	p, err := svc.Verifier().AuthenticateBearer(firstSecretLine(raw))
+	secret := firstSecretLine(raw)
+	p, err := svc.Verifier().AuthenticateBearer(secret)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "labsyslog mcp-stdio: token-file: %v\n", err)
 		return 1
@@ -68,6 +69,7 @@ func cmdMCPStdio(ctx context.Context, args []string, stdout, stderr io.Writer) i
 		Service:            svc,
 		AllowLegacyClients: allowLegacy,
 		FixedPrincipal:     &p,
+		StdioSecret:        secret,
 	})
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "labsyslog mcp-stdio: %v\n", err)

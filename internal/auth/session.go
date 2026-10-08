@@ -51,6 +51,7 @@ type Store struct {
 	sessions map[string]*sessionRecord
 	cfg      SessionConfig
 	now      func() time.Time
+	onDelete func()
 }
 
 type sessionRecord struct {
@@ -96,7 +97,7 @@ func (s *Store) Create(p Principal) (cookieValue, csrf string, sess Session, err
 	if err != nil {
 		return "", "", Session{}, err
 	}
-	now := s.now()
+	now := s.currentTime()
 	rec := &sessionRecord{
 		public: Session{
 			ID:        publicID,
@@ -111,13 +112,17 @@ func (s *Store) Create(p Principal) (cookieValue, csrf string, sess Session, err
 		lastSeen:  now,
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.expireLocked(now)
-	if len(s.sessions) >= s.cfg.Max {
-		s.evictOldestLocked()
+	removed := s.expireLocked(now)
+	if len(s.sessions) >= s.cfg.Max && s.evictOldestLocked() {
+		removed = true
 	}
 	s.sessions[cookieValue] = rec
-	return cookieValue, csrf, rec.public, nil
+	public := rec.public
+	s.mu.Unlock()
+	if removed {
+		s.notifyDeleted()
+	}
+	return cookieValue, csrf, public, nil
 }
 
 // Lookup returns the session for cookieValue and touches LastSeen.
@@ -125,19 +130,77 @@ func (s *Store) Lookup(cookieValue string) (Session, string, bool) {
 	if s == nil || cookieValue == "" {
 		return Session{}, "", false
 	}
-	now := s.now()
+	now := s.currentTime()
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	rec, ok := s.sessions[cookieValue]
 	if !ok || s.expiredLocked(rec, now) {
+		removed := ok
 		if ok {
 			delete(s.sessions, cookieValue)
+		}
+		s.mu.Unlock()
+		if removed {
+			s.notifyDeleted()
 		}
 		return Session{}, "", false
 	}
 	rec.lastSeen = now
 	rec.public.LastSeen = now
-	return rec.public, rec.csrf, true
+	public, csrf := rec.public, rec.csrf
+	s.mu.Unlock()
+	return public, csrf, true
+}
+
+// View returns the session for cookieValue without sliding LastSeen.
+// An expired session is deleted, the same as Lookup.
+func (s *Store) View(cookieValue string) (Session, bool) {
+	if s == nil || cookieValue == "" {
+		return Session{}, false
+	}
+	now := s.currentTime()
+	s.mu.Lock()
+	rec, ok := s.sessions[cookieValue]
+	if !ok || s.expiredLocked(rec, now) {
+		removed := ok
+		if ok {
+			delete(s.sessions, cookieValue)
+		}
+		s.mu.Unlock()
+		if removed {
+			s.notifyDeleted()
+		}
+		return Session{}, false
+	}
+	public := rec.public
+	s.mu.Unlock()
+	return public, true
+}
+
+// SetNow replaces the clock used for idle and absolute expiry.
+// Tests inject a clock this way. Nil restores time.Now.
+func (s *Store) SetNow(now func() time.Time) {
+	if s == nil {
+		return
+	}
+	if now == nil {
+		now = time.Now
+	}
+	s.mu.Lock()
+	s.now = now
+	s.mu.Unlock()
+}
+
+// OnDelete registers fn, called after a session is removed.
+// Delete, Clear, idle and absolute expiry, and max-session eviction
+// each call it once, after the store lock is released. fn replaces
+// any previous hook.
+func (s *Store) OnDelete(fn func()) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.onDelete = fn
+	s.mu.Unlock()
 }
 
 // Delete removes one cookie session.
@@ -146,8 +209,12 @@ func (s *Store) Delete(cookieValue string) {
 		return
 	}
 	s.mu.Lock()
+	_, ok := s.sessions[cookieValue]
 	delete(s.sessions, cookieValue)
 	s.mu.Unlock()
+	if ok {
+		s.notifyDeleted()
+	}
 }
 
 // Clear drops every session (reset).
@@ -156,8 +223,21 @@ func (s *Store) Clear() {
 		return
 	}
 	s.mu.Lock()
+	n := len(s.sessions)
 	s.sessions = make(map[string]*sessionRecord)
 	s.mu.Unlock()
+	if n > 0 {
+		s.notifyDeleted()
+	}
+}
+
+func (s *Store) notifyDeleted() {
+	s.mu.Lock()
+	fn := s.onDelete
+	s.mu.Unlock()
+	if fn != nil {
+		fn()
+	}
 }
 
 // ValidCSRF compares the presented header to the session CSRF secret.
@@ -165,16 +245,33 @@ func (s *Store) ValidCSRF(cookieValue, presented string) bool {
 	if s == nil || cookieValue == "" || presented == "" {
 		return false
 	}
+	now := s.currentTime()
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	rec, ok := s.sessions[cookieValue]
-	if !ok || s.expiredLocked(rec, s.now()) {
+	if !ok || s.expiredLocked(rec, now) {
+		removed := ok
 		if ok {
 			delete(s.sessions, cookieValue)
 		}
+		s.mu.Unlock()
+		if removed {
+			s.notifyDeleted()
+		}
 		return false
 	}
-	return EqualDigest(DigestSecret([]byte(rec.csrf)), DigestSecret([]byte(presented)))
+	match := EqualDigest(DigestSecret([]byte(rec.csrf)), DigestSecret([]byte(presented)))
+	s.mu.Unlock()
+	return match
+}
+
+func (s *Store) currentTime() time.Time {
+	s.mu.Lock()
+	fn := s.now
+	s.mu.Unlock()
+	if fn == nil {
+		return time.Now()
+	}
+	return fn()
 }
 
 // MaxAge is the cookie Max-Age (absolute TTL).
@@ -205,15 +302,18 @@ func (s *Store) expiredLocked(rec *sessionRecord, now time.Time) bool {
 	return now.Sub(rec.createdAt) > s.cfg.Absolute
 }
 
-func (s *Store) expireLocked(now time.Time) {
+func (s *Store) expireLocked(now time.Time) bool {
+	removed := false
 	for k, rec := range s.sessions {
 		if s.expiredLocked(rec, now) {
 			delete(s.sessions, k)
+			removed = true
 		}
 	}
+	return removed
 }
 
-func (s *Store) evictOldestLocked() {
+func (s *Store) evictOldestLocked() bool {
 	var oldestKey string
 	var oldest time.Time
 	first := true
@@ -224,9 +324,11 @@ func (s *Store) evictOldestLocked() {
 			first = false
 		}
 	}
-	if oldestKey != "" {
-		delete(s.sessions, oldestKey)
+	if oldestKey == "" {
+		return false
 	}
+	delete(s.sessions, oldestKey)
+	return true
 }
 
 func randomHex(n int) (string, error) {

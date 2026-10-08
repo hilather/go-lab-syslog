@@ -143,6 +143,7 @@ func (v *Verifier) Authenticate(in Request) (Principal, error) {
 }
 
 // AuthenticateBearer looks up a raw token secret (mcp-stdio --token-file).
+// The error never includes the secret.
 func (v *Verifier) AuthenticateBearer(secret string) (Principal, error) {
 	if v == nil {
 		return Principal{}, domainerr.New(domainerr.Unauthorized, "authentication required")

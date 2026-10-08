@@ -1,0 +1,651 @@
+package rest
+
+import (
+	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/hilather/go-lab-syslog/internal/app"
+	"github.com/hilather/go-lab-syslog/internal/auth"
+	"github.com/hilather/go-lab-syslog/internal/model"
+	"github.com/hilather/go-lab-syslog/internal/store"
+	"github.com/hilather/go-lab-syslog/internal/testutil"
+)
+
+// An event stream authenticated with a cookie must stop delivering store
+// events once that session is revoked.
+func TestEventsStreamStopsAfterSessionRevocation(t *testing.T) {
+	ts, svc := newREST(t, "")
+
+	login, err := http.NewRequest(http.MethodPost, ts.URL+"/v1/session", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setAuth(login)
+	loginResp, err := ts.Client().Do(login)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(loginResp.Body)
+		t.Fatalf("login status %d body=%s", loginResp.StatusCode, b)
+	}
+	var sess struct {
+		CSRF string `json:"csrf"`
+	}
+	if err := json.NewDecoder(loginResp.Body).Decode(&sess); err != nil {
+		t.Fatal(err)
+	}
+	cookie := sessionCookie(loginResp)
+	if cookie == "" || sess.CSRF == "" {
+		t.Fatal("missing cookie or csrf")
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	streamReq, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/v1/events/stream", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	streamReq.AddCookie(&http.Cookie{Name: auth.CookieName, Value: cookie})
+	streamResp, err := ts.Client().Do(streamReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer streamResp.Body.Close()
+	if streamResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(streamResp.Body)
+		t.Fatalf("stream status %d body=%s", streamResp.StatusCode, b)
+	}
+
+	var mu sync.Mutex
+	var buf []byte
+	readDone := make(chan struct{})
+	go func() {
+		defer close(readDone)
+		tmp := make([]byte, 512)
+		for {
+			n, err := streamResp.Body.Read(tmp)
+			if n > 0 {
+				mu.Lock()
+				buf = append(buf, tmp[:n]...)
+				mu.Unlock()
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+
+	logout, err := http.NewRequest(http.MethodDelete, ts.URL+"/v1/session", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logout.AddCookie(&http.Cookie{Name: auth.CookieName, Value: cookie})
+	logout.Header.Set(auth.CSRFHeader, sess.CSRF)
+	logoutResp, err := ts.Client().Do(logout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logoutResp.Body.Close()
+	if logoutResp.StatusCode != http.StatusNoContent {
+		b, _ := io.ReadAll(logoutResp.Body)
+		t.Fatalf("logout status %d body=%s", logoutResp.StatusCode, b)
+	}
+
+	id := insertMessageID(t, svc, "after-revoke")
+	assertStreamClosedWithout(t, &mu, &buf, readDone, id)
+}
+
+// A bearer stream must stop once reset removes that secret. newREST binds
+// management off, so the reset does not move a management socket.
+func TestEventsStreamStopsAfterBearerRevocation(t *testing.T) {
+	ts, svc := newREST(t, "")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	streamReq, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/v1/events/stream", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setAuth(streamReq)
+	streamResp, err := ts.Client().Do(streamReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer streamResp.Body.Close()
+	if streamResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(streamResp.Body)
+		t.Fatalf("stream status %d body=%s", streamResp.StatusCode, b)
+	}
+
+	var mu sync.Mutex
+	var buf []byte
+	readDone := make(chan struct{})
+	go func() {
+		defer close(readDone)
+		tmp := make([]byte, 512)
+		for {
+			n, err := streamResp.Body.Read(tmp)
+			if n > 0 {
+				mu.Lock()
+				buf = append(buf, tmp[:n]...)
+				mu.Unlock()
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+
+	toks := svc.Snapshot().Document.Spec.Auth.Tokens
+	if len(toks) != 1 || toks[0].SecretFile == "" {
+		t.Fatalf("bootstrap token file missing: %+v", toks)
+	}
+	if err := os.WriteFile(toks[0].SecretFile, []byte(strings.Repeat("x", auth.MinTokenBytes)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Reset(context.Background(), "operator", "revoke bearer"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Verifier().AuthenticateBearer(testBearerSecret); err == nil {
+		t.Fatal("revoked bearer still authenticates")
+	}
+
+	id := insertMessageID(t, svc, "after-bearer-revoke")
+	assertStreamClosedWithout(t, &mu, &buf, readDone, id)
+}
+
+// Heartbeats and delivered events must not extend the session idle timer.
+func TestEventsStreamDoesNotSlideSessionIdle(t *testing.T) {
+	svc := newService(t, "")
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	s := newServer(svc)
+	s.heartbeat = 200 * time.Millisecond
+	ts := newTestServer(t, s)
+
+	login, err := http.NewRequest(http.MethodPost, ts.URL+"/v1/session", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setAuth(login)
+	loginResp, err := ts.Client().Do(login)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(loginResp.Body)
+		t.Fatalf("login status %d body=%s", loginResp.StatusCode, b)
+	}
+	cookie := sessionCookie(loginResp)
+	if cookie == "" {
+		t.Fatal("missing cookie")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	streamReq, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/v1/events/stream", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	streamReq.AddCookie(&http.Cookie{Name: auth.CookieName, Value: cookie})
+	streamResp, err := ts.Client().Do(streamReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer streamResp.Body.Close()
+	if streamResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(streamResp.Body)
+		t.Fatalf("stream status %d body=%s", streamResp.StatusCode, b)
+	}
+	opened, ok := svc.Sessions().View(cookie)
+	if !ok {
+		t.Fatal("session missing after the stream opened")
+	}
+
+	var mu sync.Mutex
+	var buf []byte
+	go func() {
+		tmp := make([]byte, 512)
+		for {
+			n, err := streamResp.Body.Read(tmp)
+			if n > 0 {
+				mu.Lock()
+				buf = append(buf, tmp[:n]...)
+				mu.Unlock()
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+
+	id := insertMessageID(t, svc, "idle-unchanged")
+	deadline := time.Now().Add(2 * time.Second)
+	var text string
+	for {
+		mu.Lock()
+		text = string(buf)
+		mu.Unlock()
+		if strings.Contains(text, id) && strings.Contains(text, "heartbeat") {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("stream did not deliver the event and a heartbeat: %s", text)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	again, ok := svc.Sessions().View(cookie)
+	if !ok {
+		t.Fatal("session missing after stream activity")
+	}
+	if !again.LastSeen.Equal(opened.LastSeen) {
+		t.Fatalf("stream slid LastSeen %s -> %s", opened.LastSeen, again.LastSeen)
+	}
+}
+
+// A quiet cookie stream must end without waiting for the heartbeat.
+// The heartbeat is an hour, and no store event is published.
+func TestIdleEventsStreamEndsWhenSessionDeleted(t *testing.T) {
+	ts, cookie, csrf := openIdleCookieStream(t)
+	streamResp, readDone, buf, mu := readStream(t, ts, func(req *http.Request) {
+		req.AddCookie(&http.Cookie{Name: auth.CookieName, Value: cookie})
+	})
+	defer streamResp.Body.Close()
+
+	logout, err := http.NewRequest(http.MethodDelete, ts.URL+"/v1/session", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logout.AddCookie(&http.Cookie{Name: auth.CookieName, Value: cookie})
+	logout.Header.Set(auth.CSRFHeader, csrf)
+	logoutResp, err := ts.Client().Do(logout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logoutResp.Body.Close()
+	if logoutResp.StatusCode != http.StatusNoContent {
+		b, _ := io.ReadAll(logoutResp.Body)
+		t.Fatalf("logout status %d body=%s", logoutResp.StatusCode, b)
+	}
+
+	assertIdleStreamEnded(t, readDone, mu, buf, "session delete")
+}
+
+// storeWatchBuffer is the per-subscriber queue in internal/store/watch.go.
+// Filling it while the stream is not receiving drops store.wiped.
+const storeWatchBuffer = 16
+
+// A quiet bearer stream must end when reset replaces the verifier, without
+// waiting for the heartbeat and without a store event. The watch buffer
+// is filled first so store.wiped is dropped, and select is not reading
+// that channel: a waiting receive would take the event off a full buffer,
+// and any queued syslog.received would recheck auth on its own.
+func TestIdleEventsStreamEndsWhenBearerRevoked(t *testing.T) {
+	svc := newService(t, "")
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	ts, arrived, release := newParkedIdleServer(t, svc, true)
+	streamResp, readDone, buf, mu := readStream(t, ts, setAuth)
+	defer streamResp.Body.Close()
+	waitParked(t, arrived)
+
+	for i := 0; i < storeWatchBuffer; i++ {
+		if _, err := svc.Messages().Insert(model.Message{
+			Transport: "udp",
+			Parsed:    model.Parsed{Message: "fill-watch"},
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	toks := svc.Snapshot().Document.Spec.Auth.Tokens
+	if len(toks) != 1 || toks[0].SecretFile == "" {
+		t.Fatalf("bootstrap token file missing: %+v", toks)
+	}
+	if err := os.WriteFile(toks[0].SecretFile, []byte(strings.Repeat("x", auth.MinTokenBytes)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Reset(context.Background(), "operator", "revoke bearer"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Verifier().AuthenticateBearer(testBearerSecret); err == nil {
+		t.Fatal("revoked bearer still authenticates")
+	}
+	release()
+
+	assertIdleStreamEnded(t, readDone, mu, buf, "bearer revocation")
+}
+
+// A quiet cookie stream must end when an idle-expired session is removed
+// by a lookup, without waiting for the hour heartbeat.
+func TestIdleEventsStreamEndsWhenSessionExpires(t *testing.T) {
+	svc := newService(t, "")
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	clock := testutil.NewFakeClock(time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC))
+	svc.Sessions().SetNow(clock.Now)
+	ts, arrived, release := newParkedIdleServer(t, svc, true)
+	cookie, _ := loginCookie(t, ts)
+	streamResp, readDone, buf, mu := readStream(t, ts, func(req *http.Request) {
+		req.AddCookie(&http.Cookie{Name: auth.CookieName, Value: cookie})
+	})
+	defer streamResp.Body.Close()
+	waitParked(t, arrived)
+
+	clock.Advance(auth.DefaultSessionConfig().Idle + time.Second)
+	if _, _, ok := svc.Sessions().Lookup(cookie); ok {
+		t.Fatal("lookup kept the expired session")
+	}
+	release()
+
+	assertIdleStreamEnded(t, readDone, mu, buf, "session expiry")
+}
+
+// A quiet cookie stream must end when a full table evicts that session,
+// without waiting for the hour heartbeat.
+func TestIdleEventsStreamEndsWhenSessionEvicted(t *testing.T) {
+	svc := newService(t, "")
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	clock := testutil.NewFakeClock(time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC))
+	svc.Sessions().SetNow(clock.Now)
+	ts, arrived, release := newParkedIdleServer(t, svc, true)
+	cookie, _ := loginCookie(t, ts)
+	streamResp, readDone, buf, mu := readStream(t, ts, func(req *http.Request) {
+		req.AddCookie(&http.Cookie{Name: auth.CookieName, Value: cookie})
+	})
+	defer streamResp.Body.Close()
+	waitParked(t, arrived)
+
+	clock.Advance(time.Second)
+	p := auth.Principal{ID: "operator", Class: auth.ClassToken, Role: auth.RoleAdministrator, Scopes: auth.DefaultScopes(auth.RoleAdministrator)}
+	for range auth.DefaultSessionConfig().Max {
+		if _, _, _, err := svc.Sessions().Create(p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, ok := svc.Sessions().View(cookie); ok {
+		t.Fatal("create did not evict the stream session")
+	}
+	release()
+
+	assertIdleStreamEnded(t, readDone, mu, buf, "session eviction")
+}
+
+// Deleting one cookie session must not close a bearer stream.
+func TestIdleBearerStreamStaysOpenWhenAnotherSessionIsDeleted(t *testing.T) {
+	svc := newService(t, "")
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	ts := idleServer(t, svc)
+
+	login, err := http.NewRequest(http.MethodPost, ts.URL+"/v1/session", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setAuth(login)
+	loginResp, err := ts.Client().Do(login)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(loginResp.Body)
+		t.Fatalf("login status %d body=%s", loginResp.StatusCode, b)
+	}
+	var sess struct {
+		CSRF string `json:"csrf"`
+	}
+	if err := json.NewDecoder(loginResp.Body).Decode(&sess); err != nil {
+		t.Fatal(err)
+	}
+	cookie := sessionCookie(loginResp)
+	if cookie == "" || sess.CSRF == "" {
+		t.Fatal("missing cookie or csrf")
+	}
+
+	streamResp, _, buf, mu := readStream(t, ts, setAuth)
+	defer streamResp.Body.Close()
+
+	logout, err := http.NewRequest(http.MethodDelete, ts.URL+"/v1/session", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logout.AddCookie(&http.Cookie{Name: auth.CookieName, Value: cookie})
+	logout.Header.Set(auth.CSRFHeader, sess.CSRF)
+	logoutResp, err := ts.Client().Do(logout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logoutResp.Body.Close()
+	if logoutResp.StatusCode != http.StatusNoContent {
+		b, _ := io.ReadAll(logoutResp.Body)
+		t.Fatalf("logout status %d body=%s", logoutResp.StatusCode, b)
+	}
+
+	id := insertMessageID(t, svc, "bearer-still-open")
+	deadline := time.Now().Add(time.Second)
+	for {
+		mu.Lock()
+		text := string(*buf)
+		mu.Unlock()
+		if strings.Contains(text, id) {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("bearer stream missed %s after another session was deleted: %s", id, text)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func idleServer(t *testing.T, svc *app.Service) *httptest.Server {
+	t.Helper()
+	s := newServer(svc)
+	s.heartbeat = time.Hour
+	return newTestServer(t, s)
+}
+
+// newParkedIdleServer is an idle stream whose handler blocks after the
+// auth check and before select. arrived closes at that point. release
+// lets the handler enter select. ignoreStore keeps select off the store
+// watch so a dropped store.wiped cannot end the stream.
+func newParkedIdleServer(t *testing.T, svc *app.Service, ignoreStore bool) (*httptest.Server, <-chan struct{}, func()) {
+	t.Helper()
+	s := newServer(svc)
+	s.heartbeat = time.Hour
+	s.ignoreStoreEvents = ignoreStore
+	arrived := make(chan struct{})
+	releaseCh := make(chan struct{})
+	var parkOnce sync.Once
+	var releaseOnce sync.Once
+	release := func() {
+		releaseOnce.Do(func() { close(releaseCh) })
+	}
+	t.Cleanup(release)
+	s.streamParked = func(<-chan struct{}) {
+		parkOnce.Do(func() {
+			close(arrived)
+			<-releaseCh
+		})
+	}
+	return newTestServer(t, s), arrived, release
+}
+
+func waitParked(t *testing.T, arrived <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-arrived:
+	case <-time.After(2 * time.Second):
+		t.Fatal("stream did not reach select")
+	}
+}
+
+func loginCookie(t *testing.T, ts *httptest.Server) (cookie, csrf string) {
+	t.Helper()
+	login, err := http.NewRequest(http.MethodPost, ts.URL+"/v1/session", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setAuth(login)
+	loginResp, err := ts.Client().Do(login)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(loginResp.Body)
+		t.Fatalf("login status %d body=%s", loginResp.StatusCode, b)
+	}
+	var sess struct {
+		CSRF string `json:"csrf"`
+	}
+	if err := json.NewDecoder(loginResp.Body).Decode(&sess); err != nil {
+		t.Fatal(err)
+	}
+	cookie = sessionCookie(loginResp)
+	if cookie == "" || sess.CSRF == "" {
+		t.Fatal("missing cookie or csrf")
+	}
+	return cookie, sess.CSRF
+}
+
+func openIdleCookieStream(t *testing.T) (*httptest.Server, string, string) {
+	t.Helper()
+	svc := newService(t, "")
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	ts := idleServer(t, svc)
+	login, err := http.NewRequest(http.MethodPost, ts.URL+"/v1/session", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setAuth(login)
+	loginResp, err := ts.Client().Do(login)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(loginResp.Body)
+		t.Fatalf("login status %d body=%s", loginResp.StatusCode, b)
+	}
+	var sess struct {
+		CSRF string `json:"csrf"`
+	}
+	if err := json.NewDecoder(loginResp.Body).Decode(&sess); err != nil {
+		t.Fatal(err)
+	}
+	cookie := sessionCookie(loginResp)
+	if cookie == "" || sess.CSRF == "" {
+		t.Fatal("missing cookie or csrf")
+	}
+	return ts, cookie, sess.CSRF
+}
+
+func readStream(t *testing.T, ts *httptest.Server, authn func(*http.Request)) (*http.Response, <-chan struct{}, *[]byte, *sync.Mutex) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	streamReq, err := http.NewRequestWithContext(ctx, http.MethodGet, ts.URL+"/v1/events/stream", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	authn(streamReq)
+	streamResp, err := ts.Client().Do(streamReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if streamResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(streamResp.Body)
+		streamResp.Body.Close()
+		t.Fatalf("stream status %d body=%s", streamResp.StatusCode, b)
+	}
+	var mu sync.Mutex
+	buf := []byte{}
+	readDone := make(chan struct{})
+	go func() {
+		defer close(readDone)
+		tmp := make([]byte, 512)
+		for {
+			n, err := streamResp.Body.Read(tmp)
+			if n > 0 {
+				mu.Lock()
+				buf = append(buf, tmp[:n]...)
+				mu.Unlock()
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	return streamResp, readDone, &buf, &mu
+}
+
+func assertIdleStreamEnded(t *testing.T, readDone <-chan struct{}, mu *sync.Mutex, buf *[]byte, why string) {
+	t.Helper()
+	select {
+	case <-readDone:
+	case <-time.After(time.Second):
+		t.Fatalf("idle stream still open 1s after %s", why)
+	}
+	mu.Lock()
+	text := string(*buf)
+	mu.Unlock()
+	if strings.Contains(text, "event:") || strings.Contains(text, "data:") {
+		t.Fatalf("idle stream delivered events after %s: %s", why, text)
+	}
+}
+
+func insertMessageID(t *testing.T, svc *app.Service, text string) string {
+	t.Helper()
+	if _, err := svc.Messages().Insert(model.Message{
+		Transport: "udp",
+		Parsed:    model.Parsed{Message: text},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	listed, err := svc.Messages().List(store.ListFilter{}, "", 1)
+	if err != nil || len(listed.Items) != 1 {
+		t.Fatalf("list after insert: %v items=%d", err, len(listed.Items))
+	}
+	return listed.Items[0].ID
+}
+
+func assertStreamClosedWithout(t *testing.T, mu *sync.Mutex, buf *[]byte, readDone <-chan struct{}, id string) {
+	t.Helper()
+	deadline := time.Now().Add(800 * time.Millisecond)
+	for {
+		mu.Lock()
+		text := string(*buf)
+		mu.Unlock()
+		if strings.Contains(text, id) {
+			t.Fatalf("stream delivered id %s after revocation: %s", id, text)
+		}
+		select {
+		case <-readDone:
+			return
+		default:
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("stream still open after revocation; id %s was not refused", id)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}

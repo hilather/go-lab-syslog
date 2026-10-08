@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -42,8 +43,31 @@ const (
 type Config struct {
 	Service            *app.Service
 	AllowLegacyClients bool
-	FixedPrincipal     *auth.Principal
+	// FixedPrincipal marks stdio mode. Its id and scopes are not an
+	// authorization source.
+	FixedPrincipal *auth.Principal
+	// StdioSecret is the bearer read from --token-file at process start.
+	// Empty means HTTP, which authenticates each request.
+	// The value is never logged and never included in errors or String output.
+	StdioSecret string
 }
+
+// String reports the config without the startup bearer.
+func (c Config) String() string {
+	secret := "empty"
+	if c.StdioSecret != "" {
+		secret = "set"
+	}
+	fixed := ""
+	if c.FixedPrincipal != nil {
+		fixed = c.FixedPrincipal.ID
+	}
+	return fmt.Sprintf("Service=%t AllowLegacyClients=%t FixedPrincipal=%s StdioSecret=%s",
+		c.Service != nil, c.AllowLegacyClients, fixed, secret)
+}
+
+// GoString reports the config without the startup bearer.
+func (c Config) GoString() string { return c.String() }
 
 // Server is the official-SDK adapter. Third-party MCP types do not escape it.
 type Server struct {
@@ -65,6 +89,12 @@ const ctxPrincipal ctxKey = iota
 func New(cfg Config) (*Server, error) {
 	if cfg.Service == nil {
 		return nil, errors.New("mcp: Service is required")
+	}
+	if cfg.FixedPrincipal != nil && cfg.StdioSecret == "" {
+		return nil, errors.New("mcp: StdioSecret is required when FixedPrincipal is set")
+	}
+	if cfg.StdioSecret != "" && cfg.Service.Verifier() == nil {
+		return nil, errors.New("mcp: verifier is required when StdioSecret is set")
 	}
 	info := buildinfo.Current()
 	impl := &sdk.Implementation{
@@ -227,20 +257,41 @@ func requestID(r *http.Request) string {
 	return hex.EncodeToString(b[:])
 }
 
-func (s *Server) principalFrom(ctx context.Context) auth.Principal {
+// principalFrom returns the actor for this call.
+// A context principal with a non-empty id wins and is not replaced from the
+// verifier. HTTP authenticates each request that way.
+// The stdio path re-authenticates StdioSecret on every call. Failure is
+// unauthorized and returns no principal. Success returns the live principal,
+// so a demotion is seen and rotating the secret under the same id revokes
+// the process. FixedPrincipal is not an authorization source.
+// When this is not a stdio server and the context has no principal, the
+// result is an empty principal and a nil error.
+func (s *Server) principalFrom(ctx context.Context) (auth.Principal, error) {
 	if ctx != nil {
 		if p, ok := ctx.Value(ctxPrincipal).(auth.Principal); ok && p.ID != "" {
-			return p
+			return p, nil
 		}
 	}
-	if s != nil && s.cfg.FixedPrincipal != nil {
-		return *s.cfg.FixedPrincipal
+	if s != nil && (s.cfg.FixedPrincipal != nil || s.cfg.StdioSecret != "") {
+		var v *auth.Verifier
+		if s.svc != nil {
+			v = s.svc.Verifier()
+		}
+		p, err := v.AuthenticateBearer(s.cfg.StdioSecret)
+		if err != nil {
+			return auth.Principal{}, domainerr.New(domainerr.Unauthorized, "authentication required")
+		}
+		return p, nil
 	}
-	return auth.Principal{}
+	return auth.Principal{}, nil
 }
 
 func (s *Server) actorOf(ctx context.Context) string {
-	return s.principalFrom(ctx).ID
+	p, err := s.principalFrom(ctx)
+	if err != nil {
+		return ""
+	}
+	return p.ID
 }
 
 type tokenBucket struct {

@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/hilather/go-lab-syslog/internal/auth"
 	"github.com/hilather/go-lab-syslog/internal/store"
 )
 
@@ -39,20 +41,72 @@ func (s *Server) eventsStream(w http.ResponseWriter, r *http.Request) {
 	defer ticker.Stop()
 
 	for {
+		// Subscribe before the check so a revocation that lands during
+		// the check still closes recheck and wakes the next select.
+		recheck := s.svc.AuthWake()
+		if !s.streamAuthorized(r) {
+			return
+		}
+		if s.streamParked != nil {
+			s.streamParked(recheck)
+		}
+		storeCh := ch
+		if s.ignoreStoreEvents {
+			storeCh = nil
+		}
 		select {
 		case <-r.Context().Done():
 			return
 		case <-ticker.C:
+			if !s.streamAuthorized(r) {
+				return
+			}
 			_, _ = fmt.Fprint(w, ": heartbeat\n\n")
 			flush(flusher)
-		case ev, ok := <-ch:
+		case <-recheck:
+		case ev, ok := <-storeCh:
 			if !ok {
+				return
+			}
+			if !s.streamAuthorized(r) {
 				return
 			}
 			writeSSE(w, ev)
 			flush(flusher)
 		}
 	}
+}
+
+// streamAuthorized rechecks the credential that opened the stream.
+// Verifier and View are separate critical sections and are not held
+// across the select. A cookie lookup does not slide LastSeen.
+func (s *Server) streamAuthorized(r *http.Request) bool {
+	p, ok := s.streamPrincipal(r)
+	if !ok {
+		return false
+	}
+	return auth.Authorize(p, auth.ScopeRead) == nil
+}
+
+func (s *Server) streamPrincipal(r *http.Request) (auth.Principal, bool) {
+	if hdr := strings.TrimSpace(r.Header.Get("Authorization")); hdr != "" {
+		p, err := s.svc.Verifier().Authenticate(auth.Request{
+			Authorization: hdr,
+			RemoteAddr:    r.RemoteAddr,
+		})
+		if err != nil {
+			return auth.Principal{}, false
+		}
+		return p, true
+	}
+	if c, err := r.Cookie(auth.CookieName); err == nil && c.Value != "" {
+		sess, ok := s.svc.Sessions().View(c.Value)
+		if !ok {
+			return auth.Principal{}, false
+		}
+		return auth.PrincipalFromSession(sess), true
+	}
+	return auth.Principal{}, false
 }
 
 func writeSSE(w http.ResponseWriter, ev store.ChangeEvent) {

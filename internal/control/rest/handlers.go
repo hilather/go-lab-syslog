@@ -175,6 +175,9 @@ func (s *Server) stateExport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) stateReset(w http.ResponseWriter, r *http.Request) {
+	if err := readIgnoredJSON(r); s.handle(w, err) {
+		return
+	}
 	if err := s.svc.Reset(r.Context(), actorOf(r), r.URL.Query().Get("reason")); s.handle(w, err) {
 		return
 	}
@@ -286,6 +289,7 @@ func auditDTO(e audit.Event) auditJSON {
 }
 
 func (s *Server) sessionCreate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
 	p, ok := auth.PrincipalFromContext(r.Context())
 	if !ok {
 		writeProblem(w, domainerr.New(domainerr.Unauthorized, "authentication required"))
@@ -306,6 +310,7 @@ func (s *Server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) sessionGet(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
 	p, ok := auth.PrincipalFromContext(r.Context())
 	if !ok {
 		writeProblem(w, domainerr.New(domainerr.Unauthorized, "authentication required"))
