@@ -38,10 +38,12 @@ in AGENTS.md are rejected at decode.
   under the same token id revokes the process.
 - `GET /v1/events/stream` rechecks the cookie session or bearer on
   each event and heartbeat and closes when `syslog.read` is gone.
-  Deleting a cookie session, dropping one for idle or absolute expiry,
-  evicting one when the table is full, or replacing the verifier wakes
-  an idle stream to recheck immediately. The stream does not slide the
-  session idle timer.
+  Deleting a cookie session, evicting one when the table is full, or
+  replacing the verifier wakes an idle stream to recheck right away.
+  Idle and absolute expiry are noticed when another session request
+  finds the expired session, which wakes the stream then. Otherwise
+  the stream closes at its next heartbeat, up to 15 seconds later. The
+  stream does not slide the session idle timer.
 - `POST /v1/session` and `GET /v1/session` send `Cache-Control: no-store`,
   the same as logout. Responses that carry `csrf` are not cacheable.
 
