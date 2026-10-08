@@ -19,11 +19,16 @@ UDP and TCP are owned by `syslogserver.Server` and can rebind.
 The management `net.Listener` is process-lifetime. After `Start`,
 reset compares the effective management address (YAML after
 `--management-listen`, including `off`) and refuses a change with
-`validation_failed`. It does not listen on the new address and does
-not close, swap, or wipe. Moving management requires a process
-restart. UDP and TCP still rebind when that address string is
-unchanged. A stable `--management-listen`, including `off`, still
-wins over the YAML address.
+`validation_failed`, including turning management on or off. The
+refusal returns before any listen. It does not close the HTTP
+listener, swap the snapshot, or wipe. UDP and TCP are not closed or
+listened again. Moving management requires a process restart. When
+that management address is unchanged, reset still swaps and wipes. A
+UDP or TCP socket whose effective address is unchanged stays bound.
+That plane listens again when its effective address changes or it is
+turned on, and it is closed when it is turned off. A stable
+`--management-listen`, including `off`, still wins over the YAML
+address.
 
 ## Consequences
 

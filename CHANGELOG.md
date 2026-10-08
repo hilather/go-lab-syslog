@@ -20,12 +20,17 @@
 - `GET /v1/events/stream` closes when the cookie session is gone or the
   bearer no longer grants `syslog.read`. Heartbeats and store events are
   both checks. The stream does not slide the session idle timer.
-- Reset that changes the effective management address returns
-  `validation_failed` and leaves the HTTP listener, snapshot, store,
-  sessions, and idempotency map in place. UDP and TCP still rebind
-  when that address string is unchanged. Moving management requires a
-  process restart. A stable `--management-listen`, including `off`,
-  still wins over the YAML address.
+- Reset that changes the effective management address, including
+  turning management on or off, returns `validation_failed` before it
+  listens. The snapshot, store, sessions, and idempotency map stay,
+  and the HTTP listener from process start keeps serving. UDP and TCP
+  are not closed or listened again on that refusal. Moving management
+  requires a process restart. A stable `--management-listen`, including
+  `off`, still wins over the YAML address. When that management address
+  is unchanged, reset still swaps and wipes. A UDP or TCP socket whose
+  effective address is unchanged stays bound. That plane listens again
+  when its effective address changes or it is turned on, and it is
+  closed when it is turned off.
 - `POST /v1/session` and `GET /v1/session` send `Cache-Control: no-store`,
   the same as logout.
 - Successful apply keeps at most 128 idempotency records and drops the

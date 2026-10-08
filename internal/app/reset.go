@@ -13,8 +13,10 @@ import (
 
 // Reset rereads bootstrap, compiles, swaps the snapshot, and wipes store
 // and audit. After Start, a management-address change is refused with
-// validation_failed and does not swap, wipe, or rebind. UDP and TCP
-// listeners still rebind on reset when their effective address changes.
+// validation_failed and does not swap, wipe, or rebind. When the
+// management address is unchanged, a UDP or TCP socket whose address
+// is unchanged stays bound; a changed address or a plane turned on
+// listens again, and a plane turned off is closed.
 // The bootstrap file is never written. Compile failure keeps the live
 // snapshot and returns bootstrap_invalid. Sessions are dropped with the
 // audit ring.

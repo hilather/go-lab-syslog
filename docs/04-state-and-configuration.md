@@ -228,8 +228,11 @@ is not a replay.
    management requires a process restart. A stable
    `--management-listen`, including `off`, still wins over the YAML
    address. Steps 4–6 do not run after `Start` when that address
-   changed. UDP and TCP still rebind on reset when their effective
-   address changes and the management address is unchanged.
+   changed, and UDP and TCP are not closed or listened again. When
+   the management address is unchanged, a UDP or TCP socket whose
+   effective address is unchanged stays bound. That plane listens
+   again when its effective address changes or it is turned on, and
+   it is closed when it is turned off.
 4. Swap snapshot.
 5. Wipe store.
 6. Audit `state.reset`.
