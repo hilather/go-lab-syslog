@@ -286,7 +286,10 @@ func addTool[In any](s *Server, name, desc string, mutating, idempotent bool, h 
 		Annotations: ann,
 		InputSchema: mustInputSchema[In](name),
 	}, func(ctx context.Context, _ *sdk.CallToolRequest, in In) (*sdk.CallToolResult, any, error) {
-		p := s.principalFrom(ctx)
+		p, err := s.principalFrom(ctx)
+		if err != nil {
+			return toolErrorResult(err), nil, nil
+		}
 		if err := s.authorizeTool(p, name); err != nil {
 			return toolErrorResult(err), nil, nil
 		}

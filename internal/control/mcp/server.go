@@ -227,20 +227,33 @@ func requestID(r *http.Request) string {
 	return hex.EncodeToString(b[:])
 }
 
-func (s *Server) principalFrom(ctx context.Context) auth.Principal {
+// principalFrom returns the actor for this call.
+// A context principal with a non-empty id wins and is not replaced from the
+// verifier. FixedPrincipal contributes only its id, which is resolved against
+// the live verifier so a reset that removes or demotes that token is seen.
+// Neither set returns an empty principal and a nil error.
+func (s *Server) principalFrom(ctx context.Context) (auth.Principal, error) {
 	if ctx != nil {
 		if p, ok := ctx.Value(ctxPrincipal).(auth.Principal); ok && p.ID != "" {
-			return p
+			return p, nil
 		}
 	}
 	if s != nil && s.cfg.FixedPrincipal != nil {
-		return *s.cfg.FixedPrincipal
+		p, ok := s.svc.Verifier().PrincipalByID(s.cfg.FixedPrincipal.ID)
+		if !ok {
+			return auth.Principal{}, domainerr.New(domainerr.Unauthorized, "authentication required")
+		}
+		return p, nil
 	}
-	return auth.Principal{}
+	return auth.Principal{}, nil
 }
 
 func (s *Server) actorOf(ctx context.Context) string {
-	return s.principalFrom(ctx).ID
+	p, err := s.principalFrom(ctx)
+	if err != nil {
+		return ""
+	}
+	return p.ID
 }
 
 type tokenBucket struct {

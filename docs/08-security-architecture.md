@@ -32,6 +32,9 @@ in AGENTS.md are rejected at decode.
 - Tokens are never written to `localStorage` by the SPA.
 - Management bind with zero usable tokens fail-closes. Management
   REST is unusable without a valid token when `auth.mode=bearer`.
+- `labsyslog mcp-stdio` re-resolves its startup token id through the
+  live verifier on every tool and resource call. Scopes copied at
+  process start are not reused.
 
 ## Origin
 

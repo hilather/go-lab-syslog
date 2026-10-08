@@ -60,6 +60,11 @@ Resources are read-only GET twins. Mutations are tools.
 Bearer only. A missing or short token is MCP error `unauthorized`.
 Cookie sessions are not accepted on `/mcp`.
 
+`labsyslog mcp-stdio` authorizes its startup token id against the live
+verifier on every tool and resource call, including after reset. Scopes
+copied at process start are not reused. A removed id is `unauthorized`.
+A demoted role uses the live scopes.
+
 ## Agent recipe (smoke)
 
 1. `syslog_status_get` — confirm ready.

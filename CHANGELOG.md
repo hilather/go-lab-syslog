@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `labsyslog mcp-stdio` resolves its startup token id through the live
+  verifier on every tool and resource call. Removing that id on reset
+  makes later calls `unauthorized`. Demoting the role uses the live
+  scopes.
+
 ## [1.0.0-rc.1] - 2026-09-05
 
 First tagged release. Mira review of UI-001 can follow; it still
