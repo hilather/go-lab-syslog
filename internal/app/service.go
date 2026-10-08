@@ -51,6 +51,10 @@ type Service struct {
 
 	idem    map[string]idemRecord
 	idemSeq uint64
+
+	// authWake is closed when Reset replaces the verifier or a cookie
+	// session is deleted. Idle event streams select on it.
+	authWake authWake
 }
 
 const maxIdempotencyEntries = 128
@@ -94,6 +98,7 @@ func New(cfg Config) (*Service, error) {
 		obs:      observability.NewRegistry(),
 		idem:     map[string]idemRecord{},
 	}
+	s.sessions.OnDelete(func() { s.authWake.signal() })
 	s.handler = syslogserver.HandlerFunc(func(_ context.Context, msg model.Message) error {
 		_, err := s.store.Insert(msg)
 		return err
@@ -174,6 +179,17 @@ func (s *Service) Verifier() *auth.Verifier {
 
 // Sessions is the REST-only cookie table. MCP must not use it.
 func (s *Service) Sessions() *auth.Store { return s.sessions }
+
+// AuthWake is closed when the verifier is replaced or a cookie session
+// is deleted. Subscribe again after each receive. Check authorization
+// after subscribe: a signal that already happened is then visible in
+// the credential, and a signal that happens later closes the channel.
+func (s *Service) AuthWake() <-chan struct{} {
+	if s == nil {
+		return nil
+	}
+	return s.authWake.subscribe()
+}
 
 // Metrics is the shared ingest counters (UDP and TCP).
 func (s *Service) Metrics() *syslogserver.Metrics { return s.metrics }
@@ -582,4 +598,30 @@ func (s *Service) pushLiveLocked(snap *snapshot.Snapshot) {
 	s.store.ApplyCaps(store.ConfigFromSpec(spec.Store))
 	s.audit.Resize(spec.Observability.Audit.Ring)
 	observability.SetLevel(spec.Observability.LogLevel)
+}
+
+// authWake broadcasts one recheck to every subscriber. Signal does not
+// block and does not call back into Service.
+type authWake struct {
+	mu sync.Mutex
+	ch chan struct{}
+}
+
+func (w *authWake) subscribe() <-chan struct{} {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.ch == nil {
+		w.ch = make(chan struct{})
+	}
+	return w.ch
+}
+
+func (w *authWake) signal() {
+	w.mu.Lock()
+	ch := w.ch
+	w.ch = nil
+	w.mu.Unlock()
+	if ch != nil {
+		close(ch)
+	}
 }

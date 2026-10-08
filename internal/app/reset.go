@@ -48,6 +48,9 @@ func (s *Service) Reset(ctx context.Context, actor, reason string) error {
 
 	s.snaps.Store(snap)
 	s.verifier = ver
+	// Apply cannot replace auth. Wake before the store wipe so an idle
+	// bearer stream does not depend on that event being queued.
+	s.authWake.signal()
 	if !s.started {
 		s.pushLiveLocked(snap)
 	}

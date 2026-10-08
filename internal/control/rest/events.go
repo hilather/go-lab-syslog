@@ -41,6 +41,12 @@ func (s *Server) eventsStream(w http.ResponseWriter, r *http.Request) {
 	defer ticker.Stop()
 
 	for {
+		// Subscribe before the check so a revocation that lands during
+		// the check still closes recheck and wakes the next select.
+		recheck := s.svc.AuthWake()
+		if !s.streamAuthorized(r) {
+			return
+		}
 		select {
 		case <-r.Context().Done():
 			return
@@ -50,6 +56,7 @@ func (s *Server) eventsStream(w http.ResponseWriter, r *http.Request) {
 			}
 			_, _ = fmt.Fprint(w, ": heartbeat\n\n")
 			flush(flusher)
+		case <-recheck:
 		case ev, ok := <-ch:
 			if !ok {
 				return

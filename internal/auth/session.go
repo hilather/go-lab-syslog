@@ -51,6 +51,7 @@ type Store struct {
 	sessions map[string]*sessionRecord
 	cfg      SessionConfig
 	now      func() time.Time
+	onDelete func()
 }
 
 type sessionRecord struct {
@@ -159,14 +160,29 @@ func (s *Store) View(cookieValue string) (Session, bool) {
 	return rec.public, true
 }
 
+// OnDelete registers fn, called after Delete or Clear removes a session.
+// fn runs without the store lock and replaces any previous hook.
+func (s *Store) OnDelete(fn func()) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.onDelete = fn
+	s.mu.Unlock()
+}
+
 // Delete removes one cookie session.
 func (s *Store) Delete(cookieValue string) {
 	if s == nil || cookieValue == "" {
 		return
 	}
 	s.mu.Lock()
+	_, ok := s.sessions[cookieValue]
 	delete(s.sessions, cookieValue)
 	s.mu.Unlock()
+	if ok {
+		s.notifyDeleted()
+	}
 }
 
 // Clear drops every session (reset).
@@ -175,8 +191,21 @@ func (s *Store) Clear() {
 		return
 	}
 	s.mu.Lock()
+	n := len(s.sessions)
 	s.sessions = make(map[string]*sessionRecord)
 	s.mu.Unlock()
+	if n > 0 {
+		s.notifyDeleted()
+	}
+}
+
+func (s *Store) notifyDeleted() {
+	s.mu.Lock()
+	fn := s.onDelete
+	s.mu.Unlock()
+	if fn != nil {
+		fn()
+	}
 }
 
 // ValidCSRF compares the presented header to the session CSRF secret.

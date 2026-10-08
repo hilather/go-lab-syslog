@@ -19,7 +19,9 @@
   ignore that value. `state:validate` already rejected trailing JSON.
 - `GET /v1/events/stream` closes when the cookie session is gone or the
   bearer no longer grants `syslog.read`. Heartbeats and store events are
-  both checks. The stream does not slide the session idle timer.
+  both checks. Deleting a cookie session or replacing the verifier wakes
+  an idle stream to recheck immediately, instead of waiting for the next
+  heartbeat. The stream does not slide the session idle timer.
 - Reset that changes the effective management address, including
   turning management on or off, returns `validation_failed` before it
   listens. The snapshot, store, sessions, and idempotency map stay,
