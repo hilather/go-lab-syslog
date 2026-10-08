@@ -67,6 +67,138 @@ func TestViewDoesNotSlideAndDropsExpired(t *testing.T) {
 	}
 }
 
+func TestExpiryAndEvictionNotifyDeleted(t *testing.T) {
+	p := Principal{ID: "operator", Class: ClassToken, Role: RoleAdministrator, Scopes: DefaultScopes(RoleAdministrator)}
+	base := time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
+
+	type hit struct {
+		n    int
+		held bool
+	}
+	arm := func(s *Store) *hit {
+		h := &hit{}
+		s.OnDelete(func() {
+			if !s.mu.TryLock() {
+				h.held = true
+				return
+			}
+			s.mu.Unlock()
+			h.n++
+		})
+		return h
+	}
+	check := func(t *testing.T, h *hit) {
+		t.Helper()
+		if h.held {
+			t.Fatal("onDelete ran while the store lock was held")
+		}
+		if h.n != 1 {
+			t.Fatalf("notifications = %d, want 1", h.n)
+		}
+	}
+	newClocked := func(idle, absolute time.Duration, max int) (*Store, func(time.Duration)) {
+		s := NewStore(SessionConfig{Idle: idle, Absolute: absolute, Max: max})
+		clock := base
+		s.now = func() time.Time { return clock }
+		return s, func(d time.Duration) { clock = clock.Add(d) }
+	}
+	left := func(s *Store) int {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		return len(s.sessions)
+	}
+
+	t.Run("lookup idle", func(t *testing.T) {
+		s, advance := newClocked(time.Hour, 4*time.Hour, 4)
+		h := arm(s)
+		cookie, _, _, err := s.Create(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		advance(time.Hour + time.Second)
+		if _, _, ok := s.Lookup(cookie); ok {
+			t.Fatal("idle-expired session still present")
+		}
+		check(t, h)
+		if left(s) != 0 {
+			t.Fatalf("sessions left = %d", left(s))
+		}
+	})
+
+	t.Run("lookup absolute", func(t *testing.T) {
+		s, advance := newClocked(4*time.Hour, time.Hour, 4)
+		h := arm(s)
+		cookie, _, _, err := s.Create(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		advance(time.Hour + time.Second)
+		if _, _, ok := s.Lookup(cookie); ok {
+			t.Fatal("absolute-expired session still present")
+		}
+		check(t, h)
+	})
+
+	t.Run("view idle", func(t *testing.T) {
+		s, advance := newClocked(time.Hour, 4*time.Hour, 4)
+		h := arm(s)
+		cookie, _, _, err := s.Create(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		advance(time.Hour + time.Second)
+		if _, ok := s.View(cookie); ok {
+			t.Fatal("idle-expired session still visible")
+		}
+		check(t, h)
+	})
+
+	t.Run("validcsrf idle", func(t *testing.T) {
+		s, advance := newClocked(time.Hour, 4*time.Hour, 4)
+		h := arm(s)
+		cookie, csrf, _, err := s.Create(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		advance(time.Hour + time.Second)
+		if s.ValidCSRF(cookie, csrf) {
+			t.Fatal("idle-expired session still accepted csrf")
+		}
+		check(t, h)
+	})
+
+	t.Run("create expire", func(t *testing.T) {
+		s, advance := newClocked(time.Hour, 4*time.Hour, 4)
+		h := arm(s)
+		if _, _, _, err := s.Create(p); err != nil {
+			t.Fatal(err)
+		}
+		advance(time.Hour + time.Second)
+		if _, _, _, err := s.Create(p); err != nil {
+			t.Fatal(err)
+		}
+		check(t, h)
+		if left(s) != 1 {
+			t.Fatalf("sessions left = %d, want the new one", left(s))
+		}
+	})
+
+	t.Run("create evict", func(t *testing.T) {
+		s, _ := newClocked(time.Hour, 4*time.Hour, 1)
+		h := arm(s)
+		if _, _, _, err := s.Create(p); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, _, err := s.Create(p); err != nil {
+			t.Fatal(err)
+		}
+		check(t, h)
+		if left(s) != 1 {
+			t.Fatalf("sessions left = %d, want the new one", left(s))
+		}
+	})
+}
+
 func TestOriginAllowlist(t *testing.T) {
 	if err := CheckOrigin("", nil); err != nil {
 		t.Fatal(err)

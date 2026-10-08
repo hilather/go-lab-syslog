@@ -19,9 +19,11 @@
   ignore that value. `state:validate` already rejected trailing JSON.
 - `GET /v1/events/stream` closes when the cookie session is gone or the
   bearer no longer grants `syslog.read`. Heartbeats and store events are
-  both checks. Deleting a cookie session or replacing the verifier wakes
-  an idle stream to recheck immediately, instead of waiting for the next
-  heartbeat. The stream does not slide the session idle timer.
+  both checks. Deleting a cookie session, dropping one because it is
+  idle or past its absolute lifetime, evicting one when the session
+  table is full, or replacing the verifier wakes an idle stream to
+  recheck immediately, instead of waiting for the next heartbeat. The
+  stream does not slide the session idle timer.
 - Reset that changes the effective management address, including
   turning management on or off, returns `validation_failed` before it
   listens. The snapshot, store, sessions, and idempotency map stay,
@@ -36,10 +38,11 @@
 - `POST /v1/session` and `GET /v1/session` send `Cache-Control: no-store`,
   the same as logout.
 - Successful apply keeps at most 128 idempotency records and drops the
-  oldest completed record. Reset still clears the map. A dropped key is
-  not a replay. Resend the original expectedRevision: after the key is
-  dropped, a mismatch is `revision_mismatch` and is not applied, and
-  retaining every key would be unbounded.
+  oldest completed record. Reset still clears the map. A dropped key
+  whose request carries the original expectedRevision fails with
+  `revision_mismatch` and is not applied. A request whose
+  expectedRevision equals the live revision is applied as a new apply.
+  Retaining every key would be unbounded.
 - Raise `golang.org/x/sys` from v0.41.0 to v0.47.0, past advisory
   GO-2026-5024 (fixed in v0.44.0). govulncheck found it in a required
   module only; no LabSyslog code path called it.

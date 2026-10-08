@@ -53,7 +53,8 @@ type Service struct {
 	idemSeq uint64
 
 	// authWake is closed when Reset replaces the verifier or a cookie
-	// session is deleted. Idle event streams select on it.
+	// session is removed (delete, clear, expiry, or eviction).
+	// Idle event streams select on it.
 	authWake authWake
 }
 
@@ -181,9 +182,10 @@ func (s *Service) Verifier() *auth.Verifier {
 func (s *Service) Sessions() *auth.Store { return s.sessions }
 
 // AuthWake is closed when the verifier is replaced or a cookie session
-// is deleted. Subscribe again after each receive. Check authorization
-// after subscribe: a signal that already happened is then visible in
-// the credential, and a signal that happens later closes the channel.
+// is removed (delete, clear, expiry, or eviction). Subscribe again
+// after each receive. Check authorization after subscribe: a signal
+// that already happened is then visible in the credential, and a
+// signal that happens later closes the channel.
 func (s *Service) AuthWake() <-chan struct{} {
 	if s == nil {
 		return nil

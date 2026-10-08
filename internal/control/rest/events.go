@@ -47,6 +47,13 @@ func (s *Server) eventsStream(w http.ResponseWriter, r *http.Request) {
 		if !s.streamAuthorized(r) {
 			return
 		}
+		if s.streamParked != nil {
+			s.streamParked(recheck)
+		}
+		storeCh := ch
+		if s.ignoreStoreEvents {
+			storeCh = nil
+		}
 		select {
 		case <-r.Context().Done():
 			return
@@ -57,7 +64,7 @@ func (s *Server) eventsStream(w http.ResponseWriter, r *http.Request) {
 			_, _ = fmt.Fprint(w, ": heartbeat\n\n")
 			flush(flusher)
 		case <-recheck:
-		case ev, ok := <-ch:
+		case ev, ok := <-storeCh:
 			if !ok {
 				return
 			}

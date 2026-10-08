@@ -283,17 +283,33 @@ func TestIdleEventsStreamEndsWhenSessionDeleted(t *testing.T) {
 	assertIdleStreamEnded(t, readDone, mu, buf, "session delete")
 }
 
+// storeWatchBuffer is the per-subscriber queue in internal/store/watch.go.
+// Filling it while the stream is not receiving drops store.wiped.
+const storeWatchBuffer = 16
+
 // A quiet bearer stream must end when reset replaces the verifier, without
-// waiting for the heartbeat and without delivering a later store event.
+// waiting for the heartbeat and without a store event. The watch buffer
+// is filled first so store.wiped is dropped, and select is not reading
+// that channel: a waiting receive would take the event off a full buffer,
+// and any queued syslog.received would recheck auth on its own.
 func TestIdleEventsStreamEndsWhenBearerRevoked(t *testing.T) {
 	svc := newService(t, "")
 	if err := svc.Start(testutil.Context(t)); err != nil {
 		t.Fatal(err)
 	}
-	ts := idleServer(t, svc)
+	ts, arrived, release := newParkedIdleServer(t, svc, true)
 	streamResp, readDone, buf, mu := readStream(t, ts, setAuth)
 	defer streamResp.Body.Close()
+	waitParked(t, arrived)
 
+	for i := 0; i < storeWatchBuffer; i++ {
+		if _, err := svc.Messages().Insert(model.Message{
+			Transport: "udp",
+			Parsed:    model.Parsed{Message: "fill-watch"},
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
 	toks := svc.Snapshot().Document.Spec.Auth.Tokens
 	if len(toks) != 1 || toks[0].SecretFile == "" {
 		t.Fatalf("bootstrap token file missing: %+v", toks)
@@ -307,8 +323,67 @@ func TestIdleEventsStreamEndsWhenBearerRevoked(t *testing.T) {
 	if _, err := svc.Verifier().AuthenticateBearer(testBearerSecret); err == nil {
 		t.Fatal("revoked bearer still authenticates")
 	}
+	release()
 
 	assertIdleStreamEnded(t, readDone, mu, buf, "bearer revocation")
+}
+
+// A quiet cookie stream must end when an idle-expired session is removed
+// by a lookup, without waiting for the hour heartbeat.
+func TestIdleEventsStreamEndsWhenSessionExpires(t *testing.T) {
+	svc := newService(t, "")
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	clock := testutil.NewFakeClock(time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC))
+	svc.Sessions().SetNow(clock.Now)
+	ts, arrived, release := newParkedIdleServer(t, svc, true)
+	cookie, _ := loginCookie(t, ts)
+	streamResp, readDone, buf, mu := readStream(t, ts, func(req *http.Request) {
+		req.AddCookie(&http.Cookie{Name: auth.CookieName, Value: cookie})
+	})
+	defer streamResp.Body.Close()
+	waitParked(t, arrived)
+
+	clock.Advance(auth.DefaultSessionConfig().Idle + time.Second)
+	if _, _, ok := svc.Sessions().Lookup(cookie); ok {
+		t.Fatal("lookup kept the expired session")
+	}
+	release()
+
+	assertIdleStreamEnded(t, readDone, mu, buf, "session expiry")
+}
+
+// A quiet cookie stream must end when a full table evicts that session,
+// without waiting for the hour heartbeat.
+func TestIdleEventsStreamEndsWhenSessionEvicted(t *testing.T) {
+	svc := newService(t, "")
+	if err := svc.Start(testutil.Context(t)); err != nil {
+		t.Fatal(err)
+	}
+	clock := testutil.NewFakeClock(time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC))
+	svc.Sessions().SetNow(clock.Now)
+	ts, arrived, release := newParkedIdleServer(t, svc, true)
+	cookie, _ := loginCookie(t, ts)
+	streamResp, readDone, buf, mu := readStream(t, ts, func(req *http.Request) {
+		req.AddCookie(&http.Cookie{Name: auth.CookieName, Value: cookie})
+	})
+	defer streamResp.Body.Close()
+	waitParked(t, arrived)
+
+	clock.Advance(time.Second)
+	p := auth.Principal{ID: "operator", Class: auth.ClassToken, Role: auth.RoleAdministrator, Scopes: auth.DefaultScopes(auth.RoleAdministrator)}
+	for range auth.DefaultSessionConfig().Max {
+		if _, _, _, err := svc.Sessions().Create(p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, ok := svc.Sessions().View(cookie); ok {
+		t.Fatal("create did not evict the stream session")
+	}
+	release()
+
+	assertIdleStreamEnded(t, readDone, mu, buf, "session eviction")
 }
 
 // Deleting one cookie session must not close a bearer stream.
@@ -384,6 +459,70 @@ func idleServer(t *testing.T, svc *app.Service) *httptest.Server {
 	s := newServer(svc)
 	s.heartbeat = time.Hour
 	return newTestServer(t, s)
+}
+
+// newParkedIdleServer is an idle stream whose handler blocks after the
+// auth check and before select. arrived closes at that point. release
+// lets the handler enter select. ignoreStore keeps select off the store
+// watch so a dropped store.wiped cannot end the stream.
+func newParkedIdleServer(t *testing.T, svc *app.Service, ignoreStore bool) (*httptest.Server, <-chan struct{}, func()) {
+	t.Helper()
+	s := newServer(svc)
+	s.heartbeat = time.Hour
+	s.ignoreStoreEvents = ignoreStore
+	arrived := make(chan struct{})
+	releaseCh := make(chan struct{})
+	var parkOnce sync.Once
+	var releaseOnce sync.Once
+	release := func() {
+		releaseOnce.Do(func() { close(releaseCh) })
+	}
+	t.Cleanup(release)
+	s.streamParked = func(<-chan struct{}) {
+		parkOnce.Do(func() {
+			close(arrived)
+			<-releaseCh
+		})
+	}
+	return newTestServer(t, s), arrived, release
+}
+
+func waitParked(t *testing.T, arrived <-chan struct{}) {
+	t.Helper()
+	select {
+	case <-arrived:
+	case <-time.After(2 * time.Second):
+		t.Fatal("stream did not reach select")
+	}
+}
+
+func loginCookie(t *testing.T, ts *httptest.Server) (cookie, csrf string) {
+	t.Helper()
+	login, err := http.NewRequest(http.MethodPost, ts.URL+"/v1/session", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	setAuth(login)
+	loginResp, err := ts.Client().Do(login)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loginResp.Body.Close()
+	if loginResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(loginResp.Body)
+		t.Fatalf("login status %d body=%s", loginResp.StatusCode, b)
+	}
+	var sess struct {
+		CSRF string `json:"csrf"`
+	}
+	if err := json.NewDecoder(loginResp.Body).Decode(&sess); err != nil {
+		t.Fatal(err)
+	}
+	cookie = sessionCookie(loginResp)
+	if cookie == "" || sess.CSRF == "" {
+		t.Fatal("missing cookie or csrf")
+	}
+	return cookie, sess.CSRF
 }
 
 func openIdleCookieStream(t *testing.T) (*httptest.Server, string, string) {

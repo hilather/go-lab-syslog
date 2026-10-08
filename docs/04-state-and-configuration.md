@@ -212,9 +212,10 @@ header (REST) or `idempotencyKey` argument (MCP). Duplicate key +
 identical body returns the original result. The fingerprint is that
 body only. Successful apply keeps at most 128 idempotency records and
 drops the oldest completed record. Reset clears the map. A dropped key
-is not a replay. Resend the original expectedRevision: after the key is
-dropped, a mismatch is `revision_mismatch` and is not applied, and
-retaining every key would be unbounded.
+whose request carries the original expectedRevision fails with
+`revision_mismatch` and is not applied. A request whose
+expectedRevision equals the live revision is applied as a new apply.
+Retaining every key would be unbounded.
 
 ## Reset
 

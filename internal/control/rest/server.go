@@ -24,6 +24,14 @@ type Server struct {
 	heartbeat time.Duration
 	ui        http.Handler
 	uiEnabled func() bool
+	// streamParked, when set, runs after a successful auth check and
+	// before select. Tests block there so a revocation lands after the
+	// wake channel is captured and before the handler is in select.
+	streamParked func(<-chan struct{})
+	// ignoreStoreEvents keeps select off the store watch. Tests fill
+	// that buffer so store.wiped is dropped, and still require the auth
+	// wake to end an idle stream.
+	ignoreStoreEvents bool
 }
 
 // Options is cmd/labsyslog wiring. rest must not import internal/web.
