@@ -387,6 +387,14 @@ func (s *Service) bindLocked(ctx context.Context, snap *snapshot.Snapshot) error
 	tcpOn, tcpAddr := listenerOn(spec.Listeners.TCP.Enabled, spec.Listeners.TCP.Address)
 	mgmtAddr := spec.Listeners.Management.Address
 	mgmtOn := mgmtAddr != ""
+	// The management socket is process-lifetime. cmd/labsyslog serves the
+	// listener from Start once, and this package cannot mount HTTP on a
+	// replacement (ADR 0013). Compare the effective address, after
+	// --management-listen, and do this before any Listen.
+	if s.started && s.mgmtAddr != mgmtAddr {
+		return domainerr.New(domainerr.ValidationFailed,
+			"listeners.management.address change requires a process restart")
+	}
 
 	if !udpOn && !tcpOn {
 		return domainerr.New(domainerr.ValidationFailed, "no data-plane listener enabled")

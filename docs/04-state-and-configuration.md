@@ -47,12 +47,17 @@ binary units (`64KiB`, `256MiB`) parsed by `internal/config`.
 | `tls.keyFile` | empty | v1.1 placeholder; ignored while `enabled` is false |
 | `tls.caFile` | empty | v1.1 placeholder; ignored while `enabled` is false |
 | `tls.clientAuth` | false | v1.1 placeholder; ignored while `enabled` is false |
-| `management.address` | empty | empty means management off unless CLI flag set |
+| `management.address` | empty | empty means management off unless CLI flag set. Once `Start` has bound it, the effective address is fixed for the process lifetime (ADR 0013) |
 | `management.restPath` | `/v1` | |
 | `management.mcpPath` | `/mcp` | |
 
-Listener addresses are **reset-only**. `changes:apply` that tries to
-change them returns `immutable_field`.
+UDP and TCP addresses are **reset-only**. `changes:apply` that tries to
+change them returns `immutable_field`, and reset rebinds them. The
+effective `listeners.management.address` is fixed for the process
+lifetime once `Start` has bound it. Reset refuses a change with
+`validation_failed`, does not swap or wipe, and the previous socket
+keeps serving. A stable `--management-listen`, including `off`, still
+wins over the YAML address.
 
 ### spec.auth
 
@@ -164,18 +169,20 @@ revision. Unknown fields exit 2.
 
 | Live via plan/apply | Reset-only |
 |---|---|
-| store caps, fullPolicy, maxWait, rawRetain | listener addresses, enabled flags, `tcp.framing` |
+| store caps, fullPolicy, maxWait, rawRetain | UDP and TCP listener addresses, enabled flags, `tcp.framing` |
 | filters replace | auth.mode, token files |
 | admission rate caps and CIDRs | tls block |
-| syslog.parse, maxMessageBytes, behavior.mode | ui.enabled, management.address, restPath, mcpPath |
+| syslog.parse, maxMessageBytes, behavior.mode | ui.enabled, restPath, mcpPath. Effective `management.address` is process-lifetime after Start (ADR 0013) |
 | observability.logLevel | `management.bodyLimit`, `requestsPerSecond`, `burst`, `maxConcurrent`, `allowedOrigins`, `mcp.allowLegacyClients` |
 | | `syslog.hostname`, `udpMaxDatagramBytes`, `tcpIdleTimeout` |
 | | `observability.metrics.publicPath`, `observability.audit.ring` |
 
 Unspecified fields are reset-only. Reset-only fields in a plan produce
 operation `replaceListeners` which is rejected with `immutable_field`
-unless the plan is a reset. Do not add live operations for HTTP limits
-or hostname (C30).
+unless the plan is a reset. UDP and TCP stay reset-rebind. Once `Start`
+has bound management, a reset that changes the effective management
+address is refused with `validation_failed` and does not swap, wipe, or
+rebind. Do not add live operations for HTTP limits or hostname (C30).
 
 ## Plan / apply
 
@@ -209,8 +216,15 @@ identical body returns the original result.
 1. Re-read bootstrap path.
 2. Compile. On failure, keep the live snapshot and return
    `bootstrap_invalid` (do not bind-break a running server).
-3. Swap snapshot.
-4. Wipe store.
-5. Audit `state.reset`.
+3. If `Start` has already bound management, refuse an effective
+   `listeners.management.address` change with `validation_failed`.
+   Do not swap, wipe, or rebind. The previous socket keeps serving.
+   Moving management requires a process restart. A stable
+   `--management-listen`, including `off`, still wins over the YAML
+   address. UDP and TCP still rebind when that management address
+   string is unchanged.
+4. Swap snapshot.
+5. Wipe store.
+6. Audit `state.reset`.
 
 CLI `--config` path is the bootstrap path. There is no second file.

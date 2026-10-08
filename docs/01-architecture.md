@@ -47,6 +47,9 @@ Lifecycle:
 2. Bind UDP if `spec.listeners.udp.enabled` (default true).
 3. Bind TCP if `spec.listeners.tcp.enabled` (default true).
 4. Bind management if `--management-listen` / `spec.listeners.management.address` is set.
+   Reset does not move a management socket that is already bound.
+   A change to the effective management address is `validation_failed`
+   until the process restarts (ADR 0013). UDP and TCP still rebind on reset.
 5. Write PID file if requested.
 6. On `SIGTERM`/`SIGINT`: stop accept, drain TCP sessions up to
    `--shutdown-timeout` (default 5s), stop HTTP, wipe store, exit 0.

@@ -14,5 +14,6 @@
 | [0010](0010-container-514-net-bind-service.md) | Container `:514` + NET_BIND_SERVICE |
 | [0011](0011-no-outbound-forward.md) | No outbound forward (Accepted) |
 | [0012](0012-tls-is-1-1.md) | RFC 5425 TLS is v1.1 |
+| [0013](0013-management-listener-process-lifetime.md) | Management listener is process-lifetime |
 
 ADR 0011 is Accepted. Do not invent a second 0011.

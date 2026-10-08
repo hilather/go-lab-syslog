@@ -15,6 +15,12 @@
 - `GET /v1/events/stream` closes when the cookie session is gone or the
   bearer no longer grants `syslog.read`. Heartbeats and store events are
   both checks. The stream does not slide the session idle timer.
+- Reset that changes the effective management address returns
+  `validation_failed` and leaves the HTTP listener, snapshot, store,
+  sessions, and idempotency map in place. UDP and TCP still rebind
+  when that address string is unchanged. Moving management requires a
+  process restart. A stable `--management-listen`, including `off`,
+  still wins over the YAML address.
 
 ## [1.0.0-rc.1] - 2026-09-05
 
