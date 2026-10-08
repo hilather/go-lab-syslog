@@ -44,9 +44,9 @@ Everything else requires bearer or a valid session cookie.
 | GET | `/v1/audit` | `syslog.audit.read` | ring, newest first |
 | GET | `/v1/audit/{id}` | `syslog.audit.read` | |
 | GET | `/v1/events/stream` | `syslog.read` | SSE: `syslog.received`, `syslog.deleted`, `store.wiped`; heartbeat 15s. Authorization is rechecked on each event and heartbeat; failure ends the stream and does not slide the session idle timer. Wait and SSE hold a `maxConcurrent` slot; `GET /v1/health/live` and `GET /v1/health/ready` do not. |
-| POST | `/v1/session` | bearer | sets `labsyslog_session`; returns `csrf` |
-| GET | `/v1/session` | cookie/bearer | |
-| DELETE | `/v1/session` | cookie/bearer | CSRF when cookie |
+| POST | `/v1/session` | bearer | sets `labsyslog_session`; returns `csrf`; `Cache-Control: no-store` |
+| GET | `/v1/session` | cookie/bearer | `Cache-Control: no-store` |
+| DELETE | `/v1/session` | cookie/bearer | CSRF when cookie; `Cache-Control: no-store` |
 | GET | `/v1/metrics` | publicPath true: unauthenticated scrape; false: 404 even with auth | Hand-rolled OpenMetrics (`api/metrics/v1alpha1.json`). No `metrics.listen`. |
 | GET | `/` | — | Operator SPA when `spec.ui.enabled`; 404 problem+json when disabled. Wired from `cmd/labsyslog`, not from rest. |
 

@@ -38,6 +38,8 @@ in AGENTS.md are rejected at decode.
 - `GET /v1/events/stream` rechecks the cookie session or bearer on
   each event and heartbeat and closes when `syslog.read` is gone.
   The stream does not slide the session idle timer.
+- `POST /v1/session` and `GET /v1/session` send `Cache-Control: no-store`,
+  the same as logout. Responses that carry `csrf` are not cacheable.
 
 ## Origin
 

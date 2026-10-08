@@ -21,6 +21,8 @@
   when that address string is unchanged. Moving management requires a
   process restart. A stable `--management-listen`, including `off`,
   still wins over the YAML address.
+- `POST /v1/session` and `GET /v1/session` send `Cache-Control: no-store`,
+  the same as logout.
 
 ## [1.0.0-rc.1] - 2026-09-05
 
