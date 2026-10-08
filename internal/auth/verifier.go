@@ -143,26 +143,12 @@ func (v *Verifier) Authenticate(in Request) (Principal, error) {
 }
 
 // AuthenticateBearer looks up a raw token secret (mcp-stdio --token-file).
+// The error never includes the secret.
 func (v *Verifier) AuthenticateBearer(secret string) (Principal, error) {
 	if v == nil {
 		return Principal{}, domainerr.New(domainerr.Unauthorized, "authentication required")
 	}
 	return v.lookupBearer(strings.TrimSpace(secret))
-}
-
-// PrincipalByID returns the live principal for a token id. This is an id
-// compare, not a secret compare. A nil verifier or an unknown id returns false.
-// The scope slice is a copy.
-func (v *Verifier) PrincipalByID(id string) (Principal, bool) {
-	if v == nil {
-		return Principal{}, false
-	}
-	for _, t := range v.tokens {
-		if t.id == id {
-			return principalOf(t), true
-		}
-	}
-	return Principal{}, false
 }
 
 func (v *Verifier) lookupBearer(secret string) (Principal, error) {

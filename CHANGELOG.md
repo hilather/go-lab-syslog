@@ -8,9 +8,10 @@
 
 ### Fixed
 
-- `labsyslog mcp-stdio` resolves its startup token id through the live
-  verifier on every tool and resource call. Removing that id on reset
-  makes later calls `unauthorized`. Demoting the role uses the live
+- `labsyslog mcp-stdio` re-authenticates the bearer read from
+  `--token-file` at process start on every tool and resource call.
+  Rotating that secret under the same token id revokes the process.
+  Removing the id is `unauthorized`. Demoting the role uses the live
   scopes.
 - REST `changes:plan`, `changes:apply`, `state:reset`, `messages:clear`,
   and `messages:wait` reject a second JSON value before the operation.

@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,8 +18,9 @@ import (
 )
 
 // openStdioSession authenticates the admin token once, the way
-// `labsyslog mcp-stdio` does, and keeps that principal on the server.
-// rewrite replaces the auth.tokens block and is meant to be followed by Reset.
+// `labsyslog mcp-stdio` does, and keeps that startup secret on the server.
+// Later calls re-authenticate it. rewrite replaces the auth.tokens block
+// and is meant to be followed by Reset.
 func openStdioSession(t *testing.T) (svc *app.Service, session *sdk.ClientSession, adminTok string, rewrite func(tokens string)) {
 	t.Helper()
 	dir := t.TempDir()
@@ -81,6 +83,7 @@ spec:
 		Service:            svc,
 		AllowLegacyClients: true,
 		FixedPrincipal:     &principal,
+		StdioSecret:        testBearerSecret,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -102,7 +105,7 @@ spec:
 
 // Removing the startup token id on reset must drop the captured
 // administrator grant before another mutation or read is accepted.
-func TestStdioPrincipalLosesAdminAfterTokenRotation(t *testing.T) {
+func TestStdioPrincipalLosesAdminAfterTokenRemoval(t *testing.T) {
 	svc, session, _, rewrite := openStdioSession(t)
 	dir := t.TempDir()
 	readerTok := filepath.Join(dir, "reader.token")
@@ -113,7 +116,7 @@ func TestStdioPrincipalLosesAdminAfterTokenRotation(t *testing.T) {
 	rewrite("      - id: reader\n        role: reader\n        secretFile: " + readerTok + "\n")
 
 	ctx := testutil.Context(t)
-	if err := svc.Reset(ctx, "operator", "rotate token"); err != nil {
+	if err := svc.Reset(ctx, "operator", "remove token"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := svc.Verifier().AuthenticateBearer(testBearerSecret); err == nil {
@@ -172,5 +175,136 @@ func TestStdioPrincipalUsesLiveScopesAfterDemotion(t *testing.T) {
 	status := callTool(t, session, "syslog_status_get", map[string]any{})
 	if status.IsError {
 		t.Fatalf("syslog_status_get failed for the live reader: %v", status)
+	}
+}
+
+// Replacing the secret under the same token id must revoke the process
+// that started with the old secret. The id is still administrator.
+func TestStdioPrincipalLosesAccessAfterSameIDSecretRotation(t *testing.T) {
+	svc, session, _, rewrite := openStdioSession(t)
+	dir := t.TempDir()
+	newTok := filepath.Join(dir, "new.token")
+	newSecret := strings.Repeat("n", auth.MinTokenBytes)
+	if err := os.WriteFile(newTok, []byte(newSecret), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	rewrite("      - id: operator\n        role: administrator\n        secretFile: " + newTok + "\n")
+
+	ctx := testutil.Context(t)
+	if err := svc.Reset(ctx, "operator", "rotate secret same id"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Verifier().AuthenticateBearer(testBearerSecret); err == nil {
+		t.Fatal("rotated-out secret still authenticates")
+	}
+	if _, err := svc.Verifier().AuthenticateBearer(newSecret); err != nil {
+		t.Fatal("replacement secret does not authenticate")
+	}
+	if _, err := svc.Messages().Insert(model.Message{Transport: "udp", Parsed: model.Parsed{Message: "kept"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	res := callTool(t, session, "syslog_messages_clear", map[string]any{"reason": "after same-id rotation"})
+	if !res.IsError {
+		t.Fatalf("syslog_messages_clear succeeded with the rotated-out secret (same id); store messages=%d", svc.Messages().Stats().Messages)
+	}
+	if code := domainCode(t, res); code != "unauthorized" {
+		t.Fatalf("domainCode = %s, want unauthorized", code)
+	}
+	if got := svc.Messages().Stats().Messages; got != 1 {
+		t.Fatalf("stdio clear changed the store to %d messages after same-id secret rotation", got)
+	}
+
+	_, err := session.ReadResource(ctx, &sdk.ReadResourceParams{URI: "labsyslog://status"})
+	if err == nil {
+		t.Fatal("labsyslog://status read succeeded with the rotated-out secret")
+	}
+	var rpc *jsonrpc.Error
+	if !errors.As(err, &rpc) || !strings.Contains(string(rpc.Data), `"code":"unauthorized"`) {
+		t.Fatalf("labsyslog://status read error = %v, want unauthorized", err)
+	}
+}
+
+// Putting the original secret back under the same id restores the process
+// that still holds that secret.
+func TestStdioPrincipalRegainsAccessWhenOriginalSecretIsRestored(t *testing.T) {
+	svc, session, adminTok, rewrite := openStdioSession(t)
+	dir := t.TempDir()
+	newTok := filepath.Join(dir, "new.token")
+	newSecret := strings.Repeat("n", auth.MinTokenBytes)
+	if err := os.WriteFile(newTok, []byte(newSecret), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	rewrite("      - id: operator\n        role: administrator\n        secretFile: " + newTok + "\n")
+
+	ctx := testutil.Context(t)
+	if err := svc.Reset(ctx, "operator", "rotate secret same id"); err != nil {
+		t.Fatal(err)
+	}
+	res := callTool(t, session, "syslog_messages_clear", map[string]any{"reason": "while rotated out"})
+	if !res.IsError {
+		t.Fatal("syslog_messages_clear succeeded while the startup secret was rotated out")
+	}
+	if code := domainCode(t, res); code != "unauthorized" {
+		t.Fatalf("domainCode = %s, want unauthorized", code)
+	}
+
+	rewrite("      - id: operator\n        role: administrator\n        secretFile: " + adminTok + "\n")
+	if err := svc.Reset(ctx, "operator", "restore original secret"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Verifier().AuthenticateBearer(testBearerSecret); err != nil {
+		t.Fatal("restored secret does not authenticate")
+	}
+	if _, err := svc.Messages().Insert(model.Message{Transport: "udp", Parsed: model.Parsed{Message: "kept"}}); err != nil {
+		t.Fatal(err)
+	}
+	res = callTool(t, session, "syslog_messages_clear", map[string]any{"reason": "after restore"})
+	if res.IsError {
+		t.Fatalf("syslog_messages_clear failed after the original secret was restored: code %s", domainCode(t, res))
+	}
+	if got := svc.Messages().Stats().Messages; got != 0 {
+		t.Fatalf("stdio clear left %d messages after the original secret was restored", got)
+	}
+}
+
+func TestNewRejectsFixedPrincipalWithoutStdioSecret(t *testing.T) {
+	svc := newService(t, "")
+	p, err := svc.Verifier().AuthenticateBearer(testBearerSecret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = New(Config{
+		Service:        svc,
+		FixedPrincipal: &p,
+	})
+	if err == nil {
+		t.Fatal("New accepted FixedPrincipal without StdioSecret")
+	}
+}
+
+func TestConfigStringOmitsStdioSecret(t *testing.T) {
+	cfg := Config{StdioSecret: testBearerSecret, FixedPrincipal: &auth.Principal{ID: "operator"}}
+	formatted := []string{
+		cfg.String(),
+		cfg.GoString(),
+		fmt.Sprintf("%v", cfg),
+		fmt.Sprintf("%+v", cfg),
+		fmt.Sprintf("%#v", cfg),
+	}
+	for _, got := range formatted {
+		if strings.Contains(got, testBearerSecret) {
+			t.Fatal("config formatting included the stdio secret")
+		}
+	}
+}
+
+func TestNewRejectsStdioSecretWithoutVerifier(t *testing.T) {
+	_, err := New(Config{Service: &app.Service{}, StdioSecret: testBearerSecret})
+	if err == nil {
+		t.Fatal("New accepted StdioSecret without a verifier")
+	}
+	if strings.Contains(err.Error(), testBearerSecret) {
+		t.Fatal("New error included the stdio secret")
 	}
 }

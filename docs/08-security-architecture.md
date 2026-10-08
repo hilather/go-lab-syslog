@@ -32,9 +32,10 @@ in AGENTS.md are rejected at decode.
 - Tokens are never written to `localStorage` by the SPA.
 - Management bind with zero usable tokens fail-closes. Management
   REST is unusable without a valid token when `auth.mode=bearer`.
-- `labsyslog mcp-stdio` re-resolves its startup token id through the
-  live verifier on every tool and resource call. Scopes copied at
-  process start are not reused.
+- `labsyslog mcp-stdio` re-authenticates the bearer read from
+  `--token-file` at process start on every tool and resource call.
+  Scopes copied at process start are not reused. Rotating that secret
+  under the same token id revokes the process.
 - `GET /v1/events/stream` rechecks the cookie session or bearer on
   each event and heartbeat and closes when `syslog.read` is gone.
   The stream does not slide the session idle timer.
