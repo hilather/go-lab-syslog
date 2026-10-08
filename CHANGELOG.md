@@ -37,7 +37,9 @@
   the same as logout.
 - Successful apply keeps at most 128 idempotency records and drops the
   oldest completed record. Reset still clears the map. A dropped key is
-  not a replay.
+  not a replay. Resend the original expectedRevision: after the key is
+  dropped, a mismatch is `revision_mismatch` and is not applied, and
+  retaining every key would be unbounded.
 - Raise `golang.org/x/sys` from v0.41.0 to v0.47.0, past advisory
   GO-2026-5024 (fixed in v0.44.0). govulncheck found it in a required
   module only; no LabSyslog code path called it.
