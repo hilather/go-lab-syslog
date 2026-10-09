@@ -5,7 +5,7 @@
 # Product YAML binds :514 (SWAP-001 / integrator compose). This image never
 # runs as root. Smoke in this repo binds :1514 and does not add NET_BIND_SERVICE.
 
-FROM golang:1.26.8-alpine AS build
+FROM golang:1.26.9-alpine AS build
 WORKDIR /src
 
 RUN apk add --no-cache ca-certificates tzdata
