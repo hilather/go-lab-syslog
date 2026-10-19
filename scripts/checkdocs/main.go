@@ -36,6 +36,7 @@ var RequiredRootDocs = []string{
 	"docs/11-deployment.md",
 	"docs/12-web-ui.md",
 	"docs/reviews/mira-ui-001.md",
+	"docs/releases/v1.0.0-rc.2.md",
 	"docs/releases/v1.0.0-rc.1.md",
 	"docs/13-integration-lab-swap.md",
 	"docs/implementation-design.md",
