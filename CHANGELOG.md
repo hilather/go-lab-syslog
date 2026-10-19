@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.0.0-rc.2] - 2026-10-19
+
+Security and toolchain fixes since `v1.0.0-rc.1`. Mira review of
+UI-001 still gates `v1.0.0`, not this RC.
+
 ### Changed
 
 - Go toolchain pinned to go1.26.9 (go.mod `toolchain`, CI `GO_VERSION`, Dockerfile); 1.26.0–1.26.8 lack current stdlib security fixes (GO-2026-6603..6617).
