@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.0.0-rc.3] - 2026-10-26
+
+Go toolchain go1.26.10 (GO-2026-6809) since `v1.0.0-rc.2`. Mira review of
+UI-001 still gates `v1.0.0`, not this RC.
+
 ### Changed
 
 - Go toolchain 1.26.9 → 1.26.10 (`go.mod` toolchain, CI `GO_VERSION`, Dockerfile `golang:1.26.10-alpine`); 1.26.9 lacks the crypto/x509 fix for GO-2026-6809.
