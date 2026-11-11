@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Go toolchain 1.26.10 → 1.26.11 (`go.mod` toolchain, CI `GO_VERSION`, Dockerfile `golang:1.26.11-alpine`); go1.26.11 includes security fixes to cgo, the go command, the compiler, the linker and net/http.
+
 ## [1.0.0-rc.3] - 2026-10-26
 
 Go toolchain go1.26.10 (GO-2026-6809) since `v1.0.0-rc.2`. Mira review of
